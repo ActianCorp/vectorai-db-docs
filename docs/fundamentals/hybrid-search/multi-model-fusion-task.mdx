@@ -1,0 +1,141 @@
+---
+title: "Multi-model fusion"
+description: "Combine search results from multiple embedding models using fusion."
+icon: "code"
+---
+
+Multi-model fusion runs the same query through multiple embedding models and fuses the results into a single ranking. Different embedding models capture different aspects of semantic meaning, and combining their results produces more comprehensive retrieval than any single model alone.
+
+This code example creates a collection, inserts 100 sample documents, and generates three separate query embeddings to simulate different models. It searches with each embedding, then fuses all three result sets using RRF to produce a single combined ranking.
+
+<Note>
+In production, replace the simulated embeddings with actual embedding model outputs. The example below uses random vectors as placeholders for models like OpenAI text-embedding-3-small, Cohere embed-multilingual-v3.0, and sentence-transformers/all-MiniLM-L6-v2.
+</Note>
+
+<CodeGroup>
+```python Python
+import asyncio
+import random
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, PointStruct, reciprocal_rank_fusion
+
+COLLECTION = "articles"
+DIMENSION = 128
+
+async def main():
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Create collection if it doesn't exist
+        if not await client.collections.exists(COLLECTION):
+            await client.collections.create(
+                COLLECTION,
+                vectors_config=VectorParams(size=DIMENSION, distance=Distance.Cosine)
+            )
+
+            # Insert sample points
+            points = [
+                PointStruct(
+                    id=i,
+                    vector=[random.gauss(0, 1) for _ in range(DIMENSION)],
+                    payload={"text": f"Article {i}"}
+                )
+                for i in range(1, 101)
+            ]
+            await client.points.upsert(COLLECTION, points)
+            print(f"✓ Inserted {len(points)} points")
+
+        # Simulate embeddings from different models
+        # In practice, use actual embedding models like:
+        # - OpenAI text-embedding-3-small
+        # - Cohere embed-multilingual-v3.0
+        # - sentence-transformers/all-MiniLM-L6-v2
+
+        openai_embedding = [random.gauss(0, 1) for _ in range(DIMENSION)]
+        cohere_embedding = [random.gauss(0.2, 0.9) for _ in range(DIMENSION)]
+        sentence_transformer_embedding = [random.gauss(-0.1, 1.1) for _ in range(DIMENSION)]
+
+        # Search with each model
+        results = []
+        for embedding in [openai_embedding, cohere_embedding, sentence_transformer_embedding]:
+            result = await client.points.search(
+                COLLECTION,
+                vector=embedding,
+                limit=15
+            )
+            results.append(result)
+
+        # Fuse all results
+        final_results = reciprocal_rank_fusion(results, ranking_constant_k=60, limit=10)
+
+        print(f"Combined results from 3 embedding models: {len(final_results)} unique documents")
+        for i, point in enumerate(final_results[:5], 1):
+            print(f"{i}. ID: {point.id}, Score: {point.score:.4f}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient, reciprocalRankFusion } from '@actian/cortex-client';
+
+const COLLECTION = "articles";
+const DIMENSION = 128;
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    // Create collection if it doesn't exist
+    await client.collections.create(COLLECTION, {
+        dimension: DIMENSION,
+        distanceMetric: 'COSINE'
+    });
+
+    // Insert sample points
+    const points = Array.from({ length: 100 }, (_, i) => ({
+        id: i + 1,
+        vector: Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1),
+        payload: { text: `Article ${i + 1}` }
+    }));
+    await client.points.upsert(COLLECTION, points, { wait: true });
+    console.log(`Inserted ${points.length} points`);
+
+    // Simulate embeddings from different models
+    // In practice, use actual embedding models like:
+    // - OpenAI text-embedding-3-small
+    // - Cohere embed-multilingual-v3.0
+    // - sentence-transformers/all-MiniLM-L6-v2
+
+    const openaiEmbedding = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+    const cohereEmbedding = Array.from({ length: DIMENSION }, () => (Math.random() * 2 - 1) * 0.9 + 0.2);
+    const sentenceTransformerEmbedding = Array.from({ length: DIMENSION }, () => (Math.random() * 2 - 1) * 1.1 - 0.1);
+
+    // Search with each model
+    const results = [];
+    for (const embedding of [openaiEmbedding, cohereEmbedding, sentenceTransformerEmbedding]) {
+        const result = await client.points.search(COLLECTION, embedding, {
+            limit: 15
+        });
+        results.push(result);
+    }
+
+    // Fuse all results
+    const finalResults = reciprocalRankFusion(results, { k: 60, limit: 10 });
+
+    console.log(`Combined results from 3 embedding models: ${finalResults.length} unique documents`);
+    finalResults.slice(0, 5).forEach((point, i) => {
+        console.log(`${i + 1}. ID: ${point.id}, Score: ${point.score.toFixed(4)}`);
+    });
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each fused result includes these fields:
+
+- `id`: The unique identifier of the matching point
+- `score`: Fused score combining rank positions from all three model searches
+- `payload`: Metadata object from the matching point
+
+Multi-model fusion provides these advantages:
+
+- Different models capture complementary semantic signals
+- Results that rank highly across multiple models are more likely to be relevant
+- Reduces the risk of missing relevant documents that one model ranks poorly

@@ -1,0 +1,1421 @@
+openapi: 3.0.3
+info:
+  title: Actian VectorAI DB - Points API
+  description: Point CRUD operations for VectorAI DB.
+  version: 1.0.0
+  contact:
+    name: Actian Corporation
+    url: https://www.actian.com
+
+servers:
+  - url: http://localhost:50052
+    description: Local development server (REST API)
+  - url: https://api.vectorai.actian.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Points
+    description: Point data operations
+
+paths:
+  /collections/{collection_name}/points:
+    put:
+      tags:
+        - Points
+      summary: Upsert points
+      description: |
+        Insert or update points in a collection. If a point with the given ID already exists, it is overwritten. All points in the request are inserted or updated atomically.
+      operationId: upsert_points
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+          example: my_collection
+          description: The name of the collection to upsert points into.
+        - name: wait
+          in: query
+          description: If `true`, the request blocks until all points are indexed. If `false`, returns immediately and indexing continues in the background. Defaults to `true`.
+          required: false
+          schema:
+            type: boolean
+            default: true
+            example: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - points
+              properties:
+                points:
+                  type: array
+                  description: Array of point objects to insert or update.
+                  items:
+                    type: object
+                    required:
+                      - id
+                      - vector
+                    properties:
+                      id:
+                        oneOf:
+                          - type: integer
+                          - type: string
+                        example: 1
+                        description: Unique identifier for the point. Accepts an integer or a UUID string.
+                      vector:
+                        type: array
+                        items:
+                          type: number
+                        example: [0.1, 0.2, 0.3]
+                        description: The dense vector embedding for this point. The number of dimensions must match the collection's configured vector size.
+                      payload:
+                        type: object
+                        example: { "category": "A", "value": 100 }
+                        description: Optional JSON metadata associated with the point. Can contain any valid JSON object with nested fields.
+            examples:
+              batch_upsert:
+                summary: Batch upsert
+                value:
+                  points:
+                    - id: 1
+                      vector: [0.1, 0.2, 0.3, 0.4]
+                      payload: { "category": "A", "value": 10 }
+                    - id: 2
+                      vector: [0.5, 0.6, 0.7, 0.8]
+                      payload: { "category": "B", "value": 20 }
+      responses:
+        "200":
+          description: Points upserted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    description: Resource usage information for this request.
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.058295368
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status. Returns `ok` on success.
+                  result:
+                    type: object
+                    description: Operation result containing the status of the upsert.
+                    properties:
+                      operation_id:
+                        type: integer
+                        example: 0
+                        description: Unique identifier for the operation.
+                      status:
+                        type: string
+                        example: "Completed"
+                        description: Status of the operation. Returns `Completed` when the operation finishes successfully.
+              example:
+                usage:
+                  hardware: null
+                time: 0.058295368
+                status: "ok"
+                result:
+                  operation_id: 0
+                  status: "Completed"
+        "4XX":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      x-codeSamples:
+        - lang: Python
+          label: Batch upsert
+          source: |
+            from actian_vectorai import VectorAIClient, PointStruct
+            import random
+
+            with VectorAIClient("localhost:50051") as client:
+                # Batch upsert multiple points
+                points = [
+                    PointStruct(
+                        id=i,
+                        vector=[random.gauss(0, 1) for _ in range(32)],
+                        payload={"category": ["A", "B", "C"][i % 3], "value": i * 10}
+                    )
+                    for i in range(1, 21)
+                ]
+                result = client.points.upsert("my_collection", points)
+                print(f"✓ Upserted {len(points)} points")
+        - lang: Python
+          label: Single point
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Upsert single point (convenience method)
+                result = client.points.upsert_single(
+                    "my_collection",
+                    id=100,
+                    vector=[0.1, 0.2, 0.3, 0.4],
+                    payload={"category": "special"}
+                )
+                print(f"✓ Upserted point 100")
+        - lang: JavaScript
+          label: Batch upsert
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            await client.points.upsert('my_collection', [
+                { id: 1, vector: [0.1, 0.2, 0.3, 0.4], payload: { category: 'A', value: 10 } },
+                { id: 2, vector: [0.5, 0.6, 0.7, 0.8], payload: { category: 'B', value: 20 } },
+            ], { wait: true });
+            console.log('Upserted 2 points');
+
+            client.close();
+        - lang: cURL
+          label: Upsert points
+          source: |
+            curl -X PUT "http://localhost:50052/collections/my_collection/points" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "points": [
+                  {
+                    "id": 1,
+                    "vector": [0.1, 0.2, 0.3, 0.4],
+                    "payload": {"category": "A", "value": 10}
+                  },
+                  {
+                    "id": 2,
+                    "vector": [0.5, 0.6, 0.7, 0.8],
+                    "payload": {"category": "B", "value": 20}
+                  }
+                ]
+              }'
+
+    post:
+      tags:
+        - Points
+      summary: Get points by IDs
+      description: Retrieve multiple points by their IDs. Returns the matching points with their vectors and payloads based on the request parameters.
+      operationId: get_points
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: my_collection
+          description: The name of the collection to retrieve points from.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ids
+              properties:
+                ids:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: integer
+                      - type: string
+                  example: [1, 2, 3]
+                  description: List of point IDs to retrieve.
+                with_payload:
+                  type: boolean
+                  default: true
+                  example: true
+                  description: Whether to include payload data in the response.
+                with_vectors:
+                  type: boolean
+                  default: true
+                  example: true
+                  description: Whether to include vector data in the response.
+            examples:
+              get_with_all:
+                summary: Get with vectors and payload
+                value:
+                  ids: [1, 2, 3]
+                  with_payload: true
+                  with_vectors: true
+              get_payload_only:
+                summary: Get payload only
+                value:
+                  ids: [1, 2, 3]
+                  with_payload: true
+                  with_vectors: false
+      responses:
+        "200":
+          description: Points retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    description: Resource usage information for this request.
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.000159851
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status. Returns `ok` on success.
+                  result:
+                    type: array
+                    description: Array of matching points.
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          oneOf:
+                            - type: integer
+                            - type: string
+                          example: 1
+                          description: The point's unique identifier.
+                        payload:
+                          type: object
+                          nullable: true
+                          example: {"category": "electronics", "price": 299.99}
+                          description: JSON payload metadata associated with the point, or `null` if `with_payload` is `false`.
+                        vector:
+                          type: array
+                          nullable: true
+                          example: null
+                          description: The vector embedding for the point, or `null` if `with_vectors` is `false`.
+              example:
+                usage:
+                  hardware: null
+                time: 0.000159851
+                status: "ok"
+                result:
+                  - id: 1
+                    payload: "{\"category\":\"electronics\",\"price\":299.99}"
+                    vector: null
+                  - id: 2
+                    payload: "{\"category\":\"books\",\"price\":19.99}"
+                    vector: null
+                  - id: 3
+                    payload: "{\"category\":\"electronics\",\"price\":149.99}"
+                    vector: null
+        "4XX":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      x-codeSamples:
+        - lang: Python
+          label: Get points by ID
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Get multiple points by ID
+                points = client.points.get("my_collection", ids=[1, 5, 10, 100], with_payload=True, with_vectors=True)
+                
+                for p in points:
+                    print(f"ID: {p.id}")
+                    print(f"Payload: {p.payload}")
+                    print(f"Vector: {p.vectors[:3]}...")  # First 3 dimensions
+        - lang: JavaScript
+          label: Get points by ID
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            const points = await client.points.get('my_collection', [1, 2, 3]);
+            for (const p of points) {
+                console.log(`id=${p.id}  payload=${JSON.stringify(p.payload)}`);
+            }
+
+            client.close();
+        - lang: cURL
+          label: Get points
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "ids": [1, 2, 3],
+                "with_payload": true,
+                "with_vectors": true
+              }'
+
+  /collections/{collection_name}/points/{id}:
+    get:
+      tags:
+        - Points
+      summary: Get single point
+      description: Retrieve full information for a single point by its ID, including its vector and payload.
+      operationId: get_point
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the collection containing the point.
+          example: my_collection
+        - name: id
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: integer
+              - type: string
+          example: 1
+          description: The unique identifier of the point to retrieve. Accepts an integer or a UUID string.
+      responses:
+        "200":
+          description: Point retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    description: Resource usage information for this request.
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.000161149
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status. Returns `ok` on success.
+                  result:
+                    type: object
+                    description: The retrieved point.
+                    properties:
+                      id:
+                        oneOf:
+                          - type: integer
+                          - type: string
+                        example: 1
+                        description: The point's unique identifier.
+                      payload:
+                        type: object
+                        nullable: true
+                        example: {"category": "electronics", "price": 299.99}
+                        description: JSON payload metadata associated with the point.
+                      vector:
+                        type: array
+                        nullable: true
+                        example: [0.1, 0.2, 0.3, 0.4]
+                        description: The vector embedding for the point.
+              example:
+                usage:
+                  hardware: null
+                time: 0.000161149
+                status: "ok"
+                result:
+                  id: 1
+                  payload: "{\"category\":\"electronics\",\"price\":299.99}"
+                  vector: "[0.10000000149011612,0.20000000298023224,0.30000001192092896,0.4000000059604645]"
+        "4XX":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      x-codeSamples:
+        - lang: Python
+          label: Get single point
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Get single point by ID
+                points = client.points.get("my_collection", ids=[1])
+                point = points[0]
+                
+                print(f"ID: {point.id}")
+                print(f"Vector: {point.vectors}")
+                print(f"Payload: {point.payload}")
+        - lang: JavaScript
+          label: Get single point
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            const points = await client.points.get('my_collection', [1]);
+            const point = points[0];
+            console.log(`id=${point.id}  vector=${point.vectors}  payload=${JSON.stringify(point.payload)}`);
+
+            client.close();
+        - lang: cURL
+          label: Get point
+          source: |
+            curl -X GET "http://localhost:50052/collections/my_collection/points/1" \
+              -H "Accept: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>'
+
+  /collections/{collection_name}/points/delete:
+    post:
+      tags:
+        - Points
+      summary: Delete points
+      description: Delete points from a collection by specifying a list of point IDs.
+      operationId: delete_points
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the collection to delete points from.
+          example: my_collection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - points
+              properties:
+                points:
+                  type: array
+                  example: [1, 2, 3]
+                  description: List of point IDs to delete.
+                  items:
+                    oneOf:
+                      - type: integer
+                      - type: string
+            examples:
+              delete_by_ids:
+                summary: Delete by IDs
+                value:
+                  points: [1, 2, 3]
+      responses:
+        "200":
+          description: Points deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    description: Resource usage information for this request.
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.000119036
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status. Returns `ok` on success.
+                  result:
+                    type: object
+                    description: Operation result containing the status of the deletion.
+                    properties:
+                      operation_id:
+                        type: integer
+                        example: 0
+                        description: Unique identifier for the operation.
+                      status:
+                        type: string
+                        example: "Completed"
+                        description: Status of the operation. Returns `Completed` when the operation finishes successfully.
+              example:
+                usage:
+                  hardware: null
+                time: 0.000119036
+                status: "ok"
+                result:
+                  operation_id: 0
+                  status: "Completed"
+        "4XX":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      x-codeSamples:
+        - lang: Python
+          label: Delete by IDs
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Delete specific points by ID
+                result = client.points.delete_by_ids("my_collection", ids=[100, 101, 102])
+                print(f"✓ Deleted points")
+        - lang: Python
+          label: Delete by filter
+          source: |
+            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+
+            with VectorAIClient("localhost:50051") as client:
+                # Delete points matching filter
+                filter = FilterBuilder().must(Field("category").eq("C")).build()
+                result = client.points.delete("my_collection", filter=filter)
+                print(f"✓ Deleted category C points")
+        - lang: JavaScript
+          label: Delete by IDs
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            await client.points.deleteByIds('my_collection', [1, 2, 3], { wait: true });
+            console.log('Deleted points 1, 2, 3');
+
+            client.close();
+        - lang: cURL
+          label: Delete by IDs
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/delete" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "points": [1, 2, 3]
+              }'
+
+  /collections/{collection_name}/points/vectors:
+    put:
+      tags:
+        - Points
+      summary: Update vectors
+      description: Update vector data for existing points without modifying their payloads. This is useful when re-embedding content or correcting vector values.
+      operationId: update_vectors
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the collection containing the points to update.
+          example: my_collection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - points
+              properties:
+                points:
+                  type: array
+                  description: Array of objects, each containing a point ID and the new vector.
+                  items:
+                    type: object
+                    required:
+                      - id
+                      - vectors
+                    properties:
+                      id:
+                        oneOf:
+                          - type: integer
+                          - type: string
+                        example: 1
+                        description: The ID of the point to update.
+                      vectors:
+                        type: array
+                        items:
+                          type: number
+                        example: [0.9, 0.8, 0.7, 0.6]
+                        description: The new vector data for this point.
+            examples:
+              update_vectors:
+                summary: Update vectors
+                value:
+                  points:
+                    - id: 1
+                      vectors: [0.9, 0.8, 0.7, 0.6]
+                    - id: 2
+                      vectors: [0.5, 0.4, 0.3, 0.2]
+      responses:
+        "200":
+          description: Vectors updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    description: Resource usage information for this request.
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.00060924
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status. Returns `ok` on success.
+                  result:
+                    type: object
+                    description: Operation result containing the status of the vector update.
+                    properties:
+                      operation_id:
+                        type: integer
+                        example: 0
+                        description: Unique identifier for the operation.
+                      status:
+                        type: string
+                        example: "Completed"
+                        description: Status of the operation. Returns `Completed` when the operation finishes successfully.
+              example:
+                usage:
+                  hardware: null
+                time: 0.00060924
+                status: "ok"
+                result:
+                  operation_id: 0
+                  status: "Completed"
+        "4XX":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      x-codeSamples:
+        - lang: Python
+          label: Update vectors
+          source: |
+            from actian_vectorai import VectorAIClient
+            import random
+
+            with VectorAIClient("localhost:50051") as client:
+                # Update vector for a point
+                new_vector = [random.gauss(0, 1) for _ in range(32)]
+                result = client.points.update_vectors(
+                    "my_collection",
+                    points=[{"id": 1, "vectors": new_vector}]
+                )
+                print("✓ Updated vector for point 1")
+        - lang: JavaScript
+          label: Update vectors
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            await client.points.updateVectors('my_collection', [
+                { id: 1, vectors: [0.9, 0.8, 0.7, 0.6] },
+                { id: 2, vectors: [0.5, 0.4, 0.3, 0.2] },
+            ]);
+            console.log('Updated vectors for points 1 and 2');
+
+            client.close();
+        - lang: cURL
+          label: Update vectors
+          source: |
+            curl -X PUT "http://localhost:50052/collections/my_collection/points/vectors" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "points": [
+                  {
+                    "id": 1,
+                    "vectors": [0.9, 0.8, 0.7, 0.6]
+                  }
+                ]
+              }'
+
+  /collections/{collection_name}/points/payload:
+    post:
+      tags:
+        - Points
+      summary: Set payload
+      description: Merge payload fields onto existing points identified by ID. Existing payload fields that are not specified in the request are preserved.
+      operationId: set_payload
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the collection containing the target points.
+          example: my_collection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payload
+                - points
+              properties:
+                payload:
+                  type: object
+                  example: { "color": "red", "featured": true }
+                  description: Key-value pairs to set on the matching points.
+                points:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: integer
+                      - type: string
+                  example: [1, 2, 3]
+                  description: List of point IDs to apply the payload to.
+            examples:
+              set_by_ids:
+                summary: Set payload by IDs
+                value:
+                  payload: { "color": "red", "featured": true }
+                  points: [1, 2, 3]
+      responses:
+        "200":
+          description: Payload set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    description: Resource usage information for this request.
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.000102816
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status. Returns `ok` on success.
+                  result:
+                    type: object
+                    description: Operation result containing the status of the payload update.
+                    properties:
+                      operation_id:
+                        type: integer
+                        example: 0
+                        description: Unique identifier for the operation.
+                      status:
+                        type: string
+                        example: "Completed"
+                        description: Status of the operation. Returns `Completed` when the operation finishes successfully.
+              example:
+                usage:
+                  hardware: null
+                time: 0.000102816
+                status: "ok"
+                result:
+                  operation_id: 0
+                  status: "Completed"
+        "4XX":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      x-codeSamples:
+        - lang: Python
+          label: Set payload by IDs
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Set/merge payload fields
+                client.points.set_payload(
+                    "my_collection",
+                    payload={"color": "red", "featured": True},
+                    ids=[1, 2]
+                )
+                print("✓ Set payload on points 1, 2")
+        - lang: JavaScript
+          label: Set payload by IDs
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            await client.points.setPayload('my_collection', { color: 'red', featured: true }, { ids: [1, 2, 3] });
+            console.log('Set payload on points 1, 2, 3');
+
+            client.close();
+        - lang: cURL
+          label: Set payload
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/payload" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "payload": {"color": "red", "featured": true},
+                "points": [1, 2, 3]
+              }'
+
+    put:
+      tags:
+        - Points
+      summary: Overwrite payload
+      description: Replace the entire payload on the specified points. All existing payload fields are removed and replaced with the provided object. Use the set payload endpoint to merge instead.
+      operationId: overwrite_payload
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: my_collection
+          description: The name of the collection containing the target points.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payload
+                - points
+              properties:
+                payload:
+                  type: object
+                  example: {"name": "overwritten", "new_field": 42}
+                  description: The complete payload object to replace existing data.
+                points:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: integer
+                      - type: string
+                  example: [3]
+                  description: List of point IDs to overwrite.
+            examples:
+              overwrite:
+                summary: Overwrite payload
+                value:
+                  payload: { "name": "overwritten", "new_field": 42 }
+                  points: [3]
+      responses:
+        "200":
+          description: Payload overwritten
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    description: Resource usage information for this request.
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 6.5268e-05
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status. Returns `ok` on success.
+                  result:
+                    type: object
+                    description: Operation result containing the status of the payload overwrite.
+                    properties:
+                      operation_id:
+                        type: integer
+                        example: 0
+                        description: Unique identifier for the operation.
+                      status:
+                        type: string
+                        example: "Completed"
+                        description: Status of the operation. Returns `Completed` when the operation finishes successfully.
+              example:
+                usage:
+                  hardware: null
+                time: 6.5268e-05
+                status: "ok"
+                result:
+                  operation_id: 0
+                  status: "Completed"
+        "4XX":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      x-codeSamples:
+        - lang: Python
+          label: Overwrite payload
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Replace entire payload
+                client.points.overwrite_payload(
+                    "my_collection",
+                    payload={"name": "overwritten", "new_field": 42},
+                    ids=[3]
+                )
+                print("✓ Overwrote payload on point 3")
+        - lang: JavaScript
+          label: Overwrite payload
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            await client.points.overwritePayload('my_collection', { name: 'overwritten', new_field: 42 }, { ids: [3] });
+            console.log('Overwrote payload on point 3');
+
+            client.close();
+        - lang: cURL
+          label: Overwrite payload
+          source: |
+            curl -X PUT "http://localhost:50052/collections/my_collection/points/payload" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "payload": {"name": "overwritten", "new_field": 42},
+                "points": [3]
+              }'
+
+  /collections/{collection_name}/points/payload/delete:
+    post:
+      tags:
+        - Points
+      summary: Delete payload keys
+      description: Remove specific payload fields from the specified points. Only explicitly listed point IDs are supported; filter-based targeting is not available for this operation. If a key does not exist on a given point, it is silently ignored.
+      operationId: delete_payload
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: my_collection
+          description: The name of the collection containing the target points.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - keys
+                - points
+              properties:
+                keys:
+                  type: array
+                  items:
+                    type: string
+                  example: ["tags", "old_field"]
+                  description: List of payload field names to remove.
+                points:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: integer
+                      - type: string
+                  example: [1, 2]
+                  description: List of point IDs to remove keys from.
+            examples:
+              delete_keys:
+                summary: Delete specific keys
+                value:
+                  keys: ["tags"]
+                  points: [1, 2]
+      responses:
+        "200":
+          description: Payload keys deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    description: Resource usage information for this request.
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.009149702
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status. Returns `ok` on success.
+                  result:
+                    type: object
+                    description: Operation result containing the status of the payload key deletion.
+                    properties:
+                      operation_id:
+                        type: integer
+                        example: 0
+                        description: Unique identifier for the operation.
+                      status:
+                        type: string
+                        example: "Completed"
+                        description: Status of the operation. Returns `Completed` when the operation finishes successfully.
+              example:
+                usage:
+                  hardware: null
+                time: 0.009149702
+                status: "ok"
+                result:
+                  operation_id: 0
+                  status: "Completed"
+        "4XX":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      x-codeSamples:
+        - lang: Python
+          label: Delete payload keys
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Delete specific payload fields
+                client.points.delete_payload(
+                    "my_collection",
+                    keys=["tags"],
+                    ids=[1, 2]
+                )
+                print("✓ Deleted 'tags' field from points 1, 2")
+        - lang: JavaScript
+          label: Delete payload keys
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            await client.points.deletePayload('my_collection', ['tags'], { ids: [1, 2] });
+            console.log('Deleted "tags" key from points 1, 2');
+
+            client.close();
+        - lang: cURL
+          label: Delete payload keys
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/payload/delete" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "keys": ["tags"],
+                "points": [1, 2]
+              }'
+
+  /collections/{collection_name}/points/payload/clear:
+    post:
+      tags:
+        - Points
+      summary: Clear payload
+      description: Remove all payload fields from the specified points, leaving them with an empty payload. Only explicitly listed point IDs are supported; filter-based targeting is not available for this operation. Points that already have an empty payload are unaffected.
+      operationId: clear_payload
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: my_collection
+          description: The name of the collection containing the target points.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - points
+              properties:
+                points:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: integer
+                      - type: string
+                  example: [5]
+                  description: List of point IDs to clear payloads from.
+            examples:
+              clear:
+                summary: Clear all payload
+                value:
+                  points: [5]
+      responses:
+        "200":
+          description: Payload cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    description: Resource usage information for this request.
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 5.9651e-05
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status. Returns `ok` on success.
+                  result:
+                    type: object
+                    description: Operation result containing the status of the payload clear.
+                    properties:
+                      operation_id:
+                        type: integer
+                        example: 0
+                        description: Unique identifier for the operation.
+                      status:
+                        type: string
+                        example: "Completed"
+                        description: Status of the operation. Returns `Completed` when the operation finishes successfully.
+              example:
+                usage:
+                  hardware: null
+                time: 5.9651e-05
+                status: "ok"
+                result:
+                  operation_id: 0
+                  status: "Completed"
+        "4XX":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      x-codeSamples:
+        - lang: Python
+          label: Clear payload
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Clear all payload fields
+                client.points.clear_payload("my_collection", ids=[5])
+                print("✓ Cleared payload on point 5")
+        - lang: JavaScript
+          label: Clear payload
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            await client.points.clearPayload('my_collection', { ids: [5] });
+            console.log('Cleared payload on point 5');
+
+            client.close();
+        - lang: cURL
+          label: Clear payload
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/payload/clear" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "points": [5]
+              }'
+
+  ## --------------------------------------------------------------------------
+  ## Create field index is not yet implemented in the current server version.
+  ## The API returns: "dynamic index creation not yet implemented. Declare
+  ## indexes via PayloadSchema at collection creation time."
+  ## --------------------------------------------------------------------------
+  #
+  # /collections/{collection_name}/index:
+  #   put:
+  #     tags:
+  #       - Points
+  #     summary: Create field index
+  #     description: |
+  #       Create an index on a payload field to improve filtering performance.
+  #       Supported field types are `keyword` (exact string matching), `integer`,
+  #       `float`, `bool`, and `geo` (geo-point data).
+  #     operationId: create_field_index
+  #     parameters:
+  #       - name: collection_name
+  #         in: path
+  #         required: true
+  #         schema:
+  #           type: string
+  #         description: The name of the collection to create the index in.
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             type: object
+  #             required:
+  #               - field_name
+  #               - field_schema
+  #             properties:
+  #               field_name:
+  #                 type: string
+  #                 example: "price"
+  #                 description: The name of the payload field to index.
+  #               field_schema:
+  #                 type: string
+  #                 enum: [keyword, integer, float, bool, geo]
+  #                 example: "float"
+  #                 description: The data type of the field to index.
+  #           examples:
+  #             float_index:
+  #               summary: Float field index
+  #               value:
+  #                 field_name: "price"
+  #                 field_schema: "float"
+  #             keyword_index:
+  #               summary: Keyword field index
+  #               value:
+  #                 field_name: "name"
+  #                 field_schema: "keyword"
+  #     responses:
+  #       "200":
+  #         description: Index created
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 usage:
+  #                   type: object
+  #                   properties:
+  #                     hardware:
+  #                       type: string
+  #                       nullable: true
+  #                 time:
+  #                   type: number
+  #                   description: Request processing time in seconds.
+  #                 status:
+  #                   type: string
+  #                   description: Operation status.
+  #                 result:
+  #                   type: object
+  #                   properties:
+  #                     operation_id:
+  #                       type: integer
+  #                       description: Unique identifier for the operation.
+  #                     status:
+  #                       type: string
+  #                       description: Status of the operation.
+  #       "4XX":
+  #         description: Error response
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/ErrorResponse"
+  #     x-codeSamples:
+  #       - lang: Python
+  #         label: Create field index
+  #         source: |
+  #           from actian_vectorai import VectorAIClient, FieldType
+  #
+  #           with VectorAIClient("localhost:50051") as client:
+  #               # Create index on price field
+  #               client.points.create_field_index(
+  #                   "my_collection",
+  #                   "price",
+  #                   FieldType.FieldTypeFloat
+  #               )
+  #               print("✓ Created float index on 'price'")
+  #
+  #               # Create index on name field
+  #               client.points.create_field_index(
+  #                   "my_collection",
+  #                   "name",
+  #                   FieldType.FieldTypeKeyword
+  #               )
+  #               print("✓ Created keyword index on 'name'")
+  #       - lang: cURL
+  #         label: Create field index
+  #         source: |
+  #           curl -X PUT "http://localhost:50052/collections/my_collection/index" \
+  #             -H "Content-Type: application/json" \
+  #             -d '{
+  #               "field_name": "price",
+  #               "field_schema": "float"
+  #             }'
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      description: Error response returned when a request fails.
+      properties:
+        status:
+          type: object
+          description: Status object containing the error message.
+          properties:
+            error:
+              type: string
+              description: Human-readable error message describing what went wrong.
+              example: "Collection `my_collection` doesn't exist!"
+        time:
+          type: number
+          format: double
+          description: Time spent to process this request, in seconds.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Admin JWT or access token for authenticating requests to VectorAI DB.

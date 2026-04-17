@@ -1,0 +1,957 @@
+openapi: 3.0.3
+info:
+  title: Actian VectorAI DB - Search API
+  description: Vector similarity search operations for Actian VectorAI DB.
+  version: 1.0.0
+  contact:
+    name: Actian Corporation
+    url: https://www.actian.com
+
+servers:
+  - url: http://localhost:50052
+    description: Local development server (REST API)
+  - url: https://api.vectorai.actian.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Search
+    description: Vector similarity search operations
+  - name: Scroll
+    description: Pagination and iteration
+  - name: Count
+    description: Counting operations
+paths:
+  /collections/{collection_name}/points/search:
+    post:
+      tags:
+        - Search
+      summary: Search vectors
+      description: Find the most similar vectors in a collection using approximate nearest neighbor search. Supports score thresholds, payload filtering, and tunable HNSW parameters.
+      operationId: search_points
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the collection to search.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - vector
+              properties:
+                vector:
+                  type: array
+                  items:
+                    type: number
+                  example: [0.1, 0.2, 0.3, 0.4]
+                  description: The query vector to search for. The number of dimensions must match the collection's configured vector size.
+                limit:
+                  type: integer
+                  default: 10
+                  example: 5
+                  description: Maximum number of results to return. Defaults to 10.
+                offset:
+                  type: integer
+                  default: 0
+                  example: 0
+                  description: Number of results to skip for pagination. Use with `limit` to page through results.
+                score_threshold:
+                  type: number
+                  example: 0.7
+                  description: Minimum similarity score for results. Only points with scores at or above this threshold are returned.
+                filter:
+                  type: object
+                  description: Optional filter to narrow search results based on payload metadata. See the Filters API for syntax.
+                with_payload:
+                  type: boolean
+                  default: true
+                  example: true
+                  description: Whether to include payload metadata in the response.
+                with_vector:
+                  type: boolean
+                  default: false
+                  example: false
+                  description: Whether to include vector data in the response. Set to `false` to reduce response size.
+                params:
+                  type: object
+                  description: Advanced search parameters for tuning search quality and performance.
+                  properties:
+                    hnsw_ef:
+                      type: integer
+                      example: 128
+                      description: Controls the number of candidates HNSW evaluates during search. Higher values improve accuracy at the cost of latency.
+                    exact:
+                      type: boolean
+                      example: false
+                      description: If `true`, performs an exact brute-force search instead of approximate. Slower but guarantees finding true nearest neighbors.
+            examples:
+              basic_search:
+                summary: Basic search
+                value:
+                  vector: [0.1, 0.2, 0.3, 0.4]
+                  limit: 5
+                  offset: 0
+                  with_payload: true
+                  with_vector: false
+              search_with_threshold:
+                summary: With score threshold
+                value:
+                  vector: [0.1, 0.2, 0.3, 0.4]
+                  limit: 10
+                  offset: 0
+                  score_threshold: 0.7
+                  with_payload: true
+                  with_vector: false
+                  params:
+                    hnsw_ef: 128
+                    exact: false
+              search_with_filter:
+                summary: With payload filter
+                value:
+                  vector: [0.1, 0.2, 0.3, 0.4]
+                  limit: 10
+                  offset: 0
+                  filter:
+                    must:
+                      - key: category
+                        match:
+                          value: "electronics"
+                  with_payload: true
+                  with_vector: false
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.0000553
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status.
+                  result:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          oneOf:
+                            - type: integer
+                            - type: string
+                          example: 1
+                          description: The point's unique identifier.
+                        version:
+                          type: integer
+                          example: 0
+                          description: The point's version number.
+                        score:
+                          type: number
+                          example: 0.9843740463256836
+                          description: Similarity score between the query vector and this point.
+                        payload:
+                          type: object
+                          nullable: true
+                          example: null
+                          description: Payload metadata, or null if `with_payload` is false.
+                        vector:
+                          type: array
+                          nullable: true
+                          items:
+                            type: number
+                          example: null
+                          description: Vector data, or null if `with_vector` is false.
+              example:
+                usage:
+                  hardware: null
+                time: 0.0000553
+                status: "ok"
+                result:
+                  - id: 1
+                    version: 0
+                    score: 1
+                    payload: null
+                    vector: null
+                  - id: 3
+                    version: 0
+                    score: 0.9843740463256836
+                    payload: null
+                    vector: null
+                  - id: 2
+                    version: 0
+                    score: 0.9688639640808105
+                    payload: null
+                    vector: null
+        "4XX":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      x-codeSamples:
+        - lang: Python
+          label: Basic search
+          source: |
+            from actian_vectorai import VectorAIClient
+            import random
+
+            with VectorAIClient("localhost:50051") as client:
+                # Basic vector search
+                query = [random.gauss(0, 1) for _ in range(64)]
+                results = client.points.search("my_collection", vector=query, limit=5)
+                
+                for r in results:
+                    print(f"ID: {r.id}, Score: {r.score:.4f}")
+                    print(f"Payload: {r.payload.get('category')}")
+        - lang: Python
+          label: Search with score threshold
+          source: |
+            from actian_vectorai import VectorAIClient
+            import random
+
+            with VectorAIClient("localhost:50051") as client:
+                # Search with minimum score
+                query = [random.gauss(0, 1) for _ in range(64)]
+                results = client.points.search(
+                    "my_collection",
+                    vector=query,
+                    limit=10,
+                    score_threshold=0.7
+                )
+                print(f"Found {len(results)} results above threshold")
+        - lang: Python
+          label: Search with custom HNSW
+          source: |
+            from actian_vectorai import VectorAIClient, SearchParams
+            import random
+
+            with VectorAIClient("localhost:50051") as client:
+                # Search with custom HNSW parameters
+                query = [random.gauss(0, 1) for _ in range(64)]
+                results = client.points.search(
+                    "my_collection",
+                    vector=query,
+                    limit=5,
+                    params=SearchParams(hnsw_ef=256, exact=False)
+                )
+                print(f"Found {len(results)} results")
+        - lang: Python
+          label: Exact search
+          source: |
+            from actian_vectorai import VectorAIClient, SearchParams
+            import random
+
+            with VectorAIClient("localhost:50051") as client:
+                # Exact (brute-force) search
+                query = [random.gauss(0, 1) for _ in range(64)]
+                results = client.points.search(
+                    "my_collection",
+                    vector=query,
+                    limit=5,
+                    params=SearchParams(exact=True)
+                )
+                for r in results:
+                    print(f"ID: {r.id}, Score: {r.score:.4f}")
+        - lang: JavaScript
+          label: Basic search
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            const results = await client.points.search('my_collection', [0.1, 0.2, 0.3, 0.4], {
+                limit: 5,
+                withPayload: true,
+            });
+            for (const r of results) {
+                console.log(`id=${r.id}  score=${r.score.toFixed(4)}  payload=${JSON.stringify(r.payload)}`);
+            }
+
+            client.close();
+        - lang: JavaScript
+          label: Filtered search
+          source: |
+            import { CortexClient, Field } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            const filter = Field.of('category').eq('electronics');
+            const results = await client.points.search('my_collection', [0.1, 0.2, 0.3, 0.4], {
+                limit: 5,
+                filter,
+                withPayload: true,
+            });
+            console.log(`Found ${results.length} results`);
+
+            client.close();
+        - lang: cURL
+          label: Search
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "vector": [0.1, 0.2, 0.3, 0.4],
+                "limit": 5
+              }'
+
+  /collections/{collection_name}/points/search/batch:
+    post:
+      tags:
+        - Search
+      summary: Batch search
+      description: Execute multiple search queries in a single request. This is more efficient than sending individual search requests when you have several queries to run.
+      operationId: search_batch
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the collection to search.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - searches
+              properties:
+                searches:
+                  type: array
+                  description: Array of search request objects to execute.
+                  items:
+                    type: object
+                    required:
+                      - vector
+                    properties:
+                      vector:
+                        type: array
+                        items:
+                          type: number
+                        example: [0.1, 0.2, 0.3, 0.4]
+                        description: The query vector for this search.
+                      limit:
+                        type: integer
+                        example: 3
+                        description: Maximum number of results for this search.
+                      offset:
+                        type: integer
+                        example: 0
+                        description: Number of results to skip for pagination.
+                      score_threshold:
+                        type: number
+                        example: 0.7
+                        description: Minimum similarity score for results.
+                      filter:
+                        type: object
+                        description: Optional filter conditions for this search.
+                      with_payload:
+                        type: boolean
+                        example: true
+                        description: Whether to include payload metadata in the response.
+                      with_vector:
+                        type: boolean
+                        example: false
+                        description: Whether to include vector data in the response.
+            examples:
+              batch_search:
+                summary: Multiple queries
+                value:
+                  searches:
+                    - vector: [0.1, 0.2, 0.3, 0.4]
+                      limit: 3
+                      with_payload: true
+                      with_vector: false
+                    - vector: [0.5, 0.6, 0.7, 0.8]
+                      limit: 3
+                      with_payload: true
+                      with_vector: false
+                    - vector: [0.9, 0.8, 0.7, 0.6]
+                      limit: 3
+                      with_payload: true
+                      with_vector: false
+      responses:
+        "200":
+          description: Batch search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.0000706
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status.
+                  result:
+                    type: array
+                    description: Array of result arrays, one per search query.
+                    items:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            oneOf:
+                              - type: integer
+                              - type: string
+                            example: 1
+                            description: The point's unique identifier.
+                          version:
+                            type: integer
+                            example: 0
+                            description: The point's version number.
+                          score:
+                            type: number
+                            example: 0.9843740463256836
+                            description: Similarity score between the query vector and this point.
+                          payload:
+                            type: object
+                            nullable: true
+                            example: null
+                            description: Payload metadata, or null if `with_payload` is false.
+                          vector:
+                            type: array
+                            nullable: true
+                            items:
+                              type: number
+                            example: null
+                            description: Vector data, or null if `with_vector` is false.
+              example:
+                usage:
+                  hardware: null
+                time: 0.0000706
+                status: "ok"
+                result:
+                  - - id: 1
+                      version: 0
+                      score: 1
+                      payload: null
+                      vector: null
+                    - id: 3
+                      version: 0
+                      score: 0.9843740463256836
+                      payload: null
+                      vector: null
+                    - id: 2
+                      version: 0
+                      score: 0.9688639640808105
+                      payload: null
+                      vector: null
+                  - - id: 2
+                      version: 0
+                      score: 1
+                      payload: null
+                      vector: null
+                    - id: 3
+                      version: 0
+                      score: 0.9973233938217163
+                      payload: null
+                      vector: null
+        "4XX":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      x-codeSamples:
+        - lang: Python
+          label: Batch search
+          source: |
+            from actian_vectorai import VectorAIClient
+            import random
+
+            with VectorAIClient("localhost:50051") as client:
+                # Execute multiple searches at once
+                queries = [
+                    {"vector": [random.gauss(0, 1) for _ in range(64)], "limit": 3}
+                    for _ in range(3)
+                ]
+                batch_results = client.points.search_batch("my_collection", queries)
+                
+                for i, results in enumerate(batch_results):
+                    ids = [r.id for r in results]
+                    print(f"Query {i + 1}: top IDs = {ids}")
+        - lang: JavaScript
+          label: Batch search
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            const batchResults = await client.points.searchBatch('my_collection', [
+                { vector: [0.1, 0.2, 0.3, 0.4], limit: 3 },
+                { vector: [0.5, 0.6, 0.7, 0.8], limit: 3 },
+            ]);
+            console.log(`Batch search: ${batchResults.length} result sets`);
+            for (let i = 0; i < batchResults.length; i++) {
+                console.log(`  Query ${i}: ${batchResults[i].length} results`);
+            }
+
+            client.close();
+        - lang: cURL
+          label: Batch search
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/search/batch" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "searches": [
+                  {"vector": [0.1, 0.2, 0.3, 0.4], "limit": 3},
+                  {"vector": [0.5, 0.6, 0.7, 0.8], "limit": 3}
+                ]
+              }'
+
+  /collections/{collection_name}/points/scroll:
+    post:
+      tags:
+        - Scroll
+      summary: Scroll points
+      description: Paginate through all points in a collection. The response includes a `next_page_offset` cursor that you pass as `offset` in subsequent requests to retrieve the next page. Useful for exporting data, iterating large datasets, or processing points in batches.
+      operationId: scroll_points
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the collection to scroll through.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                limit:
+                  type: integer
+                  default: 100
+                  example: 10
+                  description: Maximum number of points to return per page. Must be greater than 0. For example, `20` returns 20 points per page. Defaults to 100.
+                offset:
+                  oneOf:
+                    - type: integer
+                    - type: string
+                  nullable: true
+                  example: 3
+                  description: Cursor from a previous scroll response. Pass the `next_page_offset` value to fetch the next page. Omit or set to null for the first page.
+                filter:
+                  type: object
+                  description: Optional filter conditions to narrow the scrolled results.
+                with_payload:
+                  type: boolean
+                  default: true
+                  example: true
+                  description: Whether to include payload metadata in the response.
+                with_vector:
+                  type: boolean
+                  default: false
+                  example: false
+                  description: Whether to include vector data in the response.
+            examples:
+              first_page:
+                summary: First page
+                value:
+                  limit: 10
+                  with_payload: true
+                  with_vector: false
+              next_page:
+                summary: Next page
+                value:
+                  limit: 10
+                  offset: 3
+                  with_payload: true
+                  with_vector: false
+              with_filter:
+                summary: Filtered scroll
+                value:
+                  limit: 10
+                  filter:
+                    must:
+                      - key: group
+                        match:
+                          value: "g0"
+                  with_payload: true
+                  with_vector: false
+      responses:
+        "200":
+          description: Scroll results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.000129652
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status.
+                  result:
+                    type: object
+                    properties:
+                      points:
+                        type: array
+                        description: Array of point objects in this page.
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                              description: The point's unique identifier.
+                            payload:
+                              type: object
+                              nullable: true
+                              example: {"category": "A", "value": 10}
+                              description: Payload metadata, or null if `with_payload` is false.
+                            vector:
+                              type: array
+                              nullable: true
+                              items:
+                                type: number
+                              example: null
+                              description: Vector data, or null if `with_vector` is false.
+                      next_page_offset:
+                        oneOf:
+                          - type: integer
+                          - type: string
+                        nullable: true
+                        example: 4
+                        description: Cursor for the next page. Pass this as `offset` in the next request. Null when there are no more pages.
+              example:
+                usage:
+                  hardware: null
+                time: 0.000129652
+                status: "ok"
+                result:
+                  next_page_offset: 4
+                  points:
+                    - id: 1
+                      payload:
+                        category: "A"
+                        value: 10
+                      vector: null
+                    - id: 2
+                      payload:
+                        category: "B"
+                        value: 20
+                      vector: null
+                    - id: 3
+                      payload:
+                        category: "C"
+                        value: 30
+                      vector: null
+        "4XX":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      x-codeSamples:
+        - lang: Python
+          label: Manual scroll
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Manual cursor-based scroll
+                offset = None
+                page = 0
+                total_scrolled = 0
+                
+                while True:
+                    batch, next_offset = client.points.scroll(
+                        "my_collection",
+                        limit=10,
+                        offset=offset
+                    )
+                    page += 1
+                    total_scrolled += len(batch)
+                    
+                    print(f"Page {page}: {len(batch)} points")
+                    
+                    if next_offset is None or len(batch) == 0:
+                        break
+                    offset = next_offset
+                
+                print(f"Total scrolled: {total_scrolled}")
+        - lang: Python
+          label: Scroll all (convenience)
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Automatically paginate through all points
+                all_points = client.points.scroll_all(
+                    "my_collection",
+                    batch_size=15
+                )
+                print(f"Retrieved {len(all_points)} points total")
+        - lang: Python
+          label: Filtered scroll
+          source: |
+            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+
+            with VectorAIClient("localhost:50051") as client:
+                # Scroll with filter
+                payload_filter = FilterBuilder().must(Field("group").eq("g0")).build()
+                filtered, _ = client.points.scroll(
+                    "my_collection",
+                    filter=payload_filter,
+                    limit=100
+                )
+                print(f"Found {len(filtered)} points in group g0")
+        - lang: JavaScript
+          label: Scroll points
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            let offset = undefined;
+            let page = 0;
+            while (true) {
+                const result = await client.points.scroll('my_collection', {
+                    limit: 10,
+                    offset,
+                    withPayload: true,
+                });
+                page++;
+                console.log(`Page ${page}: ${result.points.length} points`);
+                if (!result.nextPageOffset) break;
+                offset = result.nextPageOffset;
+            }
+
+            client.close();
+        - lang: cURL
+          label: Scroll
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/scroll" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "limit": 10,
+                "with_payload": true,
+                "with_vector": false
+              }'
+
+  /collections/{collection_name}/points/count:
+    post:
+      tags:
+        - Count
+      summary: Count points
+      description: Count the number of points in a collection, optionally filtered by payload conditions. Useful for checking collection size, validating data loads, or counting points matching specific criteria.
+      operationId: count_points
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the collection to count points in.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filter:
+                  type: object
+                  description: Optional filter conditions. Only points matching the filter are counted.
+                exact:
+                  type: boolean
+                  default: true
+                  example: true
+                  description: If `true`, returns an exact count. If `false`, returns a faster approximate count. Defaults to `true`.
+            examples:
+              count_all:
+                summary: Count all points
+                value:
+                  exact: true
+              count_filtered:
+                summary: Count with filter
+                value:
+                  filter:
+                    must:
+                      - key: category
+                        match:
+                          value: "A"
+                  exact: true
+      responses:
+        "200":
+          description: Count result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.000004424
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status.
+                  result:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        example: 4
+                        description: The number of points matching the criteria.
+              example:
+                usage:
+                  hardware: null
+                time: 0.000004424
+                status: "ok"
+                result:
+                  count: 4
+        "4XX":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      x-codeSamples:
+        - lang: Python
+          label: Count all points
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Count total points
+                count = client.points.count("my_collection")
+                print(f"Total points: {count}")
+        - lang: Python
+          label: Count with filter
+          source: |
+            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+
+            with VectorAIClient("localhost:50051") as client:
+                # Count points matching filter
+                payload_filter = FilterBuilder().must(Field("category").eq("A")).build()
+                count_a = client.points.count("my_collection", filter=payload_filter)
+                print(f"Category A: {count_a}")
+        - lang: JavaScript
+          label: Count all points
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            const count = await client.points.count('my_collection');
+            console.log(`Total points: ${count}`);
+
+            client.close();
+        - lang: JavaScript
+          label: Count with filter
+          source: |
+            import { CortexClient, Field } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            const filter = Field.of('category').eq('electronics');
+            const count = await client.points.count('my_collection', { filter });
+            console.log(`Electronics count: ${count}`);
+
+            client.close();
+        - lang: cURL
+          label: Count points
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/count" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "exact": true
+              }'
+        - lang: cURL
+          label: Count with filter
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/count" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "filter": {
+                  "must": [
+                    {
+                      "key": "category",
+                      "match": {"value": "A"}
+                    }
+                  ]
+                }
+              }'
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: object
+          properties:
+            error:
+              type: string
+        time:
+          type: number
+          format: double
+          description: Time spent to process this request, in seconds.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Admin JWT or access token for authenticating requests to VectorAI DB.

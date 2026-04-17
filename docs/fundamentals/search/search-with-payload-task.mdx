@@ -1,0 +1,85 @@
+---
+title: "Search with payload"
+description: "Include metadata in search results."
+icon: "code"
+---
+
+By default, search returns only vector IDs and similarity scores. To include metadata with your results, set `with_payload=True`.
+
+Include payload data when you:
+
+- Need metadata to display results
+- Want to avoid extra fetch requests
+- Require metadata for downstream processing
+
+Excluding payload reduces response size and network transfer time.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+import random
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Generate query vector
+        query_vector = [random.gauss(0, 1) for _ in range(128)]
+        
+        # Include metadata in results (default is True)
+        results = await client.points.search(
+            "my_collection",  # Collection name
+            vector=query_vector,  # Query vector
+            limit=10,  # Number of results
+            with_payload=True  # Include payload metadata
+        )
+        
+        # Display results with payload
+        for result in results:
+            print(f"ID: {result.id}, Score: {result.score}")
+            print(f"Payload: {result.payload}")
+            print("-" * 50)
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Generate query vector
+        const queryVector = Array.from({ length: 128 }, () => Math.random() * 2 - 1);
+
+        // Include metadata in results (default is true)
+        const results = await client.points.search(
+            'my_collection',  // Collection name
+            queryVector,      // Query vector
+            {
+                limit: 10,         // Number of results
+                withPayload: true  // Include payload metadata
+            }
+        );
+
+        // Display results with payload
+        for (const result of results) {
+            console.log(`ID: ${result.id}, Score: ${result.score}`);
+            console.log(`Payload: ${JSON.stringify(result.payload)}`);
+            console.log('-'.repeat(50));
+        }
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each result includes these fields:
+
+- `id`: The unique identifier of the matching point.
+- `score`: Similarity score based on distance metric.
+- `payload`: Full metadata dictionary for the point.

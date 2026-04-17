@@ -1,0 +1,174 @@
+---
+title: "Store vectors"
+description: "Store dense vectors with metadata in a collection."
+icon: "code"
+---
+
+This page shows how to store dense vectors with metadata in a collection and configure collections with different distance metrics.
+
+<Note>
+Before you begin, make sure you have a running VectorAI DB instance and the Python client library installed (`pip install actian-vectorai`). The examples on this page use random vectors for demonstration. In production, generate vectors from an embedding model.
+</Note>
+
+## Store a dense vector
+
+The following example creates a collection and stores a vector with metadata. In production, you generate vectors using pre-trained embedding models like Sentence Transformers, OpenAI embeddings, or custom neural networks. The embedding model determines the vector dimension and semantic properties.
+
+<CodeGroup>
+```python Python
+import random
+from actian_vectorai import VectorAIClient, VectorParams, Distance, PointStruct
+
+DIMENSION = 384
+COLLECTION = "documents"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Create a collection for dense vectors
+    client.collections.create(
+        COLLECTION,  # Collection name
+        vectors_config=VectorParams(size=DIMENSION, distance=Distance.Cosine)  # Vector configuration
+    )
+    
+    # Generate a dense vector (in practice, from an embedding model)
+    vector = [random.gauss(0, 1) for _ in range(DIMENSION)]
+    
+    # Store the vector with metadata
+    point = PointStruct(
+        id=1,  # Point ID
+        vector=vector,  # Vector embedding
+        payload={  # Metadata (optional)
+            "text": "VectorAI DB enables semantic search",
+            "category": "documentation"
+        }
+    )
+    
+    # Upsert point to collection
+    client.points.upsert(COLLECTION, [point])
+    print(f"Stored {DIMENSION}-dimensional dense vector")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const DIMENSION = 384;
+const COLLECTION = 'documents';
+
+async function main() {
+  const client = new CortexClient('localhost:50051');
+
+  // Create a collection for dense vectors
+  await client.collections.create(COLLECTION, {
+    dimension: DIMENSION,  // Vector dimension
+    distanceMetric: 'COSINE',  // Distance metric
+  });
+
+  // Generate a dense vector (in practice, from an embedding model)
+  const vector = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+
+  // Store the vector with metadata
+  await client.points.upsert(COLLECTION, [
+    {
+      id: 1,  // Point ID
+      vector: vector,  // Vector embedding
+      payload: {  // Metadata (optional)
+        text: 'VectorAI DB enables semantic search',
+        category: 'documentation',
+      },
+    },
+  ], { wait: true });
+
+  console.log(`Stored ${DIMENSION}-dimensional dense vector`);
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Store vectors with different distance metrics
+
+The distance metric you choose determines how VectorAI DB measures similarity between vectors. The following example creates two collections using different metrics and inserts test vectors into each.
+
+<CodeGroup>
+```python Python
+import random
+from actian_vectorai import VectorAIClient, VectorParams, Distance, PointStruct
+
+DIMENSION = 128
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Create collections with different distance metrics
+    for metric in [Distance.Cosine, Distance.Euclid]:
+        collection_name = f"vectors_{metric.name.lower()}"
+        
+        # Create collection with specific metric
+        client.collections.create(
+            collection_name,  # Collection name
+            vectors_config=VectorParams(size=DIMENSION, distance=metric)  # Vector configuration
+        )
+        
+        # Insert test vectors
+        points = [
+            PointStruct(
+                id=1,  # Point ID
+                vector=[random.gauss(0, 1) for _ in range(DIMENSION)]  # Generate vector
+            ),
+            PointStruct(
+                id=2,  # Point ID
+                vector=[random.gauss(0, 1) for _ in range(DIMENSION)]  # Generate vector
+            )
+        ]
+        
+        # Upsert points to collection
+        client.points.upsert(collection_name, points)
+        
+        print(f"Collection '{collection_name}' uses {metric.name} distance")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const DIMENSION = 128;
+
+async function main() {
+  const client = new CortexClient('localhost:50051');
+
+  // Create collections with different distance metrics
+  const metrics = ['COSINE', 'EUCLIDEAN'];
+
+  for (const metric of metrics) {
+    const collectionName = `vectors_${metric.toLowerCase()}`;
+
+    // Create collection with specific metric
+    await client.collections.create(collectionName, {
+      dimension: DIMENSION,  // Vector dimension
+      distanceMetric: metric,  // Distance metric
+    });
+
+    // Insert test vectors
+    const points = [
+      {
+        id: 1,  // Point ID
+        vector: Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1),  // Generate vector
+      },
+      {
+        id: 2,  // Point ID
+        vector: Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1),  // Generate vector
+      },
+    ];
+
+    // Upsert points to collection
+    await client.points.upsert(collectionName, points, { wait: true });
+
+    console.log(`Collection '${collectionName}' uses ${metric} distance`);
+  }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+<Note>
+The distance metric cannot be changed after collection creation. For details, see [Vectors overview](/docs/fundamentals/vectors/vectors).
+</Note>

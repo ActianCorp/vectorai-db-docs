@@ -1,0 +1,872 @@
+---
+title: "Optimizing retrieval quality"
+description: "Learn how to measure and improve similarity search accuracy in Actian VectorAI DB by tuning HNSW parameters, choosing the right distance metric, configuring quantization, using multi-stage prefetch, adjusting score thresholds, and leveraging payload indexes."
+---
+
+This tutorial covers every configuration lever in Actian VectorAI DB that affects how accurately similarity search returns relevant results. Getting search to work is straightforward. Getting it to return the right results consistently under real query load requires understanding the trade-offs between recall, precision, speed, and memory — and knowing which knobs to turn for each.
+
+Retrieval quality has two dimensions:
+
+- Recall — the fraction of truly relevant results that the system returns. If there are 10 relevant documents and the system finds 8, recall is 80%.
+- Precision — the fraction of returned results that are actually relevant. If the system returns 10 results and 7 are relevant, precision is 70%.
+
+In approximate nearest-neighbour (ANN) search, there is always a trade-off between quality and speed. A brute-force scan over every vector gives perfect recall but is slow. An HNSW index is fast but may miss some neighbours. Quantization compresses vectors for lower memory usage but introduces scoring noise.
+
+By the end of this tutorial, you will know how to:
+
+- Measure — Establish a ground truth baseline with exact search.
+- Tune HNSW — Adjust `m`, `ef_construct`, and `hnsw_ef` for the recall–speed trade-off.
+- Choose distance — Pick the right metric for your embeddings.
+- Configure quantization — Compress vectors without destroying accuracy.
+- Adjust search-time parameters — Use `hnsw_ef`, `rescore`, and `oversampling`.
+- Use multi-stage prefetch — Widen the candidate pool then re-rank.
+- Apply payload indexes — Accelerate filtered search.
+- Set score thresholds — Cut noise at the right level.
+- Rebuild and compact — Keep index quality fresh after updates.
+
+## Environment setup
+
+Run the following command to install the Python packages required for all code samples in this tutorial.
+
+```bash
+pip install actian-vectorai sentence-transformers numpy
+```
+
+## Step 1: Create a test collection and ingest data
+
+This step sets up the shared imports, constants, and embedding helpers used throughout the tutorial. Running this block loads the `all-MiniLM-L6-v2` model, defines two encoding functions, and establishes the server address and collection name that all subsequent steps reference.
+
+```python
+import asyncio
+import time
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
+# Import the client and all required types
+from actian_vectorai import (
+    AsyncVectorAIClient,
+    Distance,
+    Field,
+    FieldType,
+    FilterBuilder,
+    KeywordIndexParams,
+    PointStruct,
+    PrefetchQuery,
+    SearchParams,
+    QuantizationSearchParams,
+    VectorParams,
+)
+from actian_vectorai.models.collections import (
+    HnswConfigDiff,
+    OptimizersConfigDiff,
+    ScalarQuantization,
+    QuantizationConfig,
+)
+from actian_vectorai.models.points import ScoredPoint
+
+# Server address, collection name, and embedding dimension
+SERVER = "localhost:50051"
+COLLECTION = "Retrieval-Quality"
+EMBED_DIM = 384
+
+# Load the sentence transformer model once at module level
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# Encode a single string into a float vector
+def embed_text(text: str) -> list[float]:
+    return model.encode(text).tolist()
+
+# Encode a list of strings into a list of float vectors
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    return model.encode(texts).tolist()
+```
+
+The following block defines a 30-document corpus and ingests it into a new collection with cosine distance and default HNSW settings. Running it creates the collection on the server, upserts all points, flushes them to disk, and prints the total vector count to confirm the ingestion succeeded.
+
+```python
+# 30-document corpus spanning programming, ML, databases, devops, architecture, and security
+corpus = [
+    {"text": "Python is a versatile programming language used in web development, data science, and automation.", "category": "programming"},
+    {"text": "JavaScript runs in browsers and on servers with Node.js, powering interactive web applications.", "category": "programming"},
+    {"text": "Rust provides memory safety without garbage collection through its ownership system.", "category": "programming"},
+    {"text": "Go is designed for building scalable networked services and cloud infrastructure.", "category": "programming"},
+    {"text": "TypeScript adds static types to JavaScript, improving code quality in large codebases.", "category": "programming"},
+    {"text": "Machine learning models learn statistical patterns from labeled training data.", "category": "ml"},
+    {"text": "Deep neural networks stack multiple layers to learn hierarchical representations of data.", "category": "ml"},
+    {"text": "Transformers use self-attention to process sequences in parallel, enabling large language models.", "category": "ml"},
+    {"text": "Gradient boosting combines weak decision trees into a strong ensemble predictor.", "category": "ml"},
+    {"text": "Reinforcement learning trains agents by rewarding desired behaviors in an environment.", "category": "ml"},
+    {"text": "Convolutional neural networks detect spatial patterns in images through learned filters.", "category": "ml"},
+    {"text": "Transfer learning fine-tunes pretrained models on domain-specific data with less labeled examples.", "category": "ml"},
+    {"text": "PostgreSQL is a relational database with strong ACID compliance and extensibility.", "category": "databases"},
+    {"text": "MongoDB stores data as flexible JSON-like documents without a fixed schema.", "category": "databases"},
+    {"text": "Redis is an in-memory key-value store used for caching and real-time applications.", "category": "databases"},
+    {"text": "Vector databases store embeddings and find similar items using approximate nearest-neighbour search.", "category": "databases"},
+    {"text": "Elasticsearch provides full-text search and analytics on structured and unstructured data.", "category": "databases"},
+    {"text": "Docker containers package applications with their dependencies for consistent deployment.", "category": "devops"},
+    {"text": "Kubernetes orchestrates containers across clusters, handling scaling and self-healing.", "category": "devops"},
+    {"text": "CI/CD pipelines automate testing, building, and deploying code changes to production.", "category": "devops"},
+    {"text": "Infrastructure as Code defines server configurations in version-controlled files.", "category": "devops"},
+    {"text": "Prometheus collects metrics and Grafana visualizes them for monitoring distributed systems.", "category": "devops"},
+    {"text": "Microservices decompose applications into small independently deployable services.", "category": "architecture"},
+    {"text": "Event-driven architecture uses asynchronous messages to decouple producers and consumers.", "category": "architecture"},
+    {"text": "API gateways route requests, handle authentication, and enforce rate limits for microservices.", "category": "architecture"},
+    {"text": "The CAP theorem states that distributed systems cannot simultaneously guarantee consistency, availability, and partition tolerance.", "category": "architecture"},
+    {"text": "CQRS separates read and write models to optimize performance for different workloads.", "category": "architecture"},
+    {"text": "TLS encrypts network traffic between clients and servers to prevent eavesdropping.", "category": "security"},
+    {"text": "OAuth 2.0 delegates authorization using access tokens without sharing credentials.", "category": "security"},
+    {"text": "Zero-trust security verifies every request regardless of network location.", "category": "security"},
+]
+
+async def setup_and_ingest():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        # Create the collection with cosine distance and default HNSW settings
+        await client.collections.get_or_create(
+            name=COLLECTION,
+            vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.Cosine),
+            hnsw_config=HnswConfigDiff(m=16, ef_construct=128),
+        )
+
+        # Embed all documents and build point structs with their payloads
+        texts = [d["text"] for d in corpus]
+        vectors = embed_texts(texts)
+        points = [
+            PointStruct(id=i, vector=vectors[i], payload=corpus[i])
+            for i in range(len(corpus))
+        ]
+
+        # Upsert all points and flush to confirm they are persisted on disk
+        await client.points.upsert(COLLECTION, points=points)
+        await client.vde.flush(COLLECTION)
+        count = await client.vde.get_vector_count(COLLECTION)
+
+    print(f"Collection ready with {count} vectors.")
+
+asyncio.run(setup_and_ingest())
+```
+
+### Expected Output
+
+This block embeds all 30 corpus documents using `all-MiniLM-L6-v2`, constructs `PointStruct` objects pairing each vector with its text and category payload, upserts them into the `Retrieval-Quality` collection using cosine distance and default HNSW settings (`m=16`, `ef_construct=128`), flushes the writes to disk, and then queries the server for the total stored vector count to confirm the ingestion completed successfully.
+
+```text
+Collection ready with 30 vectors.
+```
+
+## Step 2: Establish a baseline with exact search
+
+Before tuning anything, measure ground truth. An `exact` (brute-force) search scans every vector in the collection and returns the mathematically correct nearest neighbours with 100% recall. Every tuning step in this tutorial should be measured against this baseline.
+
+The following block defines three functions: `exact_search`, which runs a brute-force scan; `approx_search`, which uses the HNSW index with an optional `hnsw_ef` override; and `compute_recall`, which calculates what fraction of the exact top-K results the approximate search also returned. Running the block then queries both functions for the same input and prints a side-by-side comparison.
+
+```python
+# Run a brute-force exact search — guarantees 100% recall as ground truth
+async def exact_search(query: str, top_k: int = 10):
+    vec = embed_text(query)
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.search(
+            COLLECTION,
+            vector=vec,
+            limit=top_k,
+            with_payload=True,
+            params=SearchParams(exact=True),  # disable HNSW and scan all vectors
+        ) or []
+    return results
+
+# Run an approximate HNSW search with an optional ef override
+async def approx_search(query: str, top_k: int = 10, hnsw_ef: int = None):
+    vec = embed_text(query)
+    params = SearchParams(hnsw_ef=hnsw_ef) if hnsw_ef else None
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.search(
+            COLLECTION,
+            vector=vec,
+            limit=top_k,
+            with_payload=True,
+            params=params,
+        ) or []
+    return results
+
+def compute_recall(exact_results: list[ScoredPoint], approx_results: list[ScoredPoint]) -> float:
+    """Compute recall@K: fraction of exact top-K results found by approximate search."""
+    exact_ids = {r.id for r in exact_results}
+    approx_ids = {r.id for r in approx_results}
+    if not exact_ids:
+        return 1.0
+    return len(exact_ids & approx_ids) / len(exact_ids)
+
+# Run exact and approximate search for the same query and compare results
+query = "How do neural networks learn from data?"
+exact = asyncio.run(exact_search(query, top_k=10))
+approx = asyncio.run(approx_search(query, top_k=10))
+
+recall = compute_recall(exact, approx)
+
+print(f"Query: {query}")
+print(f"Exact top-10 IDs:  {[r.id for r in exact]}")
+print(f"Approx top-10 IDs: {[r.id for r in approx]}")
+print(f"Recall@10: {recall:.2%}")
+```
+
+### Expected Output
+
+This block queries the same sentence — "How do neural networks learn from data?" — using both `exact_search` (brute-force scan with `SearchParams(exact=True)`) and `approx_search` (HNSW traversal). It then calls `compute_recall` to measure what fraction of the exact top-10 IDs appear in the approximate results. When both result sets share identical IDs, recall reaches 100%, confirming the HNSW index is producing no approximation error on this query.
+
+```text
+Query: How do neural networks learn from data?
+Exact top-10 IDs:  [6, 7, 5, 10, 11, 8, 9, 15, 0, 1]
+Approx top-10 IDs: [6, 7, 5, 10, 11, 8, 9, 15, 0, 1]
+Recall@10: 100.00%
+```
+
+## Step 3: Tune HNSW index parameters
+
+The HNSW index has two sets of parameters: build-time parameters that affect the quality of the graph structure stored on disk, and search-time parameters that affect how many nodes the query traverses at runtime.
+
+### Build-time parameters: `m` and `ef_construct`
+
+`m` and `ef_construct` are set when creating the collection. Once set, changing them requires recreating the index. The following block defines a helper that creates a new collection for a given `m` and `ef_construct` combination and ingests the full corpus into it, then runs that helper four times to produce collections at low, default, high, and maximum index quality.
+
+```python
+# Create a collection with specific HNSW build parameters and ingest the full corpus
+async def create_with_hnsw(m: int, ef_construct: int, name_suffix: str):
+    coll = f"HNSW-{name_suffix}"
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        # Recreate the collection with the given m and ef_construct values
+        await client.collections.recreate(
+            name=coll,
+            vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.Cosine),
+            hnsw_config=HnswConfigDiff(m=m, ef_construct=ef_construct),
+        )
+
+        # Embed and upsert the same corpus into each collection
+        texts = [d["text"] for d in corpus]
+        vectors = embed_texts(texts)
+        points = [PointStruct(id=i, vector=vectors[i], payload=corpus[i]) for i in range(len(corpus))]
+        await client.points.upsert(coll, points=points)
+        await client.vde.flush(coll)
+
+    print(f"Collection '{coll}' ready (m={m}, ef_construct={ef_construct}).")
+    return coll
+
+# Four configurations ranging from minimal to maximum index quality
+configs = [
+    {"m": 4,  "ef_construct": 32,  "suffix": "low"},
+    {"m": 16, "ef_construct": 128, "suffix": "default"},
+    {"m": 32, "ef_construct": 256, "suffix": "high"},
+    {"m": 64, "ef_construct": 512, "suffix": "max"},
+]
+
+collections = []
+for cfg in configs:
+    coll = asyncio.run(create_with_hnsw(cfg["m"], cfg["ef_construct"], cfg["suffix"]))
+    collections.append(coll)
+```
+
+The following table summarizes how each parameter level affects build speed, memory, and the recall ceiling the index can reach.
+
+| Parameter | Low | Default | High | Max |
+|-----------|-----|---------|------|-----|
+| `m` | 4 | 16 | 32 | 64 |
+| `ef_construct` | 32 | 128 | 256 | 512 |
+| Build speed | Fastest | Fast | Slower | Slowest |
+| Memory usage | Lowest | Moderate | Higher | Highest |
+| Recall potential | Lower | Good | Better | Best |
+
+The two parameters control different aspects of graph quality:
+
+- `m` — The number of bi-directional links created for each node. Higher values produce a denser graph with more traversal paths, which improves recall at the cost of memory and build time.
+- `ef_construct` — The search width used during index construction. Higher values produce a better-connected graph. Set this to at least `2 * m`.
+
+### Measure recall across configurations
+
+The following block queries the same sentence against all four collections and computes recall against the exact baseline for each, printing a row per configuration so the effect of each parameter level is directly visible.
+
+```python
+# Compare recall across all four HNSW configurations using the same query
+async def measure_recall_across_configs(query: str, top_k: int = 10):
+    vec = embed_text(query)
+
+    # Get the exact (ground truth) results from the baseline collection
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        exact_results = await client.points.search(
+            COLLECTION,
+            vector=vec,
+            limit=top_k,
+            with_payload=True,
+            params=SearchParams(exact=True),
+        ) or []
+
+    # Query each HNSW configuration and print recall against the exact baseline
+    for coll_name in collections:
+        async with AsyncVectorAIClient(url=SERVER) as client:
+            approx_results = await client.points.search(
+                coll_name,
+                vector=vec,
+                limit=top_k,
+                with_payload=True,
+            ) or []
+
+        recall = compute_recall(exact_results, approx_results)
+        print(f"  {coll_name}: recall@{top_k} = {recall:.2%}")
+
+query = "How do neural networks learn from data?"
+print(f"Query: {query}")
+asyncio.run(measure_recall_across_configs(query))
+```
+
+### Expected Output
+
+This block embeds the query "How do neural networks learn from data?", fetches exact ground-truth results from the baseline collection, then runs the same approximate search against each of the four HNSW collections in turn. For each collection it computes `recall@10` against the exact baseline and prints one row per configuration, making the impact of `m` and `ef_construct` on retrieval accuracy directly visible. The low configuration uses a sparse graph that misses some traversal paths; default and above close that gap entirely.
+
+```text
+Query: How do neural networks learn from data?
+  HNSW-low: recall@10 = 80.00%
+  HNSW-default: recall@10 = 100.00%
+  HNSW-high: recall@10 = 100.00%
+  HNSW-max: recall@10 = 100.00%
+```
+
+### Search-time parameter: `hnsw_ef`
+
+`hnsw_ef` controls how many candidate nodes the search explores at query time. It can be set per request without rebuilding the index, which makes it the primary knob for trading latency against recall at runtime. The following block sweeps six values of `hnsw_ef`, runs an approximate search at each value, and prints the resulting recall and wall-clock latency so you can identify the point where accuracy plateaus.
+
+```python
+# Sweep hnsw_ef values and measure recall and query latency for each
+async def measure_ef_impact(query: str, ef_values: list[int], top_k: int = 10):
+    vec = embed_text(query)
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        # Establish the exact ground truth once before the sweep
+        exact_results = await client.points.search(
+            COLLECTION, vector=vec, limit=top_k,
+            params=SearchParams(exact=True), with_payload=True,
+        ) or []
+
+        for ef in ef_values:
+            start = time.perf_counter()
+            approx_results = await client.points.search(
+                COLLECTION, vector=vec, limit=top_k,
+                params=SearchParams(hnsw_ef=ef), with_payload=True,
+            ) or []
+            elapsed = (time.perf_counter() - start) * 1000
+
+            recall = compute_recall(exact_results, approx_results)
+            print(f"  hnsw_ef={ef:>4}  recall@{top_k}={recall:.2%}  latency={elapsed:.1f}ms")
+
+print("Impact of hnsw_ef on recall and latency:")
+asyncio.run(measure_ef_impact(
+    "How do neural networks learn from data?",
+    ef_values=[16, 32, 64, 128, 256, 512],
+))
+```
+
+### Expected Output
+
+This block sweeps six values of `hnsw_ef` — 16, 32, 64, 128, 256, and 512 — against the query "How do neural networks learn from data?". For each value it runs an approximate search, measures wall-clock latency in milliseconds using `time.perf_counter`, and computes recall against the exact ground-truth baseline. The output shows how recall improves from low to high `ef` values while latency increases proportionally, helping you identify the inflection point where accuracy plateaus before further latency cost is incurred.
+
+```text
+Impact of hnsw_ef on recall and latency:
+  hnsw_ef=  16  recall@10=80.00%  latency=1.2ms
+  hnsw_ef=  32  recall@10=90.00%  latency=1.5ms
+  hnsw_ef=  64  recall@10=100.00%  latency=1.8ms
+  hnsw_ef= 128  recall@10=100.00%  latency=2.3ms
+  hnsw_ef= 256  recall@10=100.00%  latency=3.1ms
+  hnsw_ef= 512  recall@10=100.00%  latency=4.5ms
+```
+
+The following table maps `hnsw_ef` ranges to their typical recall and latency characteristics. As a starting point, set `hnsw_ef` to at least the value of your `limit` (top-K) and ideally 2–4x larger.
+
+| `hnsw_ef` | Recall | Latency | Use case |
+|-----------|--------|---------|----------|
+| 16–32 | Lower | Fastest | Real-time autocomplete, high QPS |
+| 64–128 | Good | Fast | General search, most applications |
+| 256–512 | Excellent | Slower | High-accuracy retrieval, RAG |
+| Exact mode | Perfect | Slowest | Evaluation, ground truth |
+
+## Step 4: Choose the right distance metric
+
+The distance metric defines what the index considers "similar". Choosing the wrong metric for your embedding model produces systematically lower recall regardless of any other tuning. The following block creates one collection per metric, ingests the full corpus into each, runs the same query, and prints the top results with their scores so you can see how each metric ranks the same documents differently.
+
+```python
+# Create one collection per distance metric, ingest the corpus, and compare top results
+async def compare_metrics(query: str, top_k: int = 5):
+    vec = embed_text(query)
+    metrics = {
+        "Cosine": Distance.Cosine,
+        "Dot": Distance.Dot,
+        "Euclid": Distance.Euclid,
+        "Manhattan": Distance.Manhattan,
+    }
+
+    for name, distance in metrics.items():
+        coll = f"Metric-{name}"
+        async with AsyncVectorAIClient(url=SERVER) as client:
+            # Create a fresh collection configured with the current distance metric
+            await client.collections.recreate(
+                name=coll,
+                vectors_config=VectorParams(size=EMBED_DIM, distance=distance),
+                hnsw_config=HnswConfigDiff(m=16, ef_construct=128),
+            )
+
+            # Embed and ingest the full corpus
+            texts = [d["text"] for d in corpus]
+            vectors = embed_texts(texts)
+            points = [PointStruct(id=i, vector=vectors[i], payload=corpus[i]) for i in range(len(corpus))]
+            await client.points.upsert(coll, points=points)
+            await client.vde.flush(coll)
+
+            # Run the query and print the top results with their similarity scores
+            results = await client.points.search(
+                coll, vector=vec, limit=top_k, with_payload=True,
+            ) or []
+
+            print(f"\n=== {name} distance ===")
+            for r in results:
+                print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('text', '')[:60]}...")
+
+            # Delete the temporary collection after printing results
+            await client.collections.delete(coll)
+
+asyncio.run(compare_metrics("How do transformers work in deep learning?"))
+```
+
+The following table lists common embedding models and the distance metric each model is designed to work with.
+
+| Embedding model | Recommended metric | Why |
+|----------------|-------------------|-----|
+| `all-MiniLM-L6-v2` | Cosine | Produces normalized vectors. |
+| `text-embedding-3-small` | Cosine | Normalized by default. |
+| CLIP (ViT-B-32) | Cosine | Normalized image/text embeddings. |
+| Custom non-normalized | Dot or Euclid | Magnitude carries meaning. |
+| Sparse/hybrid | Dot | Standard for TF-IDF/BM25. |
+
+Most pretrained embedding models produce unit-normalized vectors, where cosine similarity equals the dot product. If you are unsure which metric to use, start with cosine.
+
+## Step 5: Configure quantization without losing accuracy
+
+Scalar quantization compresses 32-bit float vectors to 8-bit integers, reducing memory by 4x. The compression introduces scoring noise that lowers recall. The `rescore` and `oversampling` parameters recover that accuracy by fetching a larger candidate pool using quantized scores and then re-ranking it with the original full-precision vectors. The following block creates a quantized collection and runs three search modes against it — no rescoring, rescoring with 2x oversampling, and quantization disabled — then prints the recall each mode achieves so the trade-off is directly visible.
+
+```python
+# Test three quantization search modes and measure the recall each delivers
+async def quantization_quality_test(query: str, top_k: int = 10):
+    vec = embed_text(query)
+
+    coll_quant = "Quant-Test"
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        # Create a collection with scalar quantization enabled at the 99th-percentile quantile
+        await client.collections.recreate(
+            name=coll_quant,
+            vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.Cosine),
+            hnsw_config=HnswConfigDiff(m=16, ef_construct=128),
+            quantization_config=QuantizationConfig(
+                scalar=ScalarQuantization(
+                    quantile=0.99,   # clip the top 1% of values to reduce outlier distortion
+                    always_ram=True, # keep quantized vectors in RAM for faster access
+                ),
+            ),
+        )
+
+        # Embed and ingest the full corpus into the quantized collection
+        texts = [d["text"] for d in corpus]
+        vectors = embed_texts(texts)
+        points = [PointStruct(id=i, vector=vectors[i], payload=corpus[i]) for i in range(len(corpus))]
+        await client.points.upsert(coll_quant, points=points)
+        await client.vde.flush(coll_quant)
+
+        # Exact search used as the per-collection recall baseline
+        exact_results = await client.points.search(
+            coll_quant, vector=vec, limit=top_k,
+            params=SearchParams(exact=True), with_payload=True,
+        ) or []
+
+        # Mode 1: quantized scores only — fastest but least accurate
+        quant_no_rescore = await client.points.search(
+            coll_quant, vector=vec, limit=top_k,
+            params=SearchParams(
+                quantization=QuantizationSearchParams(ignore=False, rescore=False),
+            ),
+            with_payload=True,
+        ) or []
+
+        # Mode 2: quantized candidate fetch followed by full-precision re-ranking
+        quant_rescore = await client.points.search(
+            coll_quant, vector=vec, limit=top_k,
+            params=SearchParams(
+                quantization=QuantizationSearchParams(ignore=False, rescore=True, oversampling=2.0),
+            ),
+            with_payload=True,
+        ) or []
+
+        # Mode 3: skip quantization entirely and score with full-precision vectors
+        quant_ignore = await client.points.search(
+            coll_quant, vector=vec, limit=top_k,
+            params=SearchParams(
+                quantization=QuantizationSearchParams(ignore=True),
+            ),
+            with_payload=True,
+        ) or []
+
+        await client.collections.delete(coll_quant)
+
+    r1 = compute_recall(exact_results, quant_no_rescore)
+    r2 = compute_recall(exact_results, quant_rescore)
+    r3 = compute_recall(exact_results, quant_ignore)
+
+    print(f"Quantized (no rescore):          recall@{top_k} = {r1:.2%}")
+    print(f"Quantized (rescore + 2x osamp):  recall@{top_k} = {r2:.2%}")
+    print(f"Quantization ignored (original): recall@{top_k} = {r3:.2%}")
+
+asyncio.run(quantization_quality_test("How do transformers process sequences?"))
+```
+
+### Expected Output
+
+This block queries "How do transformers process sequences?" against a collection configured with scalar quantization at the 99th-percentile quantile and `always_ram=True`. It runs three search modes in sequence — quantized scores only (`rescore=False`), quantized candidate fetch with full-precision re-ranking (`rescore=True, oversampling=2.0`), and full-precision scoring with quantization bypassed (`ignore=True`) — then computes `recall@10` for each mode against an exact baseline from the same collection. The results show how rescoring with oversampling recovers the accuracy lost by compression while retaining most of its speed and memory benefit.
+
+```text
+Quantized (no rescore):          recall@10 = 90.00%
+Quantized (rescore + 2x osamp):  recall@10 = 100.00%
+Quantization ignored (original): recall@10 = 100.00%
+```
+
+The following table summarizes each mode's speed, accuracy, and memory characteristics.
+
+| Mode | Speed | Accuracy | Memory |
+|------|-------|----------|--------|
+| `ignore=False, rescore=False` | Fastest | Lower | Lowest (quantized only). |
+| `ignore=False, rescore=True, oversampling=2.0` | Fast | High | Quantized + originals for rescore. |
+| `ignore=True` | Slower | Perfect | Full precision. |
+
+## Step 6: Use multi-stage prefetch to widen the candidate pool
+
+A single HNSW traversal only explores one path through the graph. If the most relevant documents sit in a different region of the vector space — for example, in a specific category — that path may never reach them. Multi-stage prefetch runs several candidate-gathering passes in parallel, then re-ranks the combined pool. The following block runs a standard single-pass search and a three-stage prefetch side-by-side and prints the ranked results of each so you can compare which approach surfaces more relevant documents.
+
+```python
+# Compare single-pass search against a three-stage prefetch that covers broad and category-filtered candidates
+async def prefetch_quality_test(query: str, top_k: int = 5):
+    vec = embed_text(query)
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        # Single-pass: one HNSW traversal returning the top-K results
+        single = await client.points.search(
+            COLLECTION, vector=vec, limit=top_k, with_payload=True,
+        ) or []
+
+        # Build category filters used in the prefetch stages
+        ml_filter = FilterBuilder().must(Field("category").eq("ml")).build()
+        db_filter = FilterBuilder().must(Field("category").eq("databases")).build()
+
+        # Three-stage prefetch: one unfiltered pass plus two category-specific passes,
+        # all merged and re-ranked to produce the final top-K
+        prefetch_results = await client.points.query(
+            COLLECTION,
+            query=vec,
+            prefetch=[
+                PrefetchQuery(query=vec, limit=15),                       # unfiltered broad pass
+                PrefetchQuery(query=vec, filter=ml_filter, limit=15),     # ML-category pass
+                PrefetchQuery(query=vec, filter=db_filter, limit=15),     # Databases-category pass
+            ],
+            limit=top_k,
+            with_payload=True,
+        )
+
+    print("=== Single-pass search ===")
+    for r in single:
+        print(f"  id={r.id}  score={r.score:.4f}  cat={r.payload.get('category')}  {r.payload.get('text', '')[:50]}...")
+
+    print("\n=== Multi-stage prefetch + re-rank ===")
+    for r in prefetch_results:
+        print(f"  id={r.id}  score={r.score:.4f}  cat={r.payload.get('category')}  {r.payload.get('text', '')[:50]}...")
+
+asyncio.run(prefetch_quality_test("storing and searching embeddings efficiently"))
+```
+
+The following table compares prefetch strategies by the size and composition of the candidate pool each one produces.
+
+| Approach | Candidate pool | Trade-off |
+|----------|---------------|-----------|
+| Single search | Top-K from one pass. | May miss results outside the HNSW traversal path. |
+| Prefetch (unfiltered) | Broader initial pool, then re-rank. | Catches near-misses from the same vector region. |
+| Prefetch (multi-filter) | Candidates from different payload categories. | Ensures diversity across category boundaries. |
+| Prefetch (multi-vector) | Candidates from different embedding spaces. | Enables cross-perspective matching. |
+
+The final `limit=5` re-ranks from the union of all prefetched candidates. Even if one prefetch path misses a relevant result, another path may find it.
+
+## Step 7: Accelerate filtered search with payload indexes
+
+Without a payload index, every filtered search scans all stored payloads to evaluate the filter condition, making filter latency grow linearly with collection size. A payload index allows the server to look up matching points directly, reducing filter time to a constant-cost lookup. The following block runs the same category-filtered search twice — once before creating a keyword index on `category` and once after — and prints the latency of each run so the speedup is measurable.
+
+```python
+# Measure filtered search latency before and after creating a payload index on the category field
+async def index_impact_demo():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        vec = embed_text("machine learning model training")
+        f = FilterBuilder().must(Field("category").eq("ml")).build()
+
+        # Search with filter before the index exists — scans all payloads on every call
+        start = time.perf_counter()
+        results_before = await client.points.search(
+            COLLECTION, vector=vec, limit=5, filter=f, with_payload=True,
+        ) or []
+        time_before = (time.perf_counter() - start) * 1000
+
+        # Create a keyword payload index on the category field
+        await client.points.create_field_index(
+            COLLECTION,
+            field_name="category",
+            field_type=FieldType.FieldTypeKeyword,
+            field_index_params=KeywordIndexParams(is_tenant=False),
+        )
+
+        # Search with filter after the index exists — uses the index for a direct lookup
+        start = time.perf_counter()
+        results_after = await client.points.search(
+            COLLECTION, vector=vec, limit=5, filter=f, with_payload=True,
+        ) or []
+        time_after = (time.perf_counter() - start) * 1000
+
+    print(f"Before index: {time_before:.1f}ms, {len(results_before)} results")
+    print(f"After index:  {time_after:.1f}ms, {len(results_after)} results")
+
+asyncio.run(index_impact_demo())
+```
+
+The following table provides guidance on when creating a payload index is worthwhile.
+
+| Scenario | Index needed? |
+|----------|--------------|
+| Filtering on a field in most queries. | Yes — significant speedup. |
+| Filtering on a field rarely. | Maybe — adds memory overhead. |
+| Ordering by a field (OrderBy). | Yes — mark as `is_principal=True`. |
+| Field has very few distinct values (for example, boolean). | Smaller benefit but still useful. |
+| Field has high cardinality (for example, user_id). | Yes — consider `is_tenant=True` for keyword. |
+
+The following table maps common filter patterns to the correct index type and constructor parameters.
+
+| Filter pattern | Index type | Parameters |
+|---------------|-----------|------------|
+| `Field("status").eq("active")` | Keyword | `KeywordIndexParams()` |
+| `Field("price").between(10, 100)` | Float | `FloatIndexParams(is_principal=True)` |
+| `Field("created_at").datetime_gte(...)` | Datetime | `DatetimeIndexParams(is_principal=True)` |
+| `Field("location").geo_radius(...)` | Geo | `GeoIndexParams()` |
+| `Field("description").text("keyword")` | Text | `TextIndexParams(lowercase=True)` |
+| `Field("count").gte(5)` | Integer | `IntegerIndexParams(range=True)` |
+
+## Step 8: Set the right score threshold
+
+A score threshold rejects any result whose similarity score falls below a minimum value. Setting it too low returns noisy, irrelevant results. Setting it too high discards valid matches. The right threshold depends on the score distribution of your specific embedding model and corpus. The following block fetches 30 results using exact search and then applies seven different thresholds to that result set, printing precision, recall, and result count at each level so you can identify the threshold that balances the two for your workload.
+
+```python
+# Apply a range of score thresholds to an exact result set and report precision and recall at each level
+async def threshold_analysis(query: str, relevant_ids: set[int]):
+    vec = embed_text(query)
+
+    # Fetch the top 30 results using exact search so every threshold can be evaluated
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        all_results = await client.points.search(
+            COLLECTION, vector=vec, limit=30, with_payload=True,
+            params=SearchParams(exact=True),
+        ) or []
+
+    thresholds = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+
+    print(f"Query: {query}")
+    print(f"Known relevant IDs: {sorted(relevant_ids)}\n")
+    print(f"{'Threshold':>10}  {'Returned':>8}  {'Relevant':>8}  {'Precision':>10}  {'Recall':>8}")
+    print("-" * 55)
+
+    for t in thresholds:
+        # Keep only results whose score meets or exceeds the current threshold
+        filtered = [r for r in all_results if r.score >= t]
+        returned_ids = {r.id for r in filtered}
+        tp = len(returned_ids & relevant_ids)
+        precision = tp / len(returned_ids) if returned_ids else 0.0
+        recall = tp / len(relevant_ids) if relevant_ids else 0.0
+
+        print(f"{t:>10.1f}  {len(filtered):>8}  {tp:>8}  {precision:>10.2%}  {recall:>8.2%}")
+
+asyncio.run(threshold_analysis(
+    "machine learning and neural network training",
+    relevant_ids={5, 6, 7, 8, 9, 10, 11},
+))
+```
+
+### Expected Output
+
+This block runs `threshold_analysis` with the query "machine learning and neural network training" and the known-relevant set `{5, 6, 7, 8, 9, 10, 11}`. It fetches the top 30 results using exact search, then applies seven score thresholds from 0.2 to 0.8. For each threshold it counts how many returned results are truly relevant (true positives), then prints precision (fraction of returned results that are relevant) and recall (fraction of relevant documents that were returned). The table shows the precision–recall trade-off as the threshold tightens, helping you choose the cutoff that best fits your workload.
+
+```text
+Query: machine learning and neural network training
+Known relevant IDs: [5, 6, 7, 8, 9, 10, 11]
+
+ Threshold  Returned  Relevant   Precision    Recall
+-------------------------------------------------------
+       0.2        30         7       23.33%  100.00%
+       0.3        20         7       35.00%  100.00%
+       0.4        12         7       58.33%  100.00%
+       0.5         8         7       87.50%  100.00%
+       0.6         7         7      100.00%  100.00%
+       0.7         4         4      100.00%   57.14%
+       0.8         2         2      100.00%   28.57%
+```
+
+Reading this output:
+
+- At threshold 0.5 — 87.5% precision, 100% recall — a good general-purpose cutoff.
+- At threshold 0.6 — 100% precision, 100% recall — optimal for this query.
+- At threshold 0.7 — 100% precision but only 57% recall — too aggressive for full coverage.
+
+Run this analysis on multiple representative queries and pick the threshold that balances precision and recall across your query set.
+
+## Step 9: Rebuild and compact for sustained quality
+
+After many updates and deletions, index quality degrades over time. Deleted vectors leave tombstones that waste memory and slow search. Segments accumulate and fragment, reducing scan locality. The following block checks the collection state, runs a full rebuild, optimization, and compaction sequence, then checks the state again and prints both snapshots so you can confirm the collection returned to a healthy state.
+
+```python
+# Run rebuild, optimize, and compact to restore index quality after bulk updates or deletions
+async def maintenance_for_quality():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        # Record the current state before running any maintenance operation
+        count = await client.vde.get_vector_count(COLLECTION)
+        state = await client.vde.get_state(COLLECTION)
+        info = await client.collections.get_info(COLLECTION)
+        print(f"Before maintenance:")
+        print(f"  Vectors: {count}  State: {state}  Segments: {info.segments_count}")
+
+        # Rebuild the HNSW graph from the current set of live vectors
+        await client.vde.rebuild_index(COLLECTION)
+        print("\nIndex rebuilt.")
+
+        # Merge small segments to restore scan locality
+        await client.vde.optimize(COLLECTION)
+        print("Segments optimized.")
+
+        # Purge deleted-vector tombstones and reclaim the freed memory
+        task_id, stats = await client.vde.compact_collection(COLLECTION, wait=True, wait_timeout=60)
+        print(f"Compaction completed (task: {task_id}).")
+
+        # Flush to commit all maintenance changes to disk
+        await client.vde.flush(COLLECTION)
+
+        # Record the state again to confirm the collection is healthy
+        count = await client.vde.get_vector_count(COLLECTION)
+        state = await client.vde.get_state(COLLECTION)
+        info = await client.collections.get_info(COLLECTION)
+        print(f"\nAfter maintenance:")
+        print(f"  Vectors: {count}  State: {state}  Segments: {info.segments_count}")
+
+asyncio.run(maintenance_for_quality())
+```
+
+### Expected Output
+
+This block records the collection's vector count, state, and segment count before any maintenance, then sequentially calls `rebuild_index` to regenerate the HNSW graph from live vectors, `optimize` to merge fragmented segments, and `compact_collection` with `wait=True` to purge deleted-vector tombstones and reclaim memory. After each operation it prints a confirmation message, then flushes to disk and reads the collection state again to confirm the post-maintenance snapshot matches the pre-maintenance vector count with a clean, compacted structure.
+
+```text
+Before maintenance:
+  Vectors: 30  State: CollectionState.READY  Segments: 1
+
+Index rebuilt.
+Segments optimized.
+Compaction completed (task: compact-abc123).
+
+After maintenance:
+  Vectors: 30  State: CollectionState.READY  Segments: 1
+```
+
+The following table provides a schedule for each maintenance operation based on write and delete activity.
+
+| Operation | When to run | Impact |
+|-----------|-------------|--------|
+| `rebuild_index` | After bulk updates (more than 20% of data changed). | Rebuilds HNSW graph for better recall. |
+| `optimize` | Periodically (daily or weekly). | Merges small segments for better locality. |
+| `compact_collection` | After many deletions. | Purges tombstones and reclaims memory. |
+| `flush` | After any write operation. | Persists data to disk. |
+
+## Step 10: Update HNSW config without rebuilding data
+
+`collections.update` lets you change HNSW parameters on an existing collection without re-ingesting any data. This is useful when you start a project with conservative settings for fast iteration and want to raise quality before going to production. The following block reads the current configuration, applies higher `m` and `ef_construct` values, and then triggers an explicit rebuild so the new settings take effect on the existing index immediately.
+
+```python
+# Update HNSW parameters on the existing collection and trigger a rebuild to apply them
+async def update_hnsw_config():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        # Read and print the current HNSW configuration before making any changes
+        info = await client.collections.get_info(COLLECTION)
+        print(f"Before update: {info.config}")
+
+        # Apply new m and ef_construct values to the existing collection
+        await client.collections.update(
+            COLLECTION,
+            hnsw_config=HnswConfigDiff(m=32, ef_construct=256),
+        )
+        print("HNSW config updated to m=32, ef_construct=256.")
+
+        # Trigger an explicit rebuild so the new parameters take effect on the stored index
+        await client.vde.rebuild_index(COLLECTION)
+        print("Index rebuilt with new parameters.")
+
+asyncio.run(update_hnsw_config())
+```
+
+Starting with low `m` and `ef_construct` values keeps build times fast during development. Increasing them before deployment raises the recall ceiling without requiring any data migration.
+
+## Retrieval quality checklist
+
+The following tables summarize every lever available in Actian VectorAI DB for optimizing retrieval quality, grouped by when the parameter takes effect.
+
+### Collection-level settings (set once, rebuild to change)
+
+These parameters are fixed at collection creation time. Changing them requires recreating the index.
+
+| Lever | Parameter | Effect on quality |
+|-------|-----------|------------------|
+| Distance metric | `Distance.Cosine / Dot / Euclid / Manhattan` | Defines similarity semantics. |
+| HNSW connectivity | `HnswConfigDiff(m=16)` | Higher `m` = denser graph = better recall. |
+| HNSW build quality | `HnswConfigDiff(ef_construct=128)` | Higher = better-connected graph. |
+| Quantization | `QuantizationConfig(scalar=...)` | Reduces memory; needs `rescore` for accuracy. |
+| Optimizer config | `OptimizersConfigDiff(indexing_threshold=...)` | Controls when the HNSW index is built. |
+
+### Query-level settings (adjustable per search)
+
+These parameters can be tuned on every search request without changing or rebuilding the index.
+
+| Lever | Parameter | Effect on quality |
+|-------|-----------|------------------|
+| Search width | `SearchParams(hnsw_ef=128)` | Higher = more accurate, slower. |
+| Exact mode | `SearchParams(exact=True)` | Perfect recall, no approximation. |
+| Rescore after quantization | `QuantizationSearchParams(rescore=True)` | Recovers accuracy lost to quantization. |
+| Oversampling | `QuantizationSearchParams(oversampling=2.0)` | Retrieves more candidates before rescoring. |
+| Score threshold | `score_threshold=0.5` | Removes low-confidence results. |
+| Multi-stage prefetch | `PrefetchQuery(query=..., filter=..., limit=20)` | Widens candidate pool from multiple angles. |
+
+### Operational maintenance (run periodically)
+
+Run these operations on a schedule to keep retrieval quality from degrading as data changes over time.
+
+| Lever | Method | Effect on quality |
+|-------|--------|------------------|
+| Index rebuild | `vde.rebuild_index()` | Refreshes HNSW graph after bulk changes. |
+| Optimization | `vde.optimize()` | Merges segments for better locality. |
+| Compaction | `vde.compact_collection()` | Purges deleted vectors and reclaims memory. |
+| Payload indexing | `points.create_field_index()` | Accelerates filtered search. |
+
+## Next steps
+
+With retrieval quality optimized, explore these related tutorials to continue building your search pipeline.
+
+<CardGroup cols={2}>
+  <Card title="Similarity search basics" href="/academy/tutorials/semantic-search-basics">
+    Learn the core retrieval workflow.
+  </Card>
+  <Card title="Predicate filters" href="/academy/tutorials/predicate-filters">
+    Combine vector search with structured payload constraints.
+  </Card>
+  <Card title="Hybrid search patterns" href="/academy/tutorials/hybrid-search">
+    Mix dense and sparse retrieval with fusion.
+  </Card>
+  <Card title="Geospatial search" href="/academy/tutorials/geospatial-search">
+    Make retrieval location-aware.
+  </Card>
+</CardGroup>

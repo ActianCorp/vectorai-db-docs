@@ -1,0 +1,179 @@
+---
+title: "Insert points"
+description: "Add individual points or batches of points to a collection."
+icon: "code"
+---
+
+Insert individual points or batches of points into your collection. Points can include optional payload metadata.
+
+<Note>
+Before you begin, make sure you have a running VectorAI DB instance and an existing collection. Vectors must match the dimension configured for the collection. See [Create a collection](/docs/fundamentals/collections/create-collection-task) to set one up.
+</Note>
+
+## Insert a single point
+
+The `insert()` method is an alias for `upsert()`. A new ID inserts a new point, while an existing ID updates the point with the new vector and payload.
+
+<CodeGroup>
+```python Python
+import random
+from actian_vectorai import VectorAIClient, PointStruct
+
+DIMENSION = 128
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Generate vector from your embedding model
+    vector = [random.gauss(0, 1) for _ in range(DIMENSION)]
+    
+    # Insert point with payload
+    point = PointStruct(
+        id=1,  # Point ID
+        vector=vector,  # Vector embedding
+        payload={  # Metadata (optional)
+            "name": "Laptop",
+            "category": "electronics",
+            "price": 999.99,
+            "in_stock": True
+        }
+    )
+    
+    # Upsert point to collection
+    client.points.upsert(COLLECTION, [point])
+    print("Point inserted successfully")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const DIMENSION = 128;
+const COLLECTION = "products";
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Generate vector from your embedding model
+        const vector = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+
+        // Insert point with payload
+        await client.points.upsert(COLLECTION, [{
+            id: 1,  // Point ID
+            vector: vector,  // Vector embedding
+            payload: {  // Metadata (optional)
+                name: "Laptop",
+                category: "electronics",
+                price: 999.99,
+                in_stock: true
+            }
+        }], { wait: true });
+
+        console.log("Point inserted successfully");
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+<Note>
+Payload is optional. You can insert points with only ID and vector:
+
+```python
+point = PointStruct(id=1, vector=vector)  # No payload
+client.points.upsert(COLLECTION, [point])
+```
+</Note>
+
+## Batch insert points
+
+Batch operations are significantly faster than individual inserts. Use batch sizes between one hundred and one thousand points for optimal performance. The `upsert_points()` method is an alias for `batch_upsert()`.
+
+<CodeGroup>
+```python Python
+import random
+from actian_vectorai import VectorAIClient, PointStruct
+
+DIMENSION = 128
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    random.seed(42)  # Reproducible random vectors
+    
+    # Prepare batch data
+    products = [
+        {"name": "Smartphone", "category": "electronics", "price": 699.99, "in_stock": True},
+        {"name": "Tablet", "category": "electronics", "price": 499.99, "in_stock": True},
+        {"name": "T-Shirt", "category": "clothing", "price": 29.99, "in_stock": True},
+        {"name": "Jeans", "category": "clothing", "price": 79.99, "in_stock": False},
+        {"name": "Coffee Beans", "category": "food", "price": 12.99, "in_stock": True},
+        {"name": "Energy Bar", "category": "food", "price": 2.99, "in_stock": True},
+        {"name": "Python Book", "category": "books", "price": 39.99, "in_stock": False},
+        {"name": "AI Textbook", "category": "books", "price": 89.99, "in_stock": True},
+        {"name": "Action Figure", "category": "toys", "price": 24.99, "in_stock": True},
+        {"name": "Board Game", "category": "toys", "price": 49.99, "in_stock": False}
+    ]
+    
+    # Create points with vectors and payloads
+    points = [
+        PointStruct(
+            id=i + 1,  # Point ID
+            vector=[random.gauss(0, 1) for _ in range(DIMENSION)],  # Generate vector
+            payload=payload  # Attach metadata (optional)
+        )
+        for i, payload in enumerate(products)
+    ]
+    
+    # Batch insert all points
+    client.points.upsert(COLLECTION, points)
+    
+    print(f"Successfully inserted {len(points)} points")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const DIMENSION = 128;
+const COLLECTION = "products";
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Prepare batch data
+        const products = [
+            { name: "Smartphone", category: "electronics", price: 699.99, in_stock: true },
+            { name: "Tablet", category: "electronics", price: 499.99, in_stock: true },
+            { name: "T-Shirt", category: "clothing", price: 29.99, in_stock: true },
+            { name: "Jeans", category: "clothing", price: 79.99, in_stock: false },
+            { name: "Coffee Beans", category: "food", price: 12.99, in_stock: true },
+            { name: "Energy Bar", category: "food", price: 2.99, in_stock: true },
+            { name: "Python Book", category: "books", price: 39.99, in_stock: false },
+            { name: "AI Textbook", category: "books", price: 89.99, in_stock: true },
+            { name: "Action Figure", category: "toys", price: 24.99, in_stock: true },
+            { name: "Board Game", category: "toys", price: 49.99, in_stock: false }
+        ];
+
+        // Create points with vectors and payloads
+        const points = products.map((payload, i) => ({
+            id: i + 1,  // Point ID
+            vector: Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1),  // Generate vector
+            payload: payload  // Attach metadata (optional)
+        }));
+
+        // Batch insert all points
+        await client.points.upsert(COLLECTION, points, { wait: true });
+
+        console.log(`Successfully inserted ${points.length} points`);
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>

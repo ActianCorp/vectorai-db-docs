@@ -1,0 +1,217 @@
+---
+title: "Collection workflow"
+description: "A complete walkthrough of creating, populating, querying, maintaining, and deleting a collection."
+icon: "code"
+---
+
+This guide walks through a realistic end-to-end workflow using VectorAI DB collections. You will create a collection, insert points, search for similar vectors, update parameters, run maintenance tasks, and clean up all in a single connected example.
+
+<Note>
+Before you begin, make sure you have a running VectorAI DB instance and the Python client library installed (`pip install actian-vectorai`).
+</Note>
+
+The workflow covers the following steps in order:
+
+1. Create a collection with custom HNSW parameters.
+2. Insert points with payload metadata.
+3. Search for similar vectors with filtering.
+4. Update collection parameters.
+5. Inspect collection state and statistics.
+6. Run maintenance (flush and snapshot).
+7. Delete the collection.
+
+## Complete example
+
+The following example uses a `product_catalog` collection with 128-dimensional vectors. Each step builds on the previous one, forming a complete lifecycle from creation through deletion.
+
+<CodeGroup>
+```python Python
+import asyncio
+import random
+from actian_vectorai import (
+    AsyncVectorAIClient, VectorParams, Distance,
+    HnswConfigDiff, OptimizersConfigDiff
+)
+
+COLLECTION = "product_catalog"
+
+def random_vector(size=128):
+    # Generate a random normalized vector to simulate an embedding
+    vec = [random.uniform(-1, 1) for _ in range(size)]
+    magnitude = sum(v ** 2 for v in vec) ** 0.5
+    return [v / magnitude for v in vec]
+
+async def main():
+    async with AsyncVectorAIClient("localhost:50051") as client:
+
+        # ── Step 1: Create collection ──────────────────────────────────────
+        await client.collections.create(
+            COLLECTION,
+            vectors_config=VectorParams(size=128, distance=Distance.Cosine),
+            hnsw_config=HnswConfigDiff(
+                m=16,              # Connections per layer
+                ef_construct=200   # Accuracy during index building
+            )
+        )
+        print(f"[1] Collection '{COLLECTION}' created")
+
+        # ── Step 2: Insert points ──────────────────────────────────────────
+        batch = [
+            {
+                "id": i,
+                "vector": random_vector(),
+                "payload": {
+                    "name": f"Product {i}",
+                    "category": "electronics" if i % 2 == 0 else "accessories",
+                    "price": round(random.uniform(10, 2000), 2),
+                    "in_stock": random.choice([True, False])
+                }
+            }
+            for i in range(1, 52)   # Insert 51 points
+        ]
+        await client.points.insert_batch(collection_name=COLLECTION, points=batch)
+        print(f"[2] Inserted {len(batch)} points")
+
+        # ── Step 3: Search ─────────────────────────────────────────────────
+        results = await client.points.search(
+            collection_name=COLLECTION,
+            query_vector=random_vector(),   # Replace with your actual query embedding
+            limit=5,
+            query_filter={
+                "must": [
+                    {"key": "in_stock", "match": {"value": True}}
+                ]
+            }
+        )
+        print(f"[3] Top {len(results)} in-stock results:")
+        for r in results:
+            print(f"    ID: {r.id} | Score: {r.score:.4f} | {r.payload.get('name')}")
+
+        # ── Step 4: Update parameters ──────────────────────────────────────
+        await client.collections.update(
+            COLLECTION,
+            optimizers_config=OptimizersConfigDiff(
+                indexing_threshold=50000   # Delay indexing until 50k points
+            )
+        )
+        print("[4] Collection parameters updated")
+
+        # ── Step 5: Inspect state ──────────────────────────────────────────
+        info = await client.collections.get_info(COLLECTION)
+        print(f"[5] Status: {info.status} | Vectors: {info.points_count}")
+
+        # ── Step 6: Maintenance ────────────────────────────────────────────
+        await client.vde.flush(COLLECTION)          # Write pending changes to disk
+        print("[6] Flushed to disk")
+
+        await client.vde.save_snapshot(
+            COLLECTION,
+            snapshot_path=f"/backups/{COLLECTION}_backup.snap"
+        )
+        print("[6] Snapshot saved")
+
+        # ── Step 7: Delete ─────────────────────────────────────────────────
+        await client.collections.delete(COLLECTION)
+        print(f"[7] Collection '{COLLECTION}' deleted")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const COLLECTION = 'product_catalog';
+
+function randomVector(size = 128) {
+    // Generate a random normalized vector to simulate an embedding
+    const vec = Array.from({ length: size }, () => Math.random() * 2 - 1);
+    const magnitude = Math.sqrt(vec.reduce((sum, v) => sum + v * v, 0));
+    return vec.map(v => v / magnitude);
+}
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+    try {
+        // -- Step 1: Create collection ------------------------------------------
+        await client.collections.create(COLLECTION, {
+            dimension: 128,
+            distanceMetric: 'COSINE',
+            hnswConfig: {
+                m: 16,              // Connections per layer
+                efConstruct: 200    // Accuracy during index building
+            }
+        });
+        console.log(`[1] Collection '${COLLECTION}' created`);
+
+        // -- Step 2: Insert points ----------------------------------------------
+        const batch = Array.from({ length: 51 }, (_, i) => ({
+            id: i + 1,
+            vector: randomVector(),
+            payload: {
+                name: `Product ${i + 1}`,
+                category: (i + 1) % 2 === 0 ? 'electronics' : 'accessories',
+                price: parseFloat((Math.random() * 1990 + 10).toFixed(2)),
+                in_stock: Math.random() > 0.5
+            }
+        }));
+        await client.points.insertBatch({ collectionName: COLLECTION, points: batch });
+        console.log(`[2] Inserted ${batch.length} points`);
+
+        // -- Step 3: Search -----------------------------------------------------
+        const results = await client.points.search({
+            collectionName: COLLECTION,
+            queryVector: randomVector(),
+            limit: 5,
+            queryFilter: {
+                must: [
+                    { key: 'in_stock', match: { value: true } }
+                ]
+            }
+        });
+        console.log(`[3] Top ${results.length} in-stock results:`);
+        for (const r of results) {
+            console.log(`    ID: ${r.id} | Score: ${r.score.toFixed(4)} | ${r.payload.name}`);
+        }
+
+        // -- Step 4: Update parameters ------------------------------------------
+        await client.collections.update(COLLECTION, {
+            hnswConfig: {
+                m: 32,
+                efConstruct: 200
+            }
+        });
+        console.log('[4] Collection parameters updated');
+
+        // -- Step 5: Inspect state ----------------------------------------------
+        const info = await client.collections.getInfo(COLLECTION);
+        console.log(`[5] Status: ${info.status} | Vectors: ${info.pointsCount}`);
+
+        // -- Step 6: Maintenance ------------------------------------------------
+        await client.vde.flush(COLLECTION);
+        console.log('[6] Flushed to disk');
+
+        await client.vde.saveSnapshot(COLLECTION, {
+            snapshotPath: `/backups/${COLLECTION}_backup.snap`
+        });
+        console.log('[6] Snapshot saved');
+
+        // -- Step 7: Delete -----------------------------------------------------
+        await client.collections.delete(COLLECTION);
+        console.log(`[7] Collection '${COLLECTION}' deleted`);
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Next steps
+
+After completing this workflow, explore these related guides:
+
+- [Create a collection](/docs/fundamentals/collections/create-collection-task) — Configure collections with custom parameters.
+- [Insert points](/docs/fundamentals/points/insert-points-task) — Learn batch insertion patterns.
+- [Search operations](/docs/fundamentals/search/search) — Apply advanced query techniques.
+- [Manage collection state](/docs/fundamentals/collections/manage-collection-state-task) — Perform maintenance operations.

@@ -1,0 +1,504 @@
+---
+title: "Inspect and maintain collections"
+description: "Monitor collection state, flush data, optimize storage, and manage snapshots."
+icon: "code"
+---
+
+Use this page to check collection state, flush pending writes to disk, optimize storage after deletions, rebuild the HNSW index, and manage snapshots for backup and recovery.
+
+<Note>
+Before you begin, make sure you have a running VectorAI DB instance and the Python client library installed (`pip install actian-vectorai`).
+</Note>
+
+## Get collection state
+
+A collection can be in one of the following states:
+
+- **Ready.** Collection is loaded into memory and available for operations.
+- **Loading.** Collection is currently loading into memory.
+- **Closed.** Collection exists on disk but is not loaded into memory.
+- **Error.** Collection encountered an issue.
+
+Use `get_state()` to retrieve the current state.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Get detailed collection state
+        state = await client.vde.get_state("my_collection")
+        print(f"Collection state: {state}")
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Get detailed collection state
+        const state = await client.vde.getState('my_collection');
+        console.log(`Collection state: ${state}`);
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+The method returns one of the four states listed above.
+
+## Flush a collection
+
+VectorAI DB writes data changes to disk asynchronously for performance. Flushing forces all pending writes to be persisted immediately, ensuring data durability. Use this operation in these situations:
+
+- Before critical operations or backups.
+- After large batch inserts.
+- Before shutting down applications.
+- When data durability is critical.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Insert data operations would go here
+        # ... insert operations ...
+
+        # Force flush to disk
+        await client.vde.flush("my_collection")
+        print("Collection flushed to disk")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Insert data operations would go here
+        // ... insert operations ...
+
+        // Force flush to disk
+        await client.vde.flush('my_collection');
+        console.log('Collection flushed to disk');
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Optimize a collection
+
+When points are deleted from a collection, VectorAI DB marks them as deleted but does not immediately reclaim storage. Optimization compacts the collection by removing deleted points, reducing disk usage and improving index efficiency. Run optimization after large deletions or when storage usage is high.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Optimize collection (reclaim space from deleted points)
+        print("Optimizing collection...")
+        await client.vde.optimize("my_collection")
+        print("Optimization complete")
+
+        # Check stats after optimization
+        stats = await client.vde.get_stats("my_collection")
+        print(f"Stats after optimization: {stats}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Optimize collection (reclaim space from deleted points)
+        console.log('Optimizing collection...');
+        await client.vde.optimize('my_collection');
+        console.log('Optimization complete');
+
+        // Check stats after optimization
+        const stats = await client.vde.getStats('my_collection');
+        console.log(`Stats after optimization: ${JSON.stringify(stats)}`);
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+`get_stats()` returns the following fields after optimization.
+
+- `total_points`: Total number of points in the collection.
+- `deleted_points`: Number of points still pending cleanup.
+- `segment_count`: Number of storage segments in the collection.
+- `index_size_bytes`: Total size of the HNSW index in bytes.
+
+## Rebuild an index
+
+Rebuilding creates a new HNSW index from scratch. This can restore search accuracy after large bulk updates and is required for HNSW parameter changes to take effect. Rebuild an index in these situations:
+
+- After changing HNSW parameters.
+- When search performance degrades significantly.
+- After massive bulk updates.
+- During scheduled maintenance windows.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        COLLECTION = "large_dataset"
+
+        # Start index rebuild
+        print("Starting index rebuild...")
+        task_id = await client.vde.rebuild_index(COLLECTION)
+        print(f"Rebuild task started: {task_id}")
+
+        # Monitor rebuild progress
+        while True:
+            # Get all rebuild tasks (returns tuple: tasks_list, total_count)
+            tasks_list, total = await client.vde.list_rebuild_tasks(collection_name=COLLECTION)
+
+            # Find current task by ID
+            current_task = next(
+                (t for t in tasks_list if t.task_id == task_id), None)
+
+            # Check if rebuild is complete
+            if not current_task or current_task.status == "completed":
+                print("\nIndex rebuild complete!")
+                break
+
+            # Display progress
+            progress = current_task.progress_percent
+            print(f"Progress: {progress:.1f}%", end='\r')
+
+            # Wait before checking again
+            await asyncio.sleep(1)
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        const COLLECTION = 'large_dataset';
+
+        // Start index rebuild
+        console.log('Starting index rebuild...');
+        const taskId = await client.vde.rebuildIndex(COLLECTION);
+        console.log(`Rebuild task started: ${taskId}`);
+
+        // Monitor rebuild progress
+        while (true) {
+            // Get all rebuild tasks (returns tuple: tasks list, total count)
+            const [tasksList, total] = await client.vde.listRebuildTasks({ collectionName: COLLECTION });
+
+            // Find current task by ID
+            const currentTask = tasksList.find(t => t.taskId === taskId);
+
+            // Check if rebuild is complete
+            if (!currentTask || currentTask.status === 'completed') {
+                console.log('\nIndex rebuild complete!');
+                break;
+            }
+
+            // Display progress
+            const progress = currentTask.progressPercent;
+            process.stdout.write(`Progress: ${progress.toFixed(1)}%\r`);
+
+            // Wait before checking again
+            await sleep(1000);
+        }
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Manage snapshots
+
+The following examples show how to create and load collection snapshots for backup and recovery.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        COLLECTION = "important_data"
+        
+        # Save snapshot
+        snapshot_path = await client.vde.save_snapshot(
+            COLLECTION  # LOCATION OF THE SNAPSHOT
+        )
+        print(f"Snapshot saved: {snapshot_path}")
+        
+        # Later: restore from snapshot
+        await client.vde.load_snapshot(
+            COLLECTION
+        )
+        print("Collection restored from snapshot")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        const COLLECTION = 'important_data';
+
+        // Save snapshot
+        const snapshotPath = await client.vde.saveSnapshot(COLLECTION);
+        console.log(`Snapshot saved: ${snapshotPath}`);
+
+        // Later: restore from snapshot
+        await client.vde.loadSnapshot(COLLECTION);
+        console.log('Collection restored from snapshot');
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Snapshots support these scenarios:
+
+- Regular backups.
+- Testing with production data.
+- Disaster recovery.
+- Environment promotion across stages.
+
+## List rebuild tasks
+
+The following example lists all ongoing index rebuild operations.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # List all rebuild tasks
+        tasks = await client.vde.list_rebuild_tasks()
+        
+        if not tasks:
+            print("No rebuild tasks running")
+        else:
+            print(f"Active rebuild tasks: {len(tasks)}\n")
+            for task in tasks:
+                # Display task details
+                print(f"Task ID: {task.task_id}")
+                print(f"  Collection: {task.collection_name}")
+                print(f"  Status: {task.status}")
+                print(f"  Progress: {task.progress_percent:.1f}%")
+                print(f"  Started: {task.start_time}")
+                print()
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // List all rebuild tasks
+        const tasks = await client.vde.listRebuildTasks();
+
+        if (!tasks || tasks.length === 0) {
+            console.log('No rebuild tasks running');
+        } else {
+            console.log(`Active rebuild tasks: ${tasks.length}\n`);
+            for (const task of tasks) {
+                // Display task details
+                console.log(`Task ID: ${task.taskId}`);
+                console.log(`  Collection: ${task.collectionName}`);
+                console.log(`  Status: ${task.status}`);
+                console.log(`  Progress: ${task.progressPercent.toFixed(1)}%`);
+                console.log(`  Started: ${task.startTime}`);
+                console.log();
+            }
+        }
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each task includes these fields.
+
+- `task_id`: Unique identifier for the rebuild task.
+- `collection_name`: Name of the collection being rebuilt.
+- `status`: Current status of the task (running, completed, failed).
+- `progress_percent`: Completion percentage (0-100).
+- `start_time`: Timestamp when the task started.
+
+## Complete maintenance workflow
+
+The following example combines the individual maintenance operations from this page into a single workflow. Use it as a template for scheduled maintenance routines that flush, optimize, and back up a collection in sequence.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+async def maintenance_workflow(client, collection_name):
+    """Complete maintenance workflow for a collection"""
+    
+    print(f"=== Maintenance for '{collection_name}' ===\n")
+    
+    # 1. Get initial stats
+    print("1. Initial state:")
+    stats = await client.vde.get_stats(collection_name)
+    print(f"   Points: {stats.total_points:,}")
+    print(f"   Deleted: {stats.deleted_points:,}")
+    print(f"   Segments: {stats.segment_count}")
+    
+    # 2. Flush pending changes
+    print("\n2. Flushing to disk...")
+    await client.vde.flush(collection_name)
+    
+    # 3. Optimize if needed
+    if stats.deleted_points > 1000:
+        print(f"\n3. Optimizing ({stats.deleted_points:,} deleted points)...")
+        await client.vde.optimize(collection_name)
+    
+    # 4. Save snapshot
+    print("\n4. Creating snapshot...")
+    snapshot = await client.vde.save_snapshot(
+        collection_name,
+        snapshot_path=f"/backups/{collection_name}_maintenance.snap"  # Backup path
+    )
+    print(f"   Saved: {snapshot}")
+    
+    # 5. Get final stats
+    print("\n5. Final state:")
+    final_stats = await client.vde.get_stats(collection_name)
+    print(f"   Points: {final_stats.total_points:,}")
+    print(f"   Deleted: {final_stats.deleted_points:,}")
+    print(f"   Index size: {final_stats.index_size_bytes / 1024 / 1024:.2f} MB")
+    
+    print("\n=== Maintenance complete ===")
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Run maintenance workflow
+        await maintenance_workflow(client, "products")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function maintenanceWorkflow(client, collectionName) {
+    // Complete maintenance workflow for a collection
+    console.log(`=== Maintenance for '${collectionName}' ===\n`);
+
+    // 1. Get initial stats
+    console.log('1. Initial state:');
+    const stats = await client.vde.getStats(collectionName);
+    console.log(`   Points: ${stats.totalPoints.toLocaleString()}`);
+    console.log(`   Deleted: ${stats.deletedPoints.toLocaleString()}`);
+    console.log(`   Segments: ${stats.segmentCount}`);
+
+    // 2. Flush pending changes
+    console.log('\n2. Flushing to disk...');
+    await client.vde.flush(collectionName);
+
+    // 3. Optimize if needed
+    if (stats.deletedPoints > 1000) {
+        console.log(`\n3. Optimizing (${stats.deletedPoints.toLocaleString()} deleted points)...`);
+        await client.vde.optimize(collectionName);
+    }
+
+    // 4. Save snapshot
+    console.log('\n4. Creating snapshot...');
+    const snapshot = await client.vde.saveSnapshot(
+        collectionName,
+        { snapshotPath: `/backups/${collectionName}_maintenance.snap` }
+    );
+    console.log(`   Saved: ${snapshot}`);
+
+    // 5. Get final stats
+    console.log('\n5. Final state:');
+    const finalStats = await client.vde.getStats(collectionName);
+    console.log(`   Points: ${finalStats.totalPoints.toLocaleString()}`);
+    console.log(`   Deleted: ${finalStats.deletedPoints.toLocaleString()}`);
+    console.log(`   Index size: ${(finalStats.indexSizeBytes / 1024 / 1024).toFixed(2)} MB`);
+
+    console.log('\n=== Maintenance complete ===');
+}
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Run maintenance workflow
+        await maintenanceWorkflow(client, 'products');
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>

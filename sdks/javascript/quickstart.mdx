@@ -1,0 +1,187 @@
+---
+title: "Quickstart"
+description: "Get started with VectorAI DB using the JavaScript SDK."
+---
+
+This short guide shows you how to create a collection, insert vectors, and perform similarity search using the JavaScript SDK.
+
+<Warning>
+**VectorAI DB required**: This quickstart requires VectorAI DB running in a Docker container. To set it up, see the [Docker installation guide](/docs/installation/docker).
+</Warning>
+
+## Prerequisites
+
+Before you begin, make sure you have the following installed.
+
+| Requirement | Version |
+|---|---|
+| Node.js | 18 or higher (LTS recommended) |
+| npm | 9 or higher |
+| VectorAI DB | Running on `localhost:50051` |
+| `@actian/cortex-client` | Installed ([installation guide](/sdks/javascript/installation)) |
+
+## Step 1: Set up the SDK
+
+Add the VectorAI DB JavaScript SDK to your project.
+
+```bash
+npm install @actian/cortex-client
+```
+
+## Step 2: Run the Docker container
+
+Download and run the VectorAI DB Docker container.
+
+```bash
+docker pull actian/vectorai-server:latest
+docker run -p 50051:50051 actian/vectorai-server:latest
+```
+
+This command hosts the server on `localhost:50051`.
+
+## Step 3: Build and run the quickstart
+
+The following steps walk through each part of the quickstart. All code snippets below belong in a single file. Save the complete script as `quickstart.ts` and run it with `npx ts-node quickstart.ts`.
+
+### Connect and create a collection
+
+Connect to the VectorAI server and create a collection named `products` with dimension 128 and cosine distance metric.
+
+```typescript
+import { CortexClient } from '@actian/cortex-client';
+
+const DIMENSION = 128;
+const COLLECTION = 'products';
+
+async function main() {
+    // Connect to the VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+
+    // Verify the connection
+    const health = await client.healthCheck();
+    console.log(`Connected to ${health.title} v${health.version}`);
+
+    // Create a collection with cosine distance
+    await client.collections.create(COLLECTION, {
+        dimension: DIMENSION,
+        distanceMetric: 'COSINE',
+    });
+    console.log(`Collection '${COLLECTION}' created successfully`);
+```
+
+### Generate sample data
+
+Define a helper function to generate sample product vectors with metadata.
+
+```typescript
+    // Generate sample product vectors with metadata
+    function generateSampleProducts(numProducts: number): typeof points {
+        const categories = ['electronics', 'clothing', 'food'];
+        const result = [];
+
+        for (let i = 0; i < numProducts; i++) {
+            // Assign category by cycling through the list
+            const category = categories[i % 3];
+            const price = parseFloat((i * 10 + Math.random() * 100).toFixed(2));
+            const inStock = i % 2 === 0;
+
+            result.push({
+                id: i,
+                // Generate a random vector with values between -1 and 1
+                vector: Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1),
+                payload: { id: i, category, price, in_stock: inStock },
+            });
+        }
+        return result;
+    }
+```
+
+### Insert vectors
+
+Generate 100 sample products and insert them into the collection.
+
+```typescript
+    const NUM_VECTORS = 100;
+    console.log(`Inserting ${NUM_VECTORS} vectors...`);
+
+    // Generate sample data
+    const points = generateSampleProducts(NUM_VECTORS);
+
+    // Batch insert and wait for indexing
+    await client.points.upsert(COLLECTION, points, { wait: true });
+    console.log(`Inserted ${NUM_VECTORS} vectors`);
+
+    // Verify the count
+    const count = await client.points.count(COLLECTION);
+    console.log(`Vector count: ${count}`);
+```
+
+### Search for similar vectors
+
+Perform similarity search to find the top five most similar vectors.
+
+```typescript
+    // Generate a random query vector
+    console.log('\nSearching for similar vectors...');
+    const query = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+
+    // Search for the top 5 nearest neighbours
+    const results = await client.points.search(COLLECTION, query, { limit: 5 });
+
+    // Print results ranked by similarity score
+    console.log(`Found ${results.length} results:`);
+    for (const [i, result] of results.entries()) {
+        console.log(`[${i + 1}] ID: ${result.id}, Score: ${result.score.toFixed(4)}`);
+    }
+
+    // Retrieve the full payload for the top result
+    if (results.length > 0) {
+        console.log('\nRetrieving vector details...');
+        const retrieved = await client.points.get(COLLECTION, [results[0].id]);
+        console.log(`Top result payload: ${JSON.stringify(retrieved[0].payload)}`);
+    }
+```
+
+If the search succeeds, then the output displays the matched results ranked by similarity score.
+
+```
+Searching for similar vectors...
+Found 5 results:
+[1] ID: 39, Score: 29.2119
+[2] ID: 54, Score: 27.3639
+[3] ID: 76, Score: 23.6023
+[4] ID: 31, Score: 21.2087
+[5] ID: 22, Score: 17.9858
+
+Retrieving vector details...
+Top result payload: {"price":451.6,"id":39,"in_stock":false,"category":"electronics"}
+```
+
+### Clean up
+
+Delete the collection and close the connection.
+
+```typescript
+    // Delete the collection
+    await client.collections.delete(COLLECTION);
+    console.log(`\nCollection '${COLLECTION}' deleted successfully`);
+
+    // Close the gRPC connection
+    client.close();
+}
+
+main().catch(console.error);
+```
+
+## Next steps
+
+Now that you have completed the quickstart, explore these resources to build further.
+
+<CardGroup cols={2}>
+  <Card title="Simple RAG pipeline" icon="graduation-cap" href="/academy/tutorials/simple-rag-pipeline">
+    Build your first Retrieval-Augmented Generation application.
+  </Card>
+  <Card title="Documentation" icon="book-open" href="/docs">
+    Explore complete technical documentation.
+  </Card>
+</CardGroup>

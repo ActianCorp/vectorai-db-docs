@@ -1,0 +1,93 @@
+---
+title: "Delete a collection"
+description: "Permanently remove or recreate collections."
+icon: "code"
+---
+
+This page explains how to permanently remove a collection or reset it to an empty state.
+
+## Delete permanently
+
+<Warning>
+Deleted collections cannot be recovered. All vectors, payloads, and indexes associated with the collection are permanently removed. Back up important data before deleting.
+</Warning>
+
+Use the following code to permanently remove a collection and all its data.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Permanently delete collection
+        await client.collections.delete("my_collection")
+        print("Collection deleted")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Permanently delete collection
+        await client.collections.delete('my_collection');
+        console.log('Collection deleted');
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Recreate a collection
+
+To reset a collection to an empty state, delete and recreate it with the same name. This is useful for testing scenarios or when you need to start fresh with a collection while maintaining the same name. The operation deletes the old collection and creates a new one in a single call.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Removes all data and recreates with specified configuration
+        await client.collections.recreate(
+            "my_collection",  # Collection name
+            vectors_config=VectorParams(size=128, distance=Distance.Cosine)  # Vector configuration
+        )
+        print("Collection recreated")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Removes all data and recreates with specified configuration
+        await client.collections.recreate('my_collection', {
+            dimension: 128,            // Vector dimension
+            distanceMetric: 'COSINE'   // Distance metric
+        });
+        console.log('Collection recreated');
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>

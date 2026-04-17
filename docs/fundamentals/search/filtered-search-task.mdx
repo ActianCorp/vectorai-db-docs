@@ -1,0 +1,97 @@
+---
+title: "Search with filters"
+description: "Combine vector similarity with metadata conditions."
+icon: "code"
+---
+
+Filtered search combines vector similarity with metadata conditions. Results must match both your query similarity and filter criteria.
+
+The filter conditions evaluate alongside vector similarity, not instead of it. VectorAI DB finds similar vectors that also meet your criteria. Use filtered search to combine semantic search with business rules like:
+
+- Price ranges
+- Availability status
+- Category restrictions
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient, FilterBuilder, Field
+import random
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Generate query vector
+        query_vector = [random.gauss(0, 1) for _ in range(128)]
+        
+        # Search with metadata filters
+        filter = FilterBuilder()\
+            .must(Field("category").eq("electronics"))\
+            .must(Field("price").lt(500.0))\
+            .build()
+        
+        # Search with filter
+        results = await client.points.search(
+            "my_collection",  # Collection name
+            vector=query_vector,  # Query vector
+            limit=10,  # Number of results
+            filter=filter  # Apply filter
+        )
+        
+        # Display results
+        for result in results:
+            print(f"Product: {result.payload['name']}")
+            print(f"Price: ${result.payload['price']}")
+            print(f"Score: {result.score}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient, Field } from '@actian/cortex-client';
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Generate query vector
+        const queryVector = Array.from({ length: 128 }, () => Math.random() * 2 - 1);
+
+        // Search with metadata filters
+        const filter = new Field('category').eq('electronics')
+            .and(new Field('price').lt(500.0));
+
+        // Search with filter
+        const results = await client.points.search(
+            'my_collection',  // Collection name
+            queryVector,      // Query vector
+            {
+                limit: 10,    // Number of results
+                filter: filter // Apply filter
+            }
+        );
+
+        // Display results
+        for (const result of results) {
+            console.log(`Product: ${result.payload.name}`);
+            console.log(`Price: $${result.payload.price}`);
+            console.log(`Score: ${result.score}`);
+        }
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+<Tip>
+Learn more about filter syntax and operators in the [filtering](/docs/fundamentals/filtering/filtering) documentation.
+</Tip>
+
+Each result includes these fields:
+
+- `id`: The unique identifier of the matching point.
+- `score`: Similarity score for points that passed the filter.
+- `payload`: Metadata dictionary showing filtered attributes.

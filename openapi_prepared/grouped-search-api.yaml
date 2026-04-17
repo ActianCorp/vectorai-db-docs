@@ -1,0 +1,479 @@
+openapi: 3.0.3
+info:
+  title: Actian VectorAI DB - Grouped Search API
+  description: |
+    Grouped search operations cluster results by a payload field, returning a set number of groups with the best-matching points in each group.
+
+    Grouping is useful when you want diverse results across a category such as product, document, or author. For example, you can retrieve the top 3 products with the 2 best-matching variants in each, or the top 5 documents with the best chunk from each.
+
+    The grouping field must have a field index before you can group by it. Create the index with the `create_field_index` operation on the Points API.
+
+    ## Operations
+
+    - `search_groups` — vector similarity search with result grouping
+    - `query_groups` — universal query with result grouping (supports raw vectors, point IDs, and named vector references)
+
+    ## Python SDK
+
+    ```python
+    from actian_vectorai import VectorAIClient, FieldType
+    import random
+
+    with VectorAIClient("localhost:50051") as client:
+        # Create index on grouping field
+        client.points.create_field_index(
+            "my_collection",
+            "product",
+            FieldType.FieldTypeKeyword
+        )
+
+        # Search with grouping
+        query_vec = [random.gauss(0, 1) for _ in range(4)]
+        groups = client.points.search_groups(
+            "my_collection",
+            vector=query_vec,
+            group_by="product",
+            limit=3,
+            group_size=2
+        )
+
+        for group in groups.groups:
+            print(f"Product: {group.id}")
+            for hit in group.hits:
+                print(f"  ID: {hit.id}, Score: {hit.score}")
+    ```
+  version: 1.0.0
+  contact:
+    name: Actian Corporation
+    url: https://www.actian.com
+
+servers:
+  - url: http://localhost:50052
+    description: Local development server (REST API)
+  - url: https://api.vectorai.actian.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Grouped search
+    description: Search with result grouping
+
+paths: {}
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Admin JWT or access token for authenticating requests to VectorAI DB.
+
+# NOTE: Both grouped search endpoints are not yet implemented in the current release.
+# search/groups returns 404 (no route mapping) and query/groups returns "QueryGroups is not implemented".
+# Uncomment these paths when the endpoints become available.
+#
+#  /collections/{collection_name}/points/search/groups:
+#    post:
+#      tags:
+#        - Grouped search
+#      summary: Search with grouping
+#      description: |
+#        Performs a vector similarity search and groups the results by a payload field. Returns up to `limit` groups, each containing up to `group_size` of the best-matching points for that group.
+#
+#        The grouping field must have a field index before you can use it. Create the index with the `create_field_index` operation on the Points API. Keyword and integer field types are supported for grouping.
+#      operationId: search_groups
+#      parameters:
+#        - name: collection_name
+#          in: path
+#          required: true
+#          schema:
+#            type: string
+#          description: Name of the collection to search.
+#      requestBody:
+#        required: true
+#        content:
+#          application/json:
+#            schema:
+#              type: object
+#              required:
+#                - vector
+#                - group_by
+#              properties:
+#                vector:
+#                  type: array
+#                  items:
+#                    type: number
+#                  example: [0.1, 0.2, 0.3, 0.4]
+#                  description: Query vector to search for. The dimension must match the collection's vector configuration.
+#                group_by:
+#                  type: string
+#                  example: "product"
+#                  description: Payload field to group results by. The field must have an existing field index created with `create_field_index`. Keyword and integer field types are supported.
+#                limit:
+#                  type: integer
+#                  default: 10
+#                  description: Maximum number of groups to return. Defaults to 10.
+#                  example: 3
+#                group_size:
+#                  type: integer
+#                  default: 1
+#                  description: Maximum number of points to return per group. Defaults to 1.
+#                  example: 2
+#                filter:
+#                  type: object
+#                  description: Optional filter conditions to narrow search results before grouping.
+#                with_payload:
+#                  type: boolean
+#                  default: true
+#                  description: If true, includes payload metadata in each returned point. Defaults to true.
+#                with_vector:
+#                  type: boolean
+#                  default: false
+#                  description: If true, includes the vector embedding in each returned point. Defaults to false. Significantly increases response size.
+#            examples:
+#              basic_grouped_search:
+#                summary: Top 3 products, 2 items each
+#                value:
+#                  vector: [0.1, 0.2, 0.3, 0.4]
+#                  group_by: "product"
+#                  limit: 3
+#                  group_size: 2
+#      responses:
+#        "200":
+#          description: Grouped search results
+#          content:
+#            application/json:
+#              schema:
+#                type: object
+#                properties:
+#                  usage:
+#                    type: object
+#                    nullable: true
+#                    description: Resource usage statistics for the request.
+#                    properties:
+#                      hardware:
+#                        type: string
+#                        nullable: true
+#                        description: Hardware resource usage details, if available.
+#                  time:
+#                    type: number
+#                    description: Time in seconds the server spent processing the request.
+#                  status:
+#                    type: string
+#                    description: Request status. Returns `ok` on success.
+#                  result:
+#                    type: object
+#                    description: Grouped search result container.
+#                    properties:
+#                      groups:
+#                        type: array
+#                        description: List of groups, each identified by the grouping field value.
+#                        items:
+#                          type: object
+#                          properties:
+#                            id:
+#                              oneOf:
+#                                - type: string
+#                                - type: integer
+#                              description: Value of the grouping field for this group. The type matches the payload field type (string for keyword fields, integer for integer fields).
+#                            hits:
+#                              type: array
+#                              description: Points in this group, ranked by similarity score.
+#                              items:
+#                                type: object
+#                                properties:
+#                                  id:
+#                                    oneOf:
+#                                      - type: integer
+#                                      - type: string
+#                                    description: Unique identifier of the point.
+#                                  version:
+#                                    type: integer
+#                                    description: Version number of the point, incremented on each update.
+#                                  score:
+#                                    type: number
+#                                    description: Similarity score between the query vector and this point.
+#                                  payload:
+#                                    type: object
+#                                    nullable: true
+#                                    description: Payload metadata attached to the point. Included when `with_payload` is true.
+#                                  vector:
+#                                    type: array
+#                                    items:
+#                                      type: number
+#                                    nullable: true
+#                                    description: Vector embedding of the point. Included when `with_vector` is true.
+#        "400":
+#          description: Bad request. The request body is malformed or missing required fields.
+#          content:
+#            application/json:
+#              schema:
+#                type: object
+#                properties:
+#                  status:
+#                    type: object
+#                    properties:
+#                      error:
+#                        type: string
+#                  time:
+#                    type: number
+#        "404":
+#          description: Collection not found.
+#          content:
+#            application/json:
+#              schema:
+#                type: object
+#                properties:
+#                  status:
+#                    type: object
+#                    properties:
+#                      error:
+#                        type: string
+#                  time:
+#                    type: number
+#      x-codeSamples:
+#        - lang: Python
+#          label: Search groups
+#          source: |
+#            from actian_vectorai import VectorAIClient, FieldType
+#            import random
+#
+#            with VectorAIClient("localhost:50051") as client:
+#                # Create index on grouping field (required)
+#                client.points.create_field_index(
+#                    "my_collection",
+#                    "product",
+#                    FieldType.FieldTypeKeyword
+#                )
+#
+#                # Search with grouping
+#                query_vec = [random.gauss(0, 1) for _ in range(4)]
+#                groups = client.points.search_groups(
+#                    "my_collection",
+#                    vector=query_vec,
+#                    group_by="product",
+#                    limit=3,
+#                    group_size=2
+#                )
+#
+#                for g in groups.groups:
+#                    print(f"Product '{g.id}':")
+#                    for p in g.hits:
+#                        print(f"  ID: {p.id}, Score: {p.score:.4f}")
+#                        if p.payload:
+#                            print(f"  Payload: {p.payload}")
+#        - lang: cURL
+#          label: Search groups
+#          source: |
+#            curl -X POST "http://localhost:50052/collections/my_collection/points/search/groups" \
+#              -H "Content-Type: application/json" \
+#              -d '{
+#                "vector": [0.1, 0.2, 0.3, 0.4],
+#                "group_by": "product",
+#                "limit": 3,
+#                "group_size": 2
+#              }'
+#
+#  /collections/{collection_name}/points/query/groups:
+#    post:
+#      tags:
+#        - Grouped search
+#      summary: Query with grouping
+#      description: |
+#        Universal query API with result grouping. Accepts a raw vector array or a query object that references an existing point by ID. Returns up to `limit` groups, each containing up to `group_size` of the best-matching points.
+#
+#        The grouping field must have a field index before you can use it. Create the index with the `create_field_index` operation on the Points API. Keyword and integer field types are supported for grouping.
+#
+#        Supported query formats:
+#        - Vector array: `[0.1, 0.2, 0.3, 0.4]` — performs a direct vector similarity search.
+#        - Point ID reference: `{"nearest": {"id": 42}}` — uses the vector of an existing point as the query.
+#      operationId: query_groups
+#      parameters:
+#        - name: collection_name
+#          in: path
+#          required: true
+#          schema:
+#            type: string
+#          description: Name of the collection to query.
+#      requestBody:
+#        required: true
+#        content:
+#          application/json:
+#            schema:
+#              type: object
+#              required:
+#                - query
+#                - group_by
+#              properties:
+#                query:
+#                  oneOf:
+#                    - type: array
+#                      items:
+#                        type: number
+#                    - type: object
+#                  description: Query vector as a float array, or a query object such as `{"nearest": {"id": 42}}` to use an existing point's vector.
+#                group_by:
+#                  type: string
+#                  description: Payload field to group results by. The field must have an existing field index created with `create_field_index`. Keyword and integer field types are supported.
+#                limit:
+#                  type: integer
+#                  default: 10
+#                  description: Maximum number of groups to return. Defaults to 10.
+#                group_size:
+#                  type: integer
+#                  default: 1
+#                  description: Maximum number of points to return per group. Defaults to 1.
+#                filter:
+#                  type: object
+#                  description: Optional filter conditions to narrow results before grouping.
+#                with_payload:
+#                  type: boolean
+#                  default: true
+#                  description: If true, includes payload metadata in each returned point. Defaults to true.
+#                with_vector:
+#                  type: boolean
+#                  default: false
+#                  description: If true, includes the vector embedding in each returned point. Defaults to false.
+#            examples:
+#              vector_query:
+#                summary: Query with raw vector
+#                value:
+#                  query: [0.1, 0.2, 0.3, 0.4]
+#                  group_by: "product"
+#                  limit: 5
+#                  group_size: 1
+#      responses:
+#        "200":
+#          description: Grouped query results
+#          content:
+#            application/json:
+#              schema:
+#                type: object
+#                properties:
+#                  usage:
+#                    type: object
+#                    nullable: true
+#                    description: Resource usage statistics for the request.
+#                    properties:
+#                      hardware:
+#                        type: string
+#                        nullable: true
+#                        description: Hardware resource usage details, if available.
+#                  time:
+#                    type: number
+#                    description: Time in seconds the server spent processing the request.
+#                  status:
+#                    type: string
+#                    description: Request status. Returns `ok` on success.
+#                  result:
+#                    type: object
+#                    description: Grouped query result container.
+#                    properties:
+#                      groups:
+#                        type: array
+#                        description: List of groups, each identified by the grouping field value.
+#                        items:
+#                          type: object
+#                          properties:
+#                            id:
+#                              oneOf:
+#                                - type: string
+#                                - type: integer
+#                              description: Value of the grouping field for this group. The type matches the payload field type (string for keyword fields, integer for integer fields).
+#                            hits:
+#                              type: array
+#                              description: Points in this group, ranked by similarity score.
+#                              items:
+#                                type: object
+#                                properties:
+#                                  id:
+#                                    oneOf:
+#                                      - type: integer
+#                                      - type: string
+#                                    description: Unique identifier of the point.
+#                                  version:
+#                                    type: integer
+#                                    description: Version number of the point, incremented on each update.
+#                                  score:
+#                                    type: number
+#                                    description: Similarity score between the query vector and this point.
+#                                  payload:
+#                                    type: object
+#                                    nullable: true
+#                                    description: Payload metadata attached to the point. Included when `with_payload` is true.
+#                                  vector:
+#                                    type: array
+#                                    items:
+#                                      type: number
+#                                    nullable: true
+#                                    description: Vector embedding of the point. Included when `with_vector` is true.
+#        "400":
+#          description: Bad request. The request body is malformed or missing required fields.
+#          content:
+#            application/json:
+#              schema:
+#                type: object
+#                properties:
+#                  status:
+#                    type: object
+#                    properties:
+#                      error:
+#                        type: string
+#                  time:
+#                    type: number
+#        "404":
+#          description: Collection not found.
+#          content:
+#            application/json:
+#              schema:
+#                type: object
+#                properties:
+#                  status:
+#                    type: object
+#                    properties:
+#                      error:
+#                        type: string
+#                  time:
+#                    type: number
+#      x-codeSamples:
+#        - lang: Python
+#          label: Query groups
+#          source: |
+#            from actian_vectorai import VectorAIClient, FieldType
+#            import random
+#
+#            with VectorAIClient("localhost:50051") as client:
+#                # Create index on grouping field (required)
+#                client.points.create_field_index(
+#                    "my_collection",
+#                    "product",
+#                    FieldType.FieldTypeKeyword
+#                )
+#
+#                # Query with grouping
+#                query_vec = [random.gauss(0, 1) for _ in range(4)]
+#                groups = client.points.query_groups(
+#                    "my_collection",
+#                    group_by="product",
+#                    query=query_vec,
+#                    limit=5,
+#                    group_size=1
+#                )
+#
+#                for g in groups.groups:
+#                    best = g.hits[0] if g.hits else None
+#                    if best:
+#                        print(f"Product '{g.id}': best={best.id}, score={best.score:.4f}")
+#        - lang: cURL
+#          label: Query groups
+#          source: |
+#            curl -X POST "http://localhost:50052/collections/my_collection/points/query/groups" \
+#              -H "Content-Type: application/json" \
+#              -d '{
+#                "query": [0.1, 0.2, 0.3, 0.4],
+#                "group_by": "product",
+#                "limit": 5,
+#                "group_size": 1
+#              }'

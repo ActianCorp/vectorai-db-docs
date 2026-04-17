@@ -1,0 +1,307 @@
+---
+title: "Monitoring and logging"
+description: "Set up Prometheus metrics collection, understand available metrics, configure alerts, and manage logs for VectorAI DB in production."
+---
+
+VectorAI DB exposes a `/metrics` endpoint on the REST API port (default `6333`) that serves metrics in Prometheus/OpenMetrics format. Use these metrics to monitor REST API usage, process health, application status, and collection statistics.
+
+| | |
+|---|---|
+| **Endpoint** | `GET /metrics` |
+| **Port** | REST API port (default `6333`) |
+| **Format** | Prometheus / OpenMetrics |
+
+## Scrape configuration
+
+Add VectorAI DB as a Prometheus scrape target. The following example shows a minimal `prometheus.yml` configuration:
+
+```yaml
+scrape_configs:
+  - job_name: "vectorai"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["localhost:6333"]
+```
+
+For Docker Compose deployments, replace `localhost` with the service name:
+
+```yaml
+scrape_configs:
+  - job_name: "vectorai"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["vectorai:6333"]
+```
+
+<Info>
+  The `/metrics` endpoint does not require authentication. If you expose it on a public network, restrict access with a firewall rule or reverse proxy.
+</Info>
+
+## Available metrics
+
+The following sections describe every metric exposed by the `/metrics` endpoint, grouped by category.
+
+### Application info
+
+These metrics expose application identity and operational state.
+
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `app_info` | Info | `name`, `version` | Application name and version. Set once when the process starts from built-in metadata. |
+| `app_status_recovery_mode` | Gauge | — | `1` if the engine is in recovery mode, `0` otherwise. Changed whenever the engine enters or exits recovery mode. |
+
+### Collection metrics
+
+These metrics provide visibility into collection sizes, vector counts, and optimization state.
+
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `collections_total` | Gauge | — | Total number of collections (both loaded in memory and present on disk). Increased on creation and decreased on removal. |
+| `collections_vector_total` | Gauge | — | Total number of vectors across all collections. Recomputed whenever any collection's vector count changes. |
+| `collection_points` | Gauge | `collection` | Number of points in a collection. Taken from the count of external identifiers the collection tracks. |
+| `collection_vectors` | Gauge | `collection`, `vector_name` | Number of vectors in a collection across all vector spaces. Calculated by summing vector counts per space; updated on inserts, deletes, and rebuilds. |
+| `collection_running_optimizations` | Gauge | `collection` | `1` if the collection is undergoing a rebuild or optimization, `0` if idle. Set when a rebuild task begins and cleared when it ends. |
+| `collection_indexed_only_excluded_points` | Gauge | `collection` | Number of points excluded from the indexed-only view (for example, deleted or hidden points). |
+
+### Rebuild metrics
+
+These metrics track index rebuild operations across all collections.
+
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `rebuild_running` | Gauge | — | `1` if at least one rebuild is in progress, `0` otherwise. Reset to `0` when the last active rebuild finishes. |
+| `rebuild_triggered_total` | Counter | — | Cumulative count of rebuild tasks submitted. Incremented each time a rebuild request is accepted. |
+| `rebuild_success_total` | Counter | — | Cumulative count of rebuilds that completed successfully. |
+| `rebuild_failed_total` | Counter | — | Cumulative count of rebuilds that failed or were cancelled. |
+| `rebuild_duration_seconds` | Histogram | — | Total rebuild durations, measured from start to finish and recorded in predefined time buckets. |
+| `rebuild_vectors_processed_total` | Counter | — | Total vectors processed across all rebuilds (read or written). |
+| `rebuild_vectors_skipped_total` | Counter | — | Total vectors skipped during rebuilds because they were already up to date. |
+| `rebuild_vectors_deleted_total` | Counter | — | Total vectors deleted as part of rebuilds. |
+| `rebuild_phase_duration_seconds` | Histogram | `phase` | Duration of individual rebuild phases (for example, initialization, population, finalization). |
+
+### Snapshot metrics
+
+These metrics track snapshot creation and recovery operations.
+
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `snapshot_creation_running` | Gauge | `collection` | `1` if a snapshot creation is in progress for a collection, `0` if idle. |
+| `snapshot_recovery_running` | Gauge | `collection` | `1` if a snapshot recovery is in progress for a collection, `0` if idle. |
+| `snapshot_created_total` | Counter | — | Cumulative count of successful snapshot creations. |
+
+### REST API metrics
+
+These metrics track HTTP request volume and latency across all REST endpoints.
+
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `rest_responses_total` | Counter | `endpoint`, `method`, `status` | Total number of REST responses. Increased for every response the server sends. |
+| `rest_responses_fail_total` | Counter | `endpoint`, `method`, `status` | REST responses that returned a non-2xx status. |
+| `rest_responses_duration_seconds` | Histogram | `endpoint`, `method`, `status` | REST request latency measured from request arrival to response. |
+
+Use `rest_responses_total` to track request rates and error ratios. Use `rest_responses_duration_seconds` to compute percentile latencies (p50, p95, p99) per endpoint.
+
+### gRPC API metrics
+
+These metrics track gRPC call volume and latency.
+
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `grpc_responses_total` | Counter | `method`, `status` | Total number of gRPC responses. Increased for every completed RPC call. |
+| `grpc_responses_fail_total` | Counter | `method`, `status` | gRPC responses that finished with an error status. |
+| `grpc_responses_duration_seconds` | Histogram | `method`, `status` | gRPC call latency measured from call start to final status. |
+
+### Memory metrics
+
+These metrics report on memory usage from the allocator and the operating system.
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `memory_active_bytes` | Gauge | Current active memory usage reported by the allocator. |
+| `memory_resident_bytes` | Gauge | Resident set size (RSS) of the process, obtained from the OS. |
+| `memory_allocated_bytes` | Gauge | Total memory allocated by the allocator, including memory that has been freed. |
+| `memory_metadata_bytes` | Gauge | Memory used by the allocator for its own bookkeeping structures. |
+| `memory_retained_bytes` | Gauge | Memory retained by the allocator but not currently in use. |
+
+### Process metrics
+
+These metrics report on the operating-system-level health of the VectorAI DB process.
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `process_threads` | Gauge | Number of threads currently running in the process. |
+| `process_open_fds` | Gauge | Number of open file descriptors held by the process. |
+| `process_open_mmaps` | Gauge | Number of memory-mapped regions owned by the process. |
+| `process_minor_page_faults_total` | Counter | Cumulative minor page faults since process start. |
+| `process_major_page_faults_total` | Counter | Cumulative major page faults since process start. Requires disk I/O. |
+| `process_cpu_seconds_total` | Counter | Total CPU time consumed (user + kernel) in seconds. |
+
+<Warning>
+  A sustained increase in `process_major_page_faults_total` indicates the system is running low on physical memory and paging to disk, which severely degrades search performance. Consider increasing available memory or reducing the number of loaded collections.
+</Warning>
+
+## Example PromQL queries
+
+The following queries demonstrate common monitoring patterns you can use in Grafana or any Prometheus-compatible dashboard tool.
+
+### REST request rate by endpoint
+
+```promql
+sum by (endpoint) (rate(rest_responses_total[5m]))
+```
+
+### REST error ratio
+
+```promql
+sum(rate(rest_responses_fail_total[5m]))
+/
+sum(rate(rest_responses_total[5m]))
+```
+
+### REST p95 latency per endpoint
+
+```promql
+histogram_quantile(0.95, sum by (le, endpoint) (rate(rest_responses_duration_seconds_bucket[5m])))
+```
+
+### gRPC request rate by method
+
+```promql
+sum by (method) (rate(grpc_responses_total[5m]))
+```
+
+### gRPC error ratio
+
+```promql
+sum(rate(grpc_responses_fail_total[5m]))
+/
+sum(rate(grpc_responses_total[5m]))
+```
+
+### Memory usage
+
+```promql
+memory_resident_bytes
+```
+
+### Total vectors across all collections
+
+```promql
+collections_vector_total
+```
+
+### Points per collection
+
+```promql
+collection_points
+```
+
+### Active rebuilds
+
+```promql
+rebuild_running
+```
+
+### Rebuild success rate
+
+```promql
+sum(rate(rebuild_success_total[1h]))
+/
+sum(rate(rebuild_triggered_total[1h]))
+```
+
+## Recommended alerts
+
+The following table lists suggested Prometheus alerting rules for production deployments.
+
+| Alert | Condition | Severity | Description |
+|-------|-----------|----------|-------------|
+| High REST error rate | `sum(rate(rest_responses_fail_total[5m])) / sum(rate(rest_responses_total[5m])) > 0.05` | Warning | More than 5% of REST requests failing |
+| High REST p95 latency | `histogram_quantile(0.95, sum by (le) (rate(rest_responses_duration_seconds_bucket[5m]))) > 2` | Warning | REST p95 latency exceeds 2 seconds |
+| High gRPC error rate | `sum(rate(grpc_responses_fail_total[5m])) / sum(rate(grpc_responses_total[5m])) > 0.05` | Warning | More than 5% of gRPC calls failing |
+| Recovery mode active | `app_status_recovery_mode == 1` | Critical | Engine is in recovery mode |
+| High memory usage | `memory_resident_bytes > 0.8 * <memory_limit>` | Warning | RSS exceeds 80% of available memory |
+| Major page faults rising | `rate(process_major_page_faults_total[5m]) > 10` | Warning | Sustained major page faults indicate memory pressure |
+| File descriptor exhaustion | `process_open_fds > 0.8 * <fd_limit>` | Warning | Open file descriptors approaching system limit |
+| Rebuild failures | `rate(rebuild_failed_total[1h]) > 0` | Warning | One or more index rebuilds have failed |
+
+<Info>
+  Replace `<memory_limit>` and `<fd_limit>` with the actual limits for your deployment environment.
+</Info>
+
+### Example alerting rule
+
+The following Prometheus alerting rule fires when the REST error ratio exceeds 5% for more than 5 minutes:
+
+```yaml
+groups:
+  - name: vectorai
+    rules:
+      - alert: VectorAIHighErrorRate
+        expr: >
+          sum(rate(rest_responses_fail_total[5m]))
+          /
+          sum(rate(rest_responses_total[5m]))
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "VectorAI DB error rate above 5%"
+          description: "{{ $value | humanizePercentage }} of requests are returning errors."
+```
+
+## Logging
+
+VectorAI DB writes structured logs to stdout. Configure the log format and level to suit your log aggregation pipeline.
+
+### Log format
+
+Set the log format to `json` for machine-readable output compatible with log aggregation tools such as Elasticsearch, Loki, or Datadog:
+
+```yaml
+logging:
+  format: json
+```
+
+The default format is `text`, which is human-readable but harder to parse programmatically.
+
+### Log level
+
+Control log verbosity with the `level` setting:
+
+```yaml
+logging:
+  level: info
+```
+
+| Level | Use case |
+|-------|----------|
+| `error` | Production — only errors |
+| `warn` | Production — errors and warnings |
+| `info` | Production default — normal operational messages |
+| `debug` | Troubleshooting — verbose output |
+| `trace` | Development only — extremely verbose |
+
+<Warning>
+  Running at `debug` or `trace` level in production generates significant log volume and may impact performance. Use these levels only for short-term troubleshooting.
+</Warning>
+
+## Next steps
+
+Explore these related guides to learn more.
+
+<CardGroup cols={2}>
+  <Card title="Troubleshooting" href="/docs/guides/troubleshooting">
+    Diagnose connection, performance, and startup issues.
+  </Card>
+  <Card title="Error handling" href="/docs/guides/error-handling">
+    Handle specific gRPC error codes in your application code.
+  </Card>
+  <Card title="Docker installation" href="/docs/installation/docker">
+    Container setup, volume mounts, and Docker Compose configuration.
+  </Card>
+  <Card title="License and upgrade" href="/docs/guides/license-and-upgrade">
+    Manage license keys and upgrade your VectorAI DB deployment.
+  </Card>
+</CardGroup>

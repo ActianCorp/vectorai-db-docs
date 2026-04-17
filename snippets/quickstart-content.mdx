@@ -1,0 +1,299 @@
+---
+title: "Quickstart content"
+description: "Reusable quickstart guide content."
+---
+
+import Prerequisites from "/snippets/python-prerequisites.mdx";
+
+Use the quickstart information to set up and run Actian VectorAI locally. You create a collection, load data, and search for results with the Python client SDK.
+
+## Install the software development kit
+
+
+Install the SDK to get started.
+
+### Prerequisites
+
+<Prerequisites />
+
+## Download and load the Docker container
+
+Download and run the Docker container for the VectorAI server:
+
+```bash
+docker pull actian/cortex-server:latest
+```
+
+```bash
+docker run -p 50051:50051 actian/cortex-server:latest
+```
+
+The server runs at `localhost:50051`.
+
+
+## Connect, create a collection, and search
+
+Use the SDK to connect to the VectorAI server at `localhost:50051` and create a collection named `products`. Set the dimension to `128` and use the `cosine` distance metric.
+
+You can use either the synchronous or asynchronous SDK. Start with the synchronous version:
+
+### Synchronous
+
+<CodeGroup>
+```python Python
+from cortex import CortexClient, DistanceMetric
+
+with CortexClient("localhost:50051") as client:
+    # Check server connection
+    version, uptime = client.health_check()
+    print(f"Connected to {version}")
+    # Output: Connected to VDSS 1.0.0 / VDE 1.0.0
+    
+    # Create collection
+    client.create_collection(
+        name="products",
+        dimension=128,
+        distance_metric=DistanceMetric.COSINE,
+    )
+```
+</CodeGroup>
+
+The collection now exists. Before inserting vectors, delete this collection and create a new one with the same name using the asynchronous SDK.
+
+<CodeGroup>
+```python Python
+with CortexClient("localhost:50051") as client:
+    client.delete_collection("products")
+```
+</CodeGroup>
+
+### Asynchronous
+
+Here’s the asynchronous version:
+
+<CodeGroup>
+```python Python
+import asyncio
+from cortex import AsyncCortexClient
+
+async def main():
+    async with AsyncCortexClient("localhost:50051") as client:
+        version, _ = await client.health_check()
+        print(f"Connected to {version}")
+        
+        await client.create_collection("products", dimension=128)
+        print("Collection created successfully")
+
+asyncio.run(main())
+```
+</CodeGroup>
+
+<Note>
+The rest of this guide uses the synchronous version of the SDK.
+</Note>
+
+## Insert vectors
+
+Use the SDK to insert vectors into the collection you created. Use the batch upsert operation to insert the vectors.
+
+### Demo dataset
+
+
+For this example, generate synthetic data to insert into the collection. Create 100 vectors with these fields:
+- `id`: Vector ID
+- `category`: Product category
+- `price`: Product price
+- `in_stock`: Whether the product is in stock
+
+Assign each product one of these categories:
+- `electronics`
+- `clothing`
+- `food`
+
+Set the `price` field to a value between 0 and 100. Set the `in_stock` field randomly to `True` or `False`.
+
+Generate the vectors using the `numpy` library.
+
+Here is the payload data:
+
+| ID | Category | Price | In Stock |
+|----|----------|-------|----------|
+| 0 | electronics | $39.01 | ✓ Yes |
+| 1 | clothing | $77.26 | ✗ No |
+| 2 | food | $89.05 | ✓ Yes |
+| 3 | electronics | $34.59 | ✗ No |
+| 4 | clothing | $73.87 | ✓ Yes |
+| 5 | food | $91.18 | ✗ No |
+| (continues) | (various) | (range) | (varies) |
+
+Here is the code to generate the synthetic data:
+
+<CodeGroup>
+```python Python
+import numpy as np
+from typing import List, Dict, Tuple
+
+def generate_sample_products(
+    num_products: int = 100,
+    dimension: int = 128,
+    base_price: float = 10.0,
+    price_variance: float = 100.0,
+    seed: int = None
+) -> Tuple[List[int], List[List[float]], List[Dict]]:
+    """
+    Generate sample product data for vector database testing.
+    
+    Args:
+        num_products: Number of products to generate
+        dimension: Dimension of each vector embedding
+        base_price: Base price multiplier per product ID
+        price_variance: Maximum random price addition
+        seed: Random seed for reproducibility (optional)
+    
+    Returns:
+        Tuple of (ids, vectors, payloads):
+        - ids: List of unique product IDs
+        - vectors: List of embedding vectors
+        - payloads: List of metadata dictionaries
+    """
+    if seed is not None:
+        np.random.seed(seed)
+    
+    # Generate unique IDs
+    ids = list(range(num_products))
+    
+    # Generate random embedding vectors
+    vectors = [
+        np.random.randn(dimension).astype(np.float32).tolist() 
+        for _ in range(num_products)
+    ]
+    
+    # Generate metadata for each product
+    payloads = []
+    categories = ["electronics", "clothing", "food"]
+    
+    for i in range(num_products):
+        # Assign category in rotating pattern
+        category = categories[i % 3]
+        
+        # Calculate price: base amount + random variance
+        price = float(i * base_price + np.random.rand() * price_variance)
+        
+        # Alternate stock status
+        in_stock = (i % 2 == 0)
+        
+        payloads.append({
+            "id": i,
+            "category": category,
+            "price": round(price, 2),
+            "in_stock": in_stock,
+        })
+    
+    return ids, vectors, payloads
+```
+</CodeGroup>
+
+Now, insert the synthetic data into the collection.
+
+<CodeGroup>
+```python Python
+from cortex import CortexClient, DistanceMetric
+
+NUM_VECTORS = 100
+DIMENSION = 128
+
+with CortexClient("localhost:50051") as client:
+    # Check server connection
+    version, uptime = client.health_check()
+    print(f"Connected to {version}")
+    # Output: Connected to VDSS 1.0.0 / VDE 1.0.0
+
+    print(f"\n2. Inserting {NUM_VECTORS} vectors...")
+    ids, vectors, payloads = generate_sample_products(
+        NUM_VECTORS, 
+        DIMENSION, 
+        seed=42
+    )
+
+    client.batch_upsert("products", ids, vectors, payloads)
+    print(f"✓ Inserted {NUM_VECTORS} vectors")
+    
+    # Verify count
+    count = client.count("products")
+    print(f"\n3. Vector count: {count}")
+```
+</CodeGroup>
+
+<Note>
+You need to have the `products` collection created before you can insert vectors. If you don’t have it, create it using the code from the previous section.
+</Note>
+
+## Search
+
+Use the SDK to search the collection you created. Use the search operation to find vectors similar to the query vector.
+
+Use the `top_k` parameter to limit results to 5.
+Use the `get` operation to retrieve the vector with the highest score.
+Use the `scroll` operation to scroll through all vectors in the collection.
+
+Here’s the code to search the collection:
+
+<CodeGroup>
+```python Python
+from cortex import CortexClient
+import numpy as np
+
+DIMENSION = 128
+COLLECTION = "products"
+
+with CortexClient("localhost:50051") as client:
+        print("\n4. Searching for similar vectors...")
+        query = np.random.randn(DIMENSION).astype(np.float32).tolist()
+        results = client.search(COLLECTION, query, top_k=5)
+        
+        print(f"   Found {len(results)} results:")
+        for i, result in enumerate(results):
+            print(f"   [{i+1}] ID: {result.id}, Score: {result.score:.4f}")
+        
+        # Get vector with payload
+        print("\n5. Retrieving vector details...")
+        vec, payload = client.get(COLLECTION, results[0].id)
+        print(f"   Top result payload: {payload}")
+        
+        # Scroll through all vectors
+        print("\n6. Scrolling through vectors...")
+        records, next_cursor = client.scroll(COLLECTION, limit=10)
+        print(f"   Retrieved {len(records)} records, next_cursor: {next_cursor}")        
+```
+</CodeGroup>
+
+**Sample search results:**
+
+```bash
+4. Searching for similar vectors...
+   Found 5 results:
+   [1] ID: 63, Score: 0.1970
+   [2] ID: 10, Score: 0.1678
+   [3] ID: 75, Score: 0.1454
+   [4] ID: 66, Score: 0.1345
+   [5] ID: 61, Score: 0.1111
+
+5. Retrieving vector details...
+   Top result payload: {'category': 'electronics', 'id': 63, 'in_stock': False, 'price': 671.52}
+
+6. Scrolling through vectors...
+   Retrieved 10 records, next_cursor: 10
+```
+
+## Clean up
+
+Use the SDK to clean up the collection you created. To delete the collection, use the `delete_collection` operation.
+
+<CodeGroup>
+```python Python
+from cortex import CortexClient
+
+with CortexClient("localhost:50051") as client:
+    client.delete_collection("products")
+```
+</CodeGroup>

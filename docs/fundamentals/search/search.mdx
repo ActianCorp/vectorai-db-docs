@@ -1,0 +1,106 @@
+---
+title: "Search overview"
+description: "Vector search in VectorAI DB finds the most similar vectors to a query using distance metrics. Covers search parameters, result fields, score interpretation, and performance optimization strategies."
+---
+
+Vector search finds the most similar vectors to your query using distance metrics instead of exact keyword matching. VectorAI DB compares vector embeddings to find content with similar meaning.
+
+When you submit a query, VectorAI DB compares it against stored vectors using a distance metric to measure similarity, ranks results by score, and returns the top matches. This approach works across diverse data types, including text, images, audio, and structured data.
+
+Common use cases include:
+
+- Semantic text search
+- Recommendation systems
+- Similar item discovery
+- Retrieval-Augmented Generation (RAG)
+- Image similarity
+- Audio matching
+
+## Search parameters
+
+Configure search behavior with the following parameters:
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `vector` | Yes | Your query vector as a list of floats. |
+| `limit` | Yes | Number of results to return. |
+| `filter` | No | Metadata conditions to narrow results. |
+| `with_payload` | No | Include metadata in results. Default is `False`. |
+| `with_vectors` | No | Include vector embeddings in results. Default is `False`. |
+| `ef` | No | Search accuracy for HNSW index. Higher values provide more accurate but slower results. |
+
+Adjust parameters based on your accuracy and speed requirements. Request only the data you need to minimize response size and network overhead.
+
+## Search results
+
+Each search result contains the following components:
+
+### Always included
+
+- `id`: Vector identifier as an integer.
+- `score`: Similarity measure as a float.
+
+### Conditionally included
+
+- `payload`: Metadata dictionary when `with_payload=True`.
+- `vector`: Embedding array when `with_vectors=True`.
+
+### Understanding scores
+
+Score interpretation varies by distance metric:
+
+- Cosine similarity uses higher scores to indicate greater similarity, with a range of negative one to one.
+- Euclidean distance uses lower scores to indicate greater similarity, with a range of zero to infinity.
+- Dot product uses higher scores to indicate greater similarity, with a range of negative infinity to positive infinity.
+
+The distance metric setting at collection creation determines how VectorAI DB calculates scores. See [distance metrics](/docs/fundamentals/distance-metrics/distance-metrics) for detailed explanations.
+
+## Search performance optimization
+
+Several strategies improve search performance and reduce latency.
+
+### Use filters effectively
+
+Filters reduce the search space before similarity computation:
+
+- Apply restrictive filters to limit candidates.
+- Combine multiple conditions strategically.
+- Index frequently filtered fields for faster evaluation.
+
+Pre-filtering is more efficient than post-filtering results because it reduces the number of similarity calculations.
+
+### Control result size
+
+Request only the data you need:
+
+- Set `limit` to the minimum number of results required.
+- Set `with_payload=False` when metadata is unnecessary.
+- Set `with_vectors=False` unless raw embeddings are needed.
+
+Smaller responses reduce network transfer time and improve perceived performance.
+
+### Tune HNSW parameters
+
+Balance accuracy and speed with the `ef` parameter. Lower `ef` values provide faster search with reduced accuracy. Higher `ef` values provide better accuracy with increased latency. The default provides balanced performance for most use cases.
+
+Test different `ef` values with your data to find the optimal setting for your accuracy requirements.
+
+### Batch searches
+
+For multiple queries, batch them together when possible. Batching reduces network round trips, improves overall throughput, and optimizes resource utilization. This is especially effective when processing many queries in sequence.
+
+## Task guides
+
+The following guides cover search operations step by step.
+
+- [Basic similarity search](/docs/fundamentals/search/basic-search-task).
+- [Search with filters](/docs/fundamentals/search/filtered-search-task).
+- [Search with payload](/docs/fundamentals/search/search-with-payload-task).
+- [Search with vectors](/docs/fundamentals/search/search-with-vectors-task).
+
+## Next steps
+
+- [Filtering](/docs/fundamentals/filtering/filtering) — Apply must, should, and must-not conditions to search.
+- [Distance metrics](/docs/fundamentals/distance-metrics/distance-metrics) — Understand how scores are calculated.
+- [Indexing](/docs/fundamentals/indexing/indexing) — Tune HNSW parameters for search performance.
+- [Points](/docs/fundamentals/points/points) — Manage the data being searched.

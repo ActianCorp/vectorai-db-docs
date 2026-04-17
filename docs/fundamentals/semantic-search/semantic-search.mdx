@@ -1,0 +1,95 @@
+---
+title: "Overview"
+description: "Semantic search in Actian VectorAI DB finds documents by meaning rather than keywords. Covers embedding-based retrieval, payload filtering, score thresholds, and multi-constraint search patterns for RAG pipelines."
+---
+
+_Semantic search_ finds documents by meaning rather than exact keyword matching. Actian VectorAI DB compares vector embeddings to retrieve content that is conceptually similar to your query, even when the words differ.
+
+Semantic search encodes both your query and stored documents as vector embeddings. VectorAI DB compares these embeddings using a distance metric to rank results by semantic similarity. This approach captures meaning and context, making it effective for natural language queries across diverse content.
+
+Common use cases include:
+
+- Retrieval-Augmented Generation (RAG) pipelines
+- Natural language document search
+- Knowledge base retrieval
+- Question answering systems
+- Content recommendation
+
+## How semantic search works
+
+Semantic search follows a standard pipeline:
+
+1. **Embed documents** — Convert each document into a vector embedding using an embedding model and store it in a collection with associated metadata as payload.
+2. **Create field indexes** — Index payload fields you plan to filter on for efficient evaluation.
+3. **Embed query** — Convert your search query into a vector using the same embedding model.
+4. **Search** — VectorAI DB compares the query vector against stored vectors and returns the most similar results, optionally filtered by metadata conditions.
+
+The embedding model you choose determines the quality of semantic matching. Use the same model for both indexing and querying to ensure consistent vector representations.
+
+## Search strategies
+
+VectorAI DB supports several semantic search strategies that combine vector similarity with metadata constraints:
+
+| Strategy | Description | Use case |
+|----------|-------------|----------|
+| Pure semantic search | Vector similarity only, no metadata filters. | General-purpose retrieval where all documents are candidates. |
+| Filtered semantic search | Vector similarity combined with keyword or category filters. | Narrowing results to a specific topic, category, or tag. |
+| Range-filtered search | Vector similarity combined with numeric range conditions. | Restricting results to a date range, price range, or version. |
+| Score threshold search | Only return results above a minimum similarity score. | Ensuring result quality by discarding low-confidence matches. |
+| Multi-constraint search | Vector similarity with multiple metadata conditions combined. | Complex queries that require both category and range restrictions. |
+
+## Setting up for semantic search
+
+Semantic search requires a collection with vector configuration and field indexes on any payload fields used for filtering.
+
+### Collection configuration
+
+Create a collection with a vector size matching your embedding model and a distance metric suited to your use case. Cosine similarity is the most common choice for text embeddings because it measures directional similarity independent of vector magnitude.
+
+### Field indexes
+
+Create field indexes on payload fields before performing filtered searches. Indexes enable VectorAI DB to evaluate filter conditions efficiently during search. Without indexes, filtered searches fall back to scanning all points.
+
+The following table lists the supported field types for indexing. The index type values shown are the Python SDK constants.
+
+| Field type | Index type (Python) | Example use |
+|------------|---------------------|-------------|
+| Keyword | `FieldTypeKeyword` | Categories, tags, topics |
+| Integer | `FieldTypeInteger` | Years, counts, versions |
+| Float | `FieldTypeFloat` | Prices, scores, ratings |
+
+## Score interpretation
+
+When using cosine similarity, scores range from negative one to one. Higher scores indicate greater semantic similarity between the query and result vectors. A score of one means the vectors point in the same direction, while a score of zero means they are orthogonal.
+
+Use `score_threshold` to control result quality. Setting a threshold filters out results below a minimum similarity score, ensuring only relevant matches are returned. The optimal threshold depends on your embedding model and data characteristics — experiment with different values to find the right balance between precision and recall.
+
+## Performance considerations
+
+Several strategies optimize semantic search performance:
+
+- **Index filtered fields** — Create field indexes on all payload fields used in filters to avoid full scans.
+- **Pre-filter over post-filter** — Applying filters during search is more efficient than filtering results after retrieval.
+- **Limit result count** — Request only the number of results you need to reduce computation and network overhead.
+- **Use score thresholds** — Discard low-quality results early to reduce downstream processing.
+- **Batch operations** — Upsert documents in batches when indexing large corpora to improve throughput.
+
+## Task guides
+
+See step-by-step guides for semantic search operations:
+
+- [Pure semantic search](/docs/fundamentals/semantic-search/pure-semantic-search-task)
+- [Filtered semantic search](/docs/fundamentals/semantic-search/filtered-semantic-search-task)
+- [Score threshold search](/docs/fundamentals/semantic-search/score-threshold-search-task)
+- [Multi-constraint search](/docs/fundamentals/semantic-search/multi-constraint-search-task)
+- [Complete workflow](/docs/fundamentals/semantic-search/complete-workflow)
+
+## Next steps
+
+Explore related topics to deepen your understanding of search in VectorAI DB:
+
+- For vector search parameters and result fields, see [Search](/docs/fundamentals/search/search).
+- For filter syntax including must, should, and must-not conditions, see [Filtering](/docs/fundamentals/filtering/filtering).
+- For combining multiple search strategies with fusion algorithms, see [Hybrid search](/docs/fundamentals/hybrid-search/hybrid-search).
+- For managing metadata attached to your documents, see [Payload](/docs/fundamentals/payload/payload).
+- For understanding how similarity scores are calculated, see [Distance metrics](/docs/fundamentals/distance-metrics/distance-metrics).

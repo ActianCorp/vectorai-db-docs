@@ -1,0 +1,95 @@
+---
+title: "Performance benchmarking"
+description: "Compare execution time between single search and hybrid search approaches."
+icon: "code"
+---
+
+Hybrid search runs multiple queries and a fusion step, so it takes longer than a single search. Benchmarking helps you understand the latency tradeoff and find the right balance between retrieval quality and speed for your use case.
+
+This example assumes a `documents` collection already exists with indexed points. For collection setup, see [Reciprocal Rank Fusion](/docs/fundamentals/hybrid-search/rrf-fusion-task).
+
+The code below runs a single vector search and a hybrid search side by side, measures the execution time of each, and outputs the latency difference and slowdown ratio so you can evaluate the performance tradeoff.
+
+<CodeGroup>
+```python Python
+import time
+from actian_vectorai import VectorAIClient, reciprocal_rank_fusion
+import random
+
+COLLECTION = "documents"
+DIMENSION = 128
+
+with VectorAIClient("localhost:50051") as client:
+    query = [random.gauss(0, 1) for _ in range(DIMENSION)]
+
+    # Single search benchmark
+    start = time.time()
+    single_results = client.points.search(COLLECTION, vector=query, limit=10)
+    single_time = time.time() - start
+
+    # Hybrid search benchmark (3 queries)
+    start = time.time()
+    results_list = []
+    for i in range(3):
+        varied_query = [x + random.gauss(0, 0.05) for x in query]
+        results = client.points.search(COLLECTION, vector=varied_query, limit=10)
+        results_list.append(results)
+    hybrid_results = reciprocal_rank_fusion(results_list)
+    hybrid_time = time.time() - start
+
+    print(f"Single search: {single_time*1000:.2f}ms")
+    print(f"Hybrid search: {hybrid_time*1000:.2f}ms ({hybrid_time/single_time:.1f}x slower)")
+    print(f"\nSingle results: {len(single_results)}")
+    print(f"Hybrid results: {len(hybrid_results)}")
+```
+
+```javascript JavaScript
+import { CortexClient, reciprocalRankFusion } from '@actian/cortex-client';
+
+const COLLECTION = "documents";
+const DIMENSION = 128;
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    const query = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+
+    // Single search benchmark
+    let start = Date.now();
+    const singleResults = await client.points.search(COLLECTION, query, { limit: 10 });
+    const singleTime = Date.now() - start;
+
+    // Hybrid search benchmark (3 queries)
+    start = Date.now();
+    const resultsList = [];
+    for (let i = 0; i < 3; i++) {
+        const variedQuery = query.map(x => x + (Math.random() * 0.1 - 0.05));
+        const results = await client.points.search(COLLECTION, variedQuery, { limit: 10 });
+        resultsList.push(results);
+    }
+    const hybridResults = reciprocalRankFusion(resultsList);
+    const hybridTime = Date.now() - start;
+
+    console.log(`Single search: ${singleTime.toFixed(2)}ms`);
+    console.log(`Hybrid search: ${hybridTime.toFixed(2)}ms (${(hybridTime / singleTime).toFixed(1)}x slower)`);
+    console.log(`\nSingle results: ${singleResults.length}`);
+    console.log(`Hybrid results: ${hybridResults.length}`);
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+The benchmark outputs these metrics:
+
+- **Single search time**: Baseline latency for one vector search
+- **Hybrid search time**: Total latency for multiple searches plus fusion
+- **Slowdown ratio**: How many times slower hybrid search is compared to single search
+- **Result counts**: Number of results from each approach
+
+Performance considerations for hybrid search:
+
+- Latency increases roughly linearly with the number of searches
+- The fusion step adds minimal overhead compared to the search operations
+- Use smaller `limit` values on individual searches to reduce candidate processing
+- For latency-sensitive applications, balance the number of queries against acceptable response time

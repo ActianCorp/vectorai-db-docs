@@ -1,0 +1,66 @@
+---
+title: "How it works"
+description: "Understanding how VectorAI DB works and its key use cases."
+---
+
+## How VectorAI works
+
+VectorAI stores and organizes embeddings for fast similarity searches. Unlike traditional SQL databases that use exact matches, VectorAI finds the nearest vectors to identify related content and power intelligent recommendations.
+
+<Steps>
+
+<Step title="Embed data into vectors">
+Transform raw data (text, images, audio) into numerical embeddings using ML models like BERT or CLIP. Each embedding is a fixed-length vector that preserves semantic meaning. Similar items cluster together in the vector space.
+</Step>
+
+<Step title="Store vectors in the database">
+Store generated vectors with their IDs and metadata in indexed collections. VectorAI supports multiple vector types and dimensions. This structure enables fast retrieval and filtering.
+</Step>
+
+<Step title="Embed queries into vectors">
+Convert user queries into vectors using the same ML model as your data. This ensures queries and data exist in the same vector space. Embeddings are generated in real time.
+</Step>
+
+<Step title="Run similarity searches">
+Find nearest neighbor vectors using distance metrics (cosine similarity, Euclidean distance, dot product). VectorAI uses Approximate Nearest Neighbor (ANN) algorithms for speed. Results are ranked by similarity score.
+</Step>
+
+<Step title="Use ANN algorithms for speed">
+HNSW (Hierarchical Navigable Small World) provides ultra-fast k-NN queries. IVF (Inverted File Index) offers memory-efficient indexing for large datasets. These algorithms balance speed with accuracy trade-offs.
+</Step>
+
+</Steps>
+
+## Differences from traditional databases
+
+The table below compares VectorAI DB with traditional databases across key aspects including data models, query patterns, and use cases.
+
+| Aspect | Traditional DBs | VectorAI |
+|--------|----------------------|------------------|
+| **Data model** | Rows of scalar fields (text, numbers, dates) | High-dimensional vectors with metadata |
+| **Query pattern** | Equality, range, or pattern matching | Similarity search (nearest neighbors) |
+| **Search type** | Exact matches or structured queries | Semantic and contextual similarity |
+| **Performance** | Optimized for OLTP/OLAP workloads | Optimized for ANN search algorithms |
+| **Use case** | Transactional data, reporting | AI/ML applications, recommendations |
+| **Indexing** | B-trees, hash indexes | HNSW, IVF, PQ for vector spaces |
+| **Role in AI** | Data storage for ML training | External knowledge store for embeddings |
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get started with VectorAI DB in under five minutes
+  </Card>
+  <Card title="Local installation" icon="download" href="/home/installation/instructions">
+    Install VectorAI DB using Docker
+  </Card>
+  <Card title="Key features" icon="stars" href="/home/getting-started/key-features">
+    Explore the key features of VectorAI DB
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/home/getting-started/architecture">
+    Understand the VectorAI DB architecture
+  </Card>
+  <Card title="Use cases" icon="lightbulb" href="/home/getting-started/use-cases">
+    Explore common VectorAI DB use cases
+  </Card>
+</CardGroup>

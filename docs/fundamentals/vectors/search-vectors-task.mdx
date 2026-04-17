@@ -1,0 +1,118 @@
+---
+title: "Search with vectors"
+description: "Search a collection in VectorAI DB using a query vector to retrieve the most semantically similar points, ranked by similarity score."
+icon: "code"
+---
+
+Use this page to search a collection with a query vector and retrieve the most similar points.
+
+<Note>
+Before you begin, make sure you have a running VectorAI DB instance and an existing collection with inserted points. The example below uses random vectors for demonstration. In production, generate vectors from an embedding model.
+</Note>
+
+## Search a collection with a query vector
+
+The `search()` method returns results ranked by similarity score. Score interpretation depends on your chosen distance metric.
+
+<CodeGroup>
+```python Python
+import random
+from actian_vectorai import VectorAIClient, PointStruct
+
+DIMENSION = 384
+COLLECTION = "documents"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Batch insert multiple document vectors
+    payloads = [
+        {"text": "Machine learning fundamentals", "category": "education"},
+        {"text": "Neural networks explained", "category": "education"},
+        {"text": "Cooking recipes collection", "category": "lifestyle"},
+        {"text": "Travel guide to Europe", "category": "travel"},
+        {"text": "Deep learning architectures", "category": "education"}
+    ]
+    
+    # Create points with vectors and metadata
+    points = [
+        PointStruct(
+            id=i + 1,  # Point ID
+            vector=[random.gauss(0, 1) for _ in range(DIMENSION)],  # Generate vector
+            payload=payload  # Attach metadata (optional)
+        )
+        for i, payload in enumerate(payloads)
+    ]
+    
+    # Batch upsert points
+    client.points.upsert(COLLECTION, points)
+    
+    # Search for similar documents using a query vector
+    query_vector = [random.gauss(0, 1) for _ in range(DIMENSION)]
+    
+    # Perform similarity search
+    results = client.points.search(
+        COLLECTION,  # Collection name
+        vector=query_vector,  # Query vector
+        limit=3  # Top 3 results
+    )
+    
+    # Display results
+    print("Top 3 similar documents:")
+    for result in results:
+        print(f"  - {result.payload['text']} (score: {result.score:.4f})")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const DIMENSION = 384;
+const COLLECTION = 'documents';
+
+async function main() {
+  const client = new CortexClient('localhost:50051');
+
+  // Batch insert multiple document vectors
+  const payloads = [
+    { text: 'Machine learning fundamentals', category: 'education' },
+    { text: 'Neural networks explained', category: 'education' },
+    { text: 'Cooking recipes collection', category: 'lifestyle' },
+    { text: 'Travel guide to Europe', category: 'travel' },
+    { text: 'Deep learning architectures', category: 'education' },
+  ];
+
+  // Create points with vectors and metadata
+  const points = payloads.map((payload, i) => ({
+    id: i + 1,  // Point ID
+    vector: Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1),  // Generate vector
+    payload: payload,  // Attach metadata (optional)
+  }));
+
+  // Batch upsert points
+  await client.points.upsert(COLLECTION, points, { wait: true });
+
+  // Search for similar documents using a query vector
+  const queryVector = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+
+  // Perform similarity search
+  const results = await client.points.search(COLLECTION, queryVector, {
+    limit: 3,  // Top 3 results
+    withPayload: true,
+  });
+
+  // Display results
+  console.log('Top 3 similar documents:');
+  for (const result of results) {
+    console.log(`  - ${result.payload.text} (score: ${result.score.toFixed(4)})`);
+  }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each result includes these fields:
+
+- `id`: The unique identifier of the matching point.
+- `score`: Similarity score based on the collection's distance metric.
+- `payload`: Metadata dictionary containing document information.
+- `vector`: Vector embedding (only if `with_vectors=True`).

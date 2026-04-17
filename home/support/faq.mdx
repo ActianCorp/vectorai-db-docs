@@ -1,0 +1,149 @@
+---
+title: "FAQ"
+description: "Frequently asked questions about VectorAI DB."
+---
+
+Find answers to advanced questions about VectorAI DB configuration, behavior, and troubleshooting. For introductory concepts, see the [Fundamentals](/docs/fundamentals/index) documentation.
+
+## Vectors
+
+Common questions about vector storage, dimensions, and representations.
+
+### What vector dimensions does VectorAI DB support?
+
+VectorAI DB supports any fixed dimension per collection. The right dimension depends on the embedding model you use. For example, `OpenAI`'s `text-embedding-3-small` produces 1536-dimensional vectors, while Sentence Transformers typically produce 384 or 768 dimensions. Match the dimension at collection creation to the output of your chosen model.
+
+### What is the difference between dense vectors and multi-vector representations?
+
+A dense vector represents an entire object as a single fixed-length embedding. A multi-vector representation stores multiple embeddings per object (for example, one per token or image patch), enabling fine-grained similarity matching at the segment level. VectorAI DB supports multi-vector representations through models such as ColBERT, ColPali, and ColQwen.
+
+### How are vectors stored in VectorAI DB?
+
+Vectors are stored as part of points. Each point consists of a unique ID, a vector embedding, and an optional metadata payload. Points belong to a collection, and all vectors within a collection must share the same dimensionality.
+
+## Collections
+
+Common questions about creating and managing collections.
+
+### Can I change the distance metric or dimension after creating a collection?
+
+No. Both the distance metric and vector dimension are fixed at collection creation time. To use a different metric or dimension, create a new collection and re-insert your data.
+
+### Do I need to manually load a collection before querying it?
+
+No. VectorAI DB automatically loads collections into memory when they are first accessed.
+
+## Distance metrics
+
+Common questions about supported distance functions and their behavior.
+
+### Can I use Euclidean squared distance instead of Euclidean distance?
+
+Yes. VectorAI DB supports squared Euclidean distance, which omits the square root step. This produces the same rankings as standard Euclidean distance and is faster to compute.
+
+## Points and payloads
+
+Common questions about inserting, updating, and deleting points and their metadata.
+
+### What happens if I insert a point with an ID that already exists?
+
+VectorAI DB performs an upsert. If a point with that ID already exists in the collection, it is updated with the new vector and payload. No error is returned.
+
+### What data types can I store in a payload?
+
+Payloads accept any JSON-compatible type: strings, numbers, booleans, arrays, nested objects, and null values. There is no fixed schema, so different points in the same collection can have different payload fields.
+
+### Is a payload required when inserting a point?
+
+No. The payload is optional. You can insert a point with only an ID and a vector.
+
+### Can I recover a deleted point?
+
+Deleted points are marked for removal but remain on disk until compaction runs. They can be recovered before compaction completes. Once compaction runs, deletions are permanent.
+
+### When should I run compaction?
+
+Run compaction after large batch deletions to reclaim disk space. Compaction is resource-intensive, so schedule it during periods of low traffic.
+
+## Search
+
+Common questions about search modes, performance, and result configuration.
+
+### Should I include payload in my search results?
+
+Yes, if you need to display or act on metadata in the response. Including the payload in the search request returns payload fields inline with each result, avoiding a separate fetch request per point.
+
+### What is the difference between `with_payload` and `with_vectors` in a search response?
+
+- `with_payload` includes the metadata (JSON payload) attached to each result point.
+- `with_vectors` includes the raw vector embedding for each result point.
+
+Including `with_vectors` significantly increases response size and should only be used when you need the embeddings for secondary calculations.
+
+### How do I improve search recall?
+
+Increase the `hnsw_ef_search` parameter at query time. This controls how many candidate neighbours HNSW explores during search. Higher values improve recall at the cost of increased query latency. The default is 50.
+
+### What search modes does VectorAI DB support?
+
+- Basic search: vector similarity only
+- Filtered search: vector similarity combined with payload conditions
+- Batch search: multiple queries in a single request
+- Grouped search: results grouped by a payload field
+- Scroll: paginate through all points in a collection
+- Count: count points matching a filter
+- Recommendation / Discovery: find similar points using positive and negative examples
+
+## Filtering
+
+Common questions about filter evaluation and behavior.
+
+### Is it better to filter during search or post-process results after?
+
+Filter during search. VectorAI DB evaluates filters as part of the search process, not after. This is significantly more efficient than retrieving all results and filtering in application code.
+
+### What happens if no points match my filter?
+
+The API returns an empty result set with no error.
+
+## Indexing
+
+Common questions about HNSW index configuration and tuning.
+
+### What are the key HNSW parameters?
+
+The following table summarizes the main HNSW parameters and their effects.
+
+| Parameter | Default | Effect |
+|---|---|---|
+| `hnsw_m` | 16 | Number of bidirectional links per node. Higher values improve recall but increase memory usage. |
+| `hnsw_ef_construct` | 200 | Neighbours considered during index building. Higher values improve index quality but slow down inserts. |
+| `hnsw_ef_search` | 50 | Candidates explored during search. Higher values improve recall but increase query latency. |
+
+### When should I tune HNSW parameters?
+
+Start with the defaults. If recall is insufficient for your use case, increase `hnsw_m` or `hnsw_ef_construct` when creating the collection, or increase `hnsw_ef_search` at query time. Monitor memory usage and query latency when raising `hnsw_m`, as it increases per-vector memory consumption.
+
+### What is the difference between HNSW and flat (brute-force) indexing?
+
+HNSW performs approximate nearest neighbor search. It is fast and scalable to millions of vectors, but might occasionally miss the absolute closest match. Flat indexing performs exact search by comparing every vector, guaranteeing perfect recall but with linear time complexity that becomes impractical at scale.
+
+## API and errors
+
+Common questions about error codes, retries, and API configuration.
+
+### Why am I getting `ENGINE_NOT_INITIALIZED`?
+
+The VectorAI DB engine is still starting up. Implement a retry with exponential backoff in your client until the engine becomes available. This is expected behaviour immediately after the container starts.
+
+### What does `DIMENSION_MISMATCH` mean?
+
+The vector you are inserting has a different number of dimensions than the collection it targets. Verify that your embedding model output matches the dimension configured when the collection was created.
+
+### Can I retry a failed batch operation?
+
+With caution. Batch operations can partially succeed, meaning some items may have been written before the failure occurred. Inspect the current state of your collection before retrying to avoid unintended duplicates or overwrites.
+
+### Which port does the REST API run on?
+
+By default, the REST API runs on port `50052` and the gRPC API runs on port `50051`. For deployment configuration details, see the [Docker installation guide](/docs/installation/docker).

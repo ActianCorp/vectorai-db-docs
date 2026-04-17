@@ -1,0 +1,103 @@
+---
+title: "Payloads overview"
+description: "Payloads are JSON objects attached to points in VectorAI DB. They store metadata such as categories, prices, and timestamps that enable hybrid search combining vector similarity with metadata filtering."
+---
+
+A payload is a JSON object that stores metadata for a [point](/docs/fundamentals/points/points) in VectorAI DB. Use payloads to attach contextual information such as categories, prices, timestamps, and custom attributes relevant to your app.
+
+While vectors represent the semantic meaning of your data, payloads store the descriptive attributes that make your data actionable. For example, a product image vector might have a payload storing product name, category, price, availability status, and rating.
+
+Hybrid search combines vector similarity with metadata filtering through payload fields. With payloads, you can build queries like:
+
+- Find similar products under $100 that are in stock.
+- Search for related articles published after 2024.
+- Retrieve images tagged with specific keywords.
+
+## Payload structure
+
+Each payload is a JSON object. VectorAI DB supports standard data types, including strings, numbers, booleans, arrays, nested objects, and null values.
+
+### Strings
+
+Store text values like names, categories, and descriptions.
+
+```json
+{"category": "electronics", "name": "Laptop"}
+```
+
+### Numbers
+
+Store integers and floating-point values for prices, quantities, and scores.
+
+```json
+{"price": 999.99, "quantity": 10}
+```
+
+### Booleans
+
+Store true or false flags for status fields like availability and feature toggles.
+
+```json
+{"in_stock": true, "featured": false}
+```
+
+### Arrays
+
+Store lists of values such as tags, labels, or related identifiers.
+
+```json
+{"tags": ["wireless", "bluetooth", "portable"]}
+```
+
+### Nested objects
+
+Store structured data by nesting objects within payload fields.
+
+```json
+{"specifications": {"weight": "2kg", "color": "silver"}}
+```
+
+### Null values
+
+Set a field to null when the value is unknown or not yet available.
+
+```json
+{"discount": null}
+```
+
+Payloads do not exist on their own. You attach them to points, alongside the point ID and vector.
+
+## Common use cases
+
+The following examples show how payloads support common application patterns.
+
+### E-commerce search
+
+Attach product attributes like category, price, brand, rating, and availability. Filter by price ranges, brands, or availability while finding similar products based on descriptions or images.
+
+### Document retrieval
+
+Store document metadata like title, author, publication date, and tags. Search for semantically related content within specific categories or time periods to build knowledge bases or search engines.
+
+### Image search
+
+Include image metadata like filename, location, timestamp, and tags. Find visually similar images that match specific criteria like location or date for photo management or visual search apps.
+
+### Content recommendation
+
+Track user preferences, interaction history, and content attributes. Recommend similar items that match user preferences or constraints for personalized content delivery.
+
+## Task guides
+
+The following guides cover payload operations step by step.
+
+- [Create payloads](/docs/fundamentals/payload/create-payload-task)
+- [Update payloads](/docs/fundamentals/payload/update-payload-task)
+- [Search with payload filters](/docs/fundamentals/payload/filter-payload-task)
+
+## Next steps
+
+- [Filtering](/docs/fundamentals/filtering/filtering) — Build must, should, and must-not queries against payload fields.
+- [Points](/docs/fundamentals/points/points) — Understand the point structure that payloads belong to.
+- [Search operations](/docs/fundamentals/search/search) — Combine payload filters with similarity search.
+- [Vectors](/docs/fundamentals/vectors/vectors) — Understand the embeddings paired with payloads.

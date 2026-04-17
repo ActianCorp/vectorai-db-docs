@@ -1,0 +1,79 @@
+---
+title: "Licensing guide"
+description: "Understand the VectorAI DB licensing model, key management workflows, compliance enforcement, and API reference for license operations."
+---
+
+This guide covers system states, key management, compliance enforcement, and the licensing API.
+
+## Licensing model overview
+
+VectorAI DB uses a vector-count-based licensing system. Your instance starts in a free tier and scales by installing license keys that increase your allowed vector capacity.
+
+### System states
+
+Your VectorAI DB instance operates in one of two states.
+
+- **Free**: The default state, allowing a maximum of 5,000 vectors stored perpetually.
+- **Licensed**: Active when at least one valid license key is installed.
+
+### Capacity increments and aggregation
+
+To scale beyond the free tier, install license keys in the following increments. For pricing details, see the [VectorAI DB pricing page](https://store.actian.com/products/vectorai-db).
+
+- 1 million, 5 million, or 10 million vector keys.
+- Unlimited capacity keys.
+
+Capacity is cumulative. If you install multiple keys simultaneously, then VectorAI DB aggregates the total allowed vector count. For example, activating two one-million vector keys results in a total maximum capacity of two million vectors.
+
+## License key specifications
+
+- **Format**: Each license key is a 30-character alphanumeric string (for example, `BWRCQ-C34DR-RYXCK-2834D-T3K9G-6BGCG`).
+- **Duration**: Trial keys are valid for 30 days, while [purchased keys](https://store.actian.com/products/vectorai-db) are valid for 1 year.
+- **Machine identity**: Keys are tied to a single installation and validated against machine identifiers. Modifying machine attributes, such as the hostname, can invalidate active licenses.
+
+## License key states
+
+While the `GET /licenses/status` endpoint returns a general `Free` or `Licensed` status, individual keys exist in one of three states:
+
+- **Active**: The key is valid, unexpired, and matches the current system identifiers.
+- **Expired**: The key has passed its 30-day or one-year validity period.
+- **Non-Compliant**: The key is not expired, but the current machine identifiers differ from those present when the key was originally activated.
+
+## Management operations
+
+Use the following operations to manage your license keys throughout their lifecycle.
+
+### Add and reactivate licenses
+
+You can activate licenses in two ways:
+
+- **New activation**: Submit a new key to add its capacity to the system.
+- **Reactivation**: Add a previously deleted license again, as long as it has not expired.
+
+### Delete a license before maintenance
+
+Use the `POST /licenses/delete` endpoint to prevent license invalidation during maintenance.
+
+- If you plan system configuration changes (for example, changing hostnames), then delete the license before making the change.
+- After the change is complete, reactivate the key to avoid triggering a Non-Compliant state or requiring a repair.
+
+### Repair licenses
+
+If a system change occurs unexpectedly and invalidates a key, then use the Repair function to restore it to an Active state. This re-validates the key against the new system identifiers.
+
+## Compliance and enforcement
+
+VectorAI DB runs a background thread that periodically counts the total vectors across all collections and compares the result against your licensed capacity. If the count exceeds the allowed maximum, the system enables a blocking flag on API operations.
+
+- **API restrictions**: All standard API operations return an error stating that the maximum allowed vector capacity has been exceeded. Delete operations (delete vectors and delete collections) are not blocked, so you can still remove data to reduce your vector count.
+- **Automatic recovery**: After the system enters an exceeded state, the background check runs more frequently (initially every 10 minutes, then every 30 seconds). Once the total vector count drops to or below the licensed maximum, the system automatically restores full API access.
+
+## API reference summary
+
+| Operation | Endpoint | Description |
+|-----------|----------|-------------|
+| List licenses | `GET /licenses` | Returns a list of all registered licenses and their individual statuses. |
+| Status summary | `GET /licenses/status` | Returns the overall system state (Free or Licensed) and cumulative capacity. |
+| Add license | `POST /licenses/add` | Adds a new key or reactivates a previously deleted, unexpired key. |
+| Delete license | `POST /licenses/delete` | Removes a key from the system to prevent invalidation during maintenance. |
+| Repair license | `POST /licenses/repair` | Attempts to restore a Non-Compliant key to Active status. |

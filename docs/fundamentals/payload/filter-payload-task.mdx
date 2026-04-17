@@ -1,0 +1,93 @@
+---
+title: "Search with payload filters"
+description: "Apply must, should, and must-not filter conditions to payload fields during vector search in VectorAI DB to return results that match both similarity and metadata criteria."
+icon: "code"
+---
+
+Apply filters to payload fields during search to combine semantic similarity with business rules. VectorAI DB returns only results whose payloads match the filter conditions. If no points match your filters, you receive an empty response.
+
+<Note>
+Before you begin, make sure you have an existing collection with payload-bearing points and a query vector that matches the collection's dimension.
+</Note>
+
+## Search with payload filters
+
+The following example finds semantically similar items that match specific criteria.
+
+<CodeGroup>
+```python Python
+import random
+from actian_vectorai import VectorAIClient, FilterBuilder, Field
+
+DIMENSION = 128
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Search for electronics under $600 with similarity
+    query_vector = [random.gauss(0, 1) for _ in range(DIMENSION)]
+    
+    # Build filter for electronics under $600
+    filter = FilterBuilder()\
+        .must(Field("category").eq("electronics"))\
+        .must(Field("price").lt(600.0))\
+        .build()
+    
+    # Search with filter
+    results = client.points.search(
+        COLLECTION,  # Collection name
+        vector=query_vector,  # Query vector
+        limit=5,  # Maximum results
+        filter=filter  # Apply filter
+    )
+    
+    # Display results
+    print("Search results (electronics under $600):")
+    for result in results:
+        print(f"  - {result.payload} (score: {result.score:.4f})")
+```
+
+```javascript JavaScript
+import { CortexClient, Field } from '@actian/cortex-client';
+
+const DIMENSION = 128;
+const COLLECTION = 'products';
+
+async function main() {
+  const client = new CortexClient('localhost:50051');
+
+  // Search for electronics under $600 with similarity
+  const queryVector = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+
+  // Build filter for electronics under $600
+  const filter = new Field('category').eq('electronics').and(
+    new Field('price').lt(600.0)
+  );
+
+  // Search with filter
+  const results = await client.points.search(COLLECTION, queryVector, {
+    limit: 5,  // Maximum results
+    filter: filter,  // Apply filter
+    withPayload: true,
+  });
+
+  // Display results
+  console.log('Search results (electronics under $600):');
+  for (const result of results) {
+    console.log(`  - ${JSON.stringify(result.payload)} (score: ${result.score.toFixed(4)})`);
+  }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+<Tip>
+For more complex filter operations, see the [filtering documentation](/docs/fundamentals/filtering/filtering) which covers must, should, and must-not filter types.
+</Tip>
+
+Each result includes these fields:
+
+- `id`: The unique identifier of the matching point.
+- `score`: Similarity score for points that passed the filter.
+- `payload`: Full metadata dictionary showing filtered product attributes.

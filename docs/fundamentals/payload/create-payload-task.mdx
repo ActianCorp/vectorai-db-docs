@@ -1,0 +1,162 @@
+---
+title: "Create payloads"
+description: "Add JSON metadata when inserting points into a collection."
+icon: "code"
+---
+
+Each point can carry a JSON payload with metadata fields such as categories, prices, and timestamps. These fields become available for filtering during search.
+
+## Insert a point with payload
+
+The payload parameter accepts any valid JSON structure. Include only the fields you need for filtering or displaying results.
+
+To create one point with metadata:
+
+<CodeGroup>
+```python Python
+import random
+from actian_vectorai import VectorAIClient, PointStruct
+
+DIMENSION = 128
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Generate vector from your embedding model
+    vector = [random.gauss(0, 1) for _ in range(DIMENSION)]
+
+    # Insert point with payload
+    point = PointStruct(
+        id=1,  # Point ID
+        vector=vector,  # Vector embedding
+        payload={  # Metadata (optional)
+            "name": "Laptop",
+            "category": "electronics",
+            "price": 999.99,
+            "in_stock": True
+        }
+    )
+
+    # Upsert point to collection
+    client.points.upsert(COLLECTION, [point])
+    print("Point with payload created successfully")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const DIMENSION = 128;
+const COLLECTION = 'products';
+
+async function main() {
+  const client = new CortexClient('localhost:50051');
+
+  // Generate vector from your embedding model
+  const vector = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+
+  // Insert point with payload
+  await client.points.upsert(COLLECTION, [
+    {
+      id: 1,  // Point ID
+      vector: vector,  // Vector embedding
+      payload: {  // Metadata (optional)
+        name: 'Laptop',
+        category: 'electronics',
+        price: 999.99,
+        in_stock: true,
+      },
+    },
+  ], { wait: true });
+
+  console.log('Point with payload created successfully');
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Insert multiple points with payloads
+
+Batch operations are more efficient than individual inserts. Each payload in the list corresponds to the point at the same index in the IDs and vectors lists.
+
+To create multiple points with metadata at once:
+
+<CodeGroup>
+```python Python
+import random
+from actian_vectorai import VectorAIClient, PointStruct
+
+DIMENSION = 128
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    random.seed(42)  # Reproducible random vectors
+
+    # Prepare batch data
+    payloads = [
+        {"category": "electronics", "price": 299.99, "in_stock": True},
+        {"category": "electronics", "price": 599.99, "in_stock": True},
+        {"category": "clothing", "price": 49.99, "in_stock": True},
+        {"category": "clothing", "price": 79.99, "in_stock": False},
+        {"category": "food", "price": 9.99, "in_stock": True},
+        {"category": "food", "price": 4.99, "in_stock": True},
+        {"category": "books", "price": 19.99, "in_stock": False},
+        {"category": "books", "price": 24.99, "in_stock": True},
+        {"category": "toys", "price": 39.99, "in_stock": True},
+        {"category": "toys", "price": 59.99, "in_stock": False}
+    ]
+
+    # Create points with vectors and payloads
+    points = [
+        PointStruct(
+            id=i + 1,  # Point ID
+            vector=[random.gauss(0, 1) for _ in range(DIMENSION)],  # Generate vector
+            payload=payload  # Attach metadata (optional)
+        )
+        for i, payload in enumerate(payloads)
+    ]
+
+    # Batch insert all points
+    client.points.upsert(COLLECTION, points)
+    print(f"Batch inserted {len(points)} points with payloads")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const DIMENSION = 128;
+const COLLECTION = 'products';
+
+async function main() {
+  const client = new CortexClient('localhost:50051');
+
+  // Prepare batch data
+  const payloads = [
+    { category: 'electronics', price: 299.99, in_stock: true },
+    { category: 'electronics', price: 599.99, in_stock: true },
+    { category: 'clothing', price: 49.99, in_stock: true },
+    { category: 'clothing', price: 79.99, in_stock: false },
+    { category: 'food', price: 9.99, in_stock: true },
+    { category: 'food', price: 4.99, in_stock: true },
+    { category: 'books', price: 19.99, in_stock: false },
+    { category: 'books', price: 24.99, in_stock: true },
+    { category: 'toys', price: 39.99, in_stock: true },
+    { category: 'toys', price: 59.99, in_stock: false },
+  ];
+
+  // Create points with vectors and payloads
+  const points = payloads.map((payload, i) => ({
+    id: i + 1,  // Point ID
+    vector: Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1),  // Generate vector
+    payload: payload,  // Attach metadata (optional)
+  }));
+
+  // Batch insert all points
+  await client.points.upsert(COLLECTION, points, { wait: true });
+  console.log(`Batch inserted ${points.length} points with payloads`);
+}
+
+main().catch(console.error);
+```
+</CodeGroup>

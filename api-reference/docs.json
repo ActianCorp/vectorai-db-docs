@@ -1,0 +1,337 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "VectorAI DB",
+  "colors": {
+    "primary": "#0066CC",
+    "light": "#0073E6",
+    "dark": "#0052A3"
+  },
+  "favicon": "/favicon.svg",
+  "openapi": [
+    "openapi_prepared/collections-api.yaml",
+    "openapi_prepared/points-api.yaml",
+    "openapi_prepared/search-api.yaml",
+    "openapi_prepared/recommendations-api.yaml",
+    "openapi_prepared/aliases-api.yaml",
+    "openapi_prepared/grouped-search-api.yaml",
+    "openapi_prepared/filters-api.yaml",
+    "openapi_prepared/snapshots-api.yaml"
+  ],
+  "api": {
+    "baseUrl": "http://localhost:50052",
+    "playground": {
+      "mode": "show"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Home",
+        "groups": [
+          {
+            "group": "About VectorAI",
+            "pages": [
+              "home/getting-started/overview",
+              "home/getting-started/how-it-works",
+              "home/getting-started/use-cases",
+              "home/getting-started/key-features",
+              "home/getting-started/architecture",
+              "home/support/current-release"
+            ]
+          },
+          {
+            "group": "Get started",
+            "pages": [
+              "home/installation/instructions",
+              "home/quickstart/quickstart"
+            ]
+          },
+          {
+            "group": "Migration",
+            "pages": [
+              "home/migration/milvus",
+              "home/migration/qdrant"                
+            ]
+          },
+          {
+            "group": "Support",
+            "pages": [
+              "home/support/faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Docs",
+        "groups": [
+          {
+            "group": "Concepts",
+            "pages": [
+              "docs/concepts/index",
+              "docs/concepts/points",
+              "docs/concepts/vectors",
+              "docs/concepts/payload",
+              "docs/concepts/distance-metrics",
+              "docs/concepts/search",
+              "docs/concepts/hybrid-search",
+              "docs/concepts/filtering",
+              "docs/concepts/storage",
+              "docs/concepts/indexing"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "docs/guides/index",
+              "docs/guides/batch-operations",
+              "docs/guides/async-operations",
+              "docs/guides/error-handling",
+              "docs/guides/advanced-analytics",
+              "docs/guides/best-practices",
+              "docs/guides/configuration",
+              "docs/guides/gui-interface",
+              "docs/guides/license-and-upgrade",
+              "docs/guides/monitoring-and-logging",
+              "docs/guides/security",
+              "docs/guides/troubleshooting"
+            ]
+          },
+          {
+            "group": "Installation",
+            "pages": [
+              "docs/installation/docker"
+            ]
+          },
+          {
+            "group": "Cloud platform deployments",
+            "pages": [
+              "docs/guides/cloud-platforms/index",
+              "docs/guides/cloud-platforms/aws-ami",
+              "docs/guides/cloud-platforms/azure-vm",
+              "docs/guides/cloud-platforms/gcp-vm"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "docs/integrations/index",
+              "docs/integrations/openai-embedding-model",
+              "docs/integrations/llama-index"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Developer Tools",
+        "groups": [
+          {
+            "group": "API references",
+            "pages": [
+              "api-reference/rest",
+              "api-reference/authentication",
+              {
+                "group": "Collections",
+                "pages": [
+                  "api-reference/rest/collections/collections/list-all-collections",
+                  "api-reference/rest/collections/collections/get-collection-info",
+                  "api-reference/rest/collections/collections/create-collection",
+                  "api-reference/rest/collections/collections/delete-collection",
+                  "api-reference/rest/collections/collections/update-collection",
+                  "api-reference/rest/collections/collections/check-if-collection-exists"
+                ]
+              },
+              {
+                "group": "Points",
+                "pages": [
+                  "api-reference/rest/points/points/upsert-points",
+                  "api-reference/rest/points/points/get-points-by-ids",
+                  "api-reference/rest/points/points/get-single-point",
+                  "api-reference/rest/points/points/delete-points",
+                  "api-reference/rest/points/points/update-vectors",
+                  "api-reference/rest/points/points/overwrite-payload",
+                  "api-reference/rest/points/points/set-payload",
+                  "api-reference/rest/points/points/delete-payload-keys",
+                  "api-reference/rest/points/points/clear-payload",
+                  "api-reference/rest/points/points/create-field-index"
+                ]
+              },
+              {
+                "group": "Search",
+                "pages": [
+                  "api-reference/rest/search/search/search-vectors",
+                  "api-reference/rest/search/search/batch-search",
+                  "api-reference/rest/search/scroll/scroll-points",
+                  "api-reference/rest/search/count/count-points"
+                ]
+              },
+              {
+                "group": "Grouped search",
+                "pages": [
+                  "api-reference/rest/grouped-search/grouped-search/search-with-grouping",
+                  "api-reference/rest/grouped-search/grouped-search/query-with-grouping"
+                ]
+              },
+              {
+                "group": "Filters",
+                "pages": [
+                  "api-reference/rest/filters/filters/filter-examples"
+                ]
+              },
+              {
+                "group": "Recommendations",
+                "pages": [
+                  "api-reference/rest/recommendations/recommendations/recommend-points",
+                  "api-reference/rest/recommendations/recommendations/batch-recommend",
+                  "api-reference/rest/recommendations/recommendations/recommend-groups",
+                  "api-reference/rest/recommendations/discovery/discover-points",
+                  "api-reference/rest/recommendations/discovery/batch-discover"
+                ]
+              },
+              {
+                "group": "Aliases",
+                "pages": [
+                  "api-reference/rest/aliases/aliases/list-all-aliases",
+                  "api-reference/rest/aliases/aliases/update-aliases",
+                  "api-reference/rest/aliases/aliases/list-collection-aliases"
+                ]
+              },
+              {
+                "group": "Snapshots and maintenance",
+                "pages": [
+                  "api-reference/rest/snapshots/snapshots/list-snapshots",
+                  "api-reference/rest/snapshots/snapshots/create-snapshot",
+                  "api-reference/rest/snapshots/snapshots/get-snapshot-info",
+                  "api-reference/rest/snapshots/snapshots/delete-snapshot",
+                  "api-reference/rest/snapshots/snapshots/restore-from-snapshot",
+                  "api-reference/rest/snapshots/maintenance/flush-collection",
+                  "api-reference/rest/snapshots/maintenance/optimize-collection",
+                  "api-reference/rest/snapshots/maintenance/rebuild-index",
+                  "api-reference/rest/snapshots/maintenance/get-collection-status"
+                ]
+              },
+              "api-reference/error-codes"
+            ]
+          },
+          {
+            "group": "gRPC endpoints",
+            "pages": [
+              "api-reference/grpc-endpoints"
+            ]
+          },
+          {
+            "group": "SDKs",
+            "pages": [
+              "sdks/index",
+              {
+                "group": "JavaScript",
+                "pages": [
+                  "sdks/javascript/index",
+                  "sdks/javascript/installation",
+                  "sdks/javascript/quickstart"
+                ]
+              },
+              {
+                "group": "Python",
+                "pages": [
+                  "sdks/python/index",
+                  "sdks/python/installation",
+                  "sdks/python/quickstart"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Academy",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "academy/index"
+            ]
+          },
+          {
+            "group": "Tutorials",
+            "pages": [
+              "academy/tutorials/index",
+              "academy/tutorials/first-application",
+              "academy/tutorials/predicate-filters",
+              "academy/tutorials/simple-rag-pipeline",
+              "academy/tutorials/re-ranking",
+              "academy/tutorials/adaptive-rag",
+              "academy/tutorials/multimodel-system",
+              "academy/tutorials/retrieval-quality",
+              "academy/tutorials/similarity-search",
+              "academy/tutorials/leverage-open-source-embedding-models"
+            ]
+          },
+          {
+            "group": "Blogs",
+            "pages": [
+              "academy/blogs/building-a-reliable-multi-agent-system",
+              "academy/blogs/building-a-scalable-agent-memory-with-Actian-vector-AI-database",
+              "academy/blogs/Avatar-based-assistant-for-customer-support",
+              "academy/blogs/facial-recognition",
+              "academy/blogs/supply-chain-inventory-management-agent",
+              "academy/blogs/network-ops-debugging-agent",
+              "academy/blogs/insurance-split-liability-agent",
+              "academy/blogs/financial-document-analysis",
+              "academy/blogs/AI-recipe-recommendation-agent",
+              "academy/blogs/vision-Embeddings-and-Multi-model-indexing",
+              "academy/blogs/multi-modal"
+            ]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "academy/examples/notebooks",
+              "academy/examples/sample-apps",
+              "academy/examples/embedding-models",
+              "academy/examples/OpenAI-Embedding-Model",
+              "academy/examples/Cohere-Embedding-Model"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://www.actian.com"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "https://www.actian.com/support"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "/quickstart"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/actiancorp",
+      "github": "https://github.com/actiancorp",
+      "linkedin": "https://linkedin.com/company/actian"
+    }
+  }
+}

@@ -1,0 +1,259 @@
+---
+title: "Get collection info"
+description: "Retrieve collection metadata, statistics, and state."
+icon: "code"
+---
+
+This page explains how to retrieve collection metadata, monitor collection health, and list available collections.
+
+## Get collection metadata
+
+The following example retrieves collection configuration and properties.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Get collection info
+        info = await client.collections.get_info("my_collection")
+        
+        # Display collection metadata
+        print(f"Name: {info.config.params.collection_name if info.config else 'my_collection'}")
+        print(f"Status: {info.status}")
+        print(f"Vector count: {info.points_count}")
+
+asyncio.run(main())
+```
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Get collection info
+        const info = await client.collections.getInfo('my_collection');
+
+        // Display collection metadata
+        console.log(`Name: my_collection`);
+        console.log(`Status: ${info.status}`);
+        console.log(`Vector count: ${info.pointsCount}`);
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+The response includes the following fields.
+
+- `config.params.collection_name`: The name of the collection.
+- `config.params.vectors_config`: Vector configuration including size and distance metric.
+- `status`: Current collection state (Ready, Loading, Closed, Error).
+- `points_count`: Total number of points in the collection.
+- `optimizer_status`: Status of the indexing optimizer.
+
+## Get collection statistics
+
+The following example monitors collection size, index status, and resource usage.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Get vector count
+        count = await client.points.count("my_collection")
+        print(f"Total vectors: {count}")
+
+        # Get detailed info
+        info = await client.collections.get_info("my_collection")
+        print(f"Total vectors: {info.points_count}")
+        print(f"Status: {info.status}")
+        print(f"Optimizer status: {info.optimizer_status}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Get detailed info
+        const info = await client.collections.getInfo('my_collection');
+        console.log(`Total vectors: ${info.pointsCount}`);
+        console.log(`Status: ${info.status}`);
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+The response contains these properties.
+
+- `points_count`: Total number of points stored in the collection.
+- `status`: Current collection state (Ready, Loading, Closed, Error).
+- `optimizer_status`: Current status of the indexing optimizer.
+
+## Get collection state
+
+Collections exist in one of four states that indicate their availability for operations:
+
+- **Ready.** Collection is loaded into memory and available for operations.
+- **Loading.** Collection is currently loading into memory.
+- **Closed.** Collection exists on disk but is not loaded into memory.
+- **Error.** Collection encountered an issue.
+
+The following example checks the current state of a collection by calling `get_info()` and reading the `status` field.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Get collection information
+        info = await client.collections.get_info("my_collection")
+        print(f"Collection status: {info.status}")
+
+asyncio.run(main())
+```
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Get collection information
+        const info = await client.collections.getInfo('my_collection');
+        console.log(`Collection status: ${info.status}`);
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+The response includes the `status` field, which contains the current state of the collection.
+
+## Run a health check
+
+The health check monitors database connectivity and uptime at the instance level, not for individual collections. Use it to verify that the VectorAI DB server is running and to retrieve version information.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Get health check information
+        health = await client.health_check()
+        print(f"Title: {health['title']}")
+        print(f"Version: {health['version']}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Get health check information
+        const health = await client.healthCheck();
+        console.log(`Title: ${health.title}`);
+        console.log(`Version: ${health.version}`);
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+The health check response includes these fields.
+
+- `title`: Name of the VectorAI DB service.
+- `version`: Current version of the VectorAI DB server.
+
+## List all collections
+
+Retrieve a list of all collections in your VectorAI DB instance. This returns information about all collections including their names, vector counts, and basic configuration. Use this to discover available collections or to monitor your database state.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # List all collections
+        collections = await client.collections.list()
+        
+        print(f"Total collections: {len(collections)}")
+        for collection_name in collections:
+            # Get info for each collection
+            info = await client.collections.get_info(collection_name)
+            print(f"- {collection_name}: {info.points_count} vectors")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // List all collections
+        const collections = await client.collections.list();
+
+        console.log(`Total collections: ${collections.length}`);
+        for (const collectionName of collections) {
+            // Get info for each collection
+            const info = await client.collections.getInfo(collectionName);
+            console.log(`- ${collectionName}: ${info.pointsCount} vectors`);
+        }
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+The response contains the following information.
+
+- `collections`: List of collection names (strings).
+- For each collection via `get_info()`:
+  - `points_count`: Number of vectors in the collection.
+  - `status`: Collection state.
+  - `config`: Collection configuration details.

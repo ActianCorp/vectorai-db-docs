@@ -1,0 +1,92 @@
+---
+title: "Combine filter types"
+description: "Build complex queries with must, should, and must-not conditions."
+icon: "code"
+---
+
+Combine must, should, and must-not filter types to create complex queries. This approach handles scenarios requiring strict requirements, flexible alternatives, and explicit exclusions.
+
+<Note>
+Before you begin, make sure you have a running VectorAI DB instance and a `products` collection with 128-dimensional vectors and payload fields: `category` (string), `price` (float), `rating` (float), and `condition` (string).
+</Note>
+
+<CodeGroup>
+```python Python
+from actian_vectorai import VectorAIClient, FilterBuilder, Field
+import random
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Generate query vector
+    query_vector = [random.gauss(0, 1) for _ in range(128)]
+    
+    # Must be electronics
+    # Should be either cheap OR highly rated
+    # Must NOT be refurbished
+    filter = FilterBuilder()\
+        .must(Field("category").eq("electronics"))\
+        .should(Field("price").lt(50.0))\
+        .should(Field("rating").gt(4.0))\
+        .must_not(Field("condition").eq("refurbished"))\
+        .build()
+    
+    # Search with combined filters
+    results = client.points.search(
+        "products",  # Collection name
+        vector=query_vector,  # Query vector
+        limit=10,  # Maximum results
+        filter=filter  # Apply filter
+    )
+    
+    # Display results
+    for result in results:
+        print(f"Category: {result.payload['category']}")
+        print(f"Price: ${result.payload['price']}")
+        print(f"Rating: {result.payload.get('rating', 'N/A')}")
+        print("-" * 50)
+```
+
+```javascript JavaScript
+import { CortexClient, FilterBuilder, Field } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+
+    // Generate query vector
+    const queryVector = Array.from({ length: 128 }, () => Math.random() * 2 - 1);
+
+    // Must be electronics
+    // Should be either cheap OR highly rated
+    // Must NOT be refurbished
+    const filter = new FilterBuilder()
+        .must(new Field('category').eq('electronics'))
+        .should(new Field('price').lt(50.0))
+        .should(new Field('rating').gt(4.0))
+        .mustNot(new Field('condition').eq('refurbished'))
+        .build();
+
+    // Search with combined filters
+    const results = await client.points.search('products', queryVector, {
+        filter: filter,
+        limit: 10
+    });
+
+    // Display results
+    for (const result of results) {
+        console.log(`Category: ${result.payload.category}`);
+        console.log(`Price: $${result.payload.price}`);
+        console.log(`Rating: ${result.payload.rating ?? 'N/A'}`);
+        console.log('-'.repeat(50));
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each result includes these fields:
+
+- `id`: The unique identifier of the matching point.
+- `score`: Similarity score based on vector distance.
+- `payload`: Full metadata dictionary for the matching point.

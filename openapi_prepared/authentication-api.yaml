@@ -1,0 +1,807 @@
+openapi: 3.0.3
+info:
+  title: Actian VectorAI DB - Authentication API
+  description: Access token and admin user management for VectorAI DB.
+  version: 1.0.0
+  contact:
+    name: Actian Corporation
+    url: https://www.actian.com
+
+servers:
+  - url: http://localhost:50052
+    description: Local development server (REST API)
+  - url: https://api.vectorai.actian.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Access Tokens
+    description: Create, list, rotate, and delete access tokens.
+  - name: Admin User
+    description: Create and manage the admin user, login, and authentication settings.
+
+paths:
+  /auth/access_token:
+    post:
+      tags:
+        - Access Tokens
+      summary: Create access token
+      description: |
+        Creates a new access token with the specified name, description, expiration, and permissions.
+
+        All access-token management endpoints are available only when the server-side `auth_enabled` setting is `true`. If `auth_enabled` is `false`, the server rejects these requests with `403 Forbidden`.
+
+        ## Permission model
+
+        Access token permissions use a bitmask model.
+
+        | Name | Value | Meaning |
+        | --- | --- | --- |
+        | `read` | 1 | Read access |
+        | `write` | 2 | Write access |
+        | `admin` | 4 | Admin access |
+
+        `admin` is an independent permission bit. It does not automatically grant `read` or `write`.
+
+        Common combinations:
+
+        | Bitmask | Permission string | Meaning |
+        | --- | --- | --- |
+        | 1 | `read` | Read only |
+        | 2 | `write` | Write only |
+        | 4 | `admin` | Admin only |
+        | 5 | `read,admin` | Read and admin |
+        | 6 | `write,admin` | Write and admin |
+        | 7 | `read,write,admin` | Read, write, and admin |
+
+        The create-token API accepts the canonical comma-separated permission names, and the server stores them as the corresponding bitmask.
+
+        When using an admin JWT, the server uses the persisted JWT secret from `server_params.btr`. If `ACTIAN_VECTORAI_JWT_SECRET` is set at startup, that value overrides the persisted secret and is saved for subsequent restarts.
+      operationId: create_access_token
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Admin JWT or admin access token. Format `Bearer <admin-jwt-or-access-token>`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - permission
+              properties:
+                name:
+                  type: string
+                  description: Human-readable name for the token.
+                description:
+                  type: string
+                  description: Optional description of the token's intended use.
+                will_expire:
+                  type: boolean
+                  description: Whether the token expires. When `false`, the token is valid indefinitely.
+                  default: false
+                expires_in_seconds:
+                  type: integer
+                  description: Number of seconds until the token expires. Only applies when `will_expire` is `true`.
+                permission:
+                  type: string
+                  description: Comma-separated permission names. Valid values are `read`, `write`, `admin`, or any combination.
+                  example: "read,admin"
+      responses:
+        "200":
+          description: Token created successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Unique identifier for the access token.
+                  name:
+                    type: string
+                    description: Human-readable name for the token.
+                  description:
+                    type: string
+                    description: Description of the token's intended use.
+                  token:
+                    type: string
+                    description: The raw access token value. Store this securely, as it cannot be retrieved after creation.
+                  created_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the token was created, in RFC 3339 UTC format.
+                  expired_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: Timestamp when the token expires, in RFC 3339 UTC format. `null` when `will_expire` is `false`.
+                  will_expire:
+                    type: boolean
+                    description: Whether the token has an expiration date.
+                  permission:
+                    type: string
+                    description: Comma-separated permission names assigned to the token.
+              examples:
+                success:
+                  value:
+                    id: 12
+                    name: "reader-admin-token"
+                    description: "Used by the analytics dashboard to run read-only admin checks."
+                    token: "vdai_<newly-generated-token>"
+                    created_at: "2026-04-02T08:30:00Z"
+                    expired_at: "2026-04-03T08:30:00Z"
+                    will_expire: true
+                    permission: "read,admin"
+        "403":
+          description: Authentication is not enabled on the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                auth_disabled:
+                  value:
+                    status: "error"
+                    message: "Access token API requires auth_enabled=true"
+      x-codeSamples:
+        - lang: cURL
+          label: Create access token
+          source: |
+            curl -X POST http://localhost:50052/auth/access_token \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "name": "reader-admin-token",
+                "description": "Used by the analytics dashboard to run read-only admin checks.",
+                "will_expire": true,
+                "expires_in_seconds": 86400,
+                "permission": "read,admin"
+              }'
+
+  /auth/access_tokens:
+    get:
+      tags:
+        - Access Tokens
+      summary: List access tokens
+      description: |
+        Returns a list of all access tokens. The response does not include the raw token values.
+
+        Requires `auth_enabled=true` and an admin access token or admin JWT.
+
+        Timestamps are returned as RFC 3339 UTC strings. When `will_expire` is `false`, `expired_at` is `null`.
+      operationId: list_access_tokens
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Admin JWT or admin access token. Format `Bearer <admin-jwt-or-access-token>`.
+      responses:
+        "200":
+          description: List of access tokens.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: Unique identifier for the access token.
+                    name:
+                      type: string
+                      description: Human-readable name for the token.
+                    description:
+                      type: string
+                      description: Description of the token's intended use.
+                    created_at:
+                      type: string
+                      format: date-time
+                      description: Timestamp when the token was created, in RFC 3339 UTC format.
+                    expired_at:
+                      type: string
+                      format: date-time
+                      nullable: true
+                      description: Timestamp when the token expires. `null` when `will_expire` is `false`.
+                    will_expire:
+                      type: boolean
+                      description: Whether the token has an expiration date.
+                    permission:
+                      type: string
+                      description: Comma-separated permission names assigned to the token.
+              examples:
+                success:
+                  value:
+                    - id: 12
+                      name: "reader-admin-token"
+                      description: "Used by the analytics dashboard to run read-only admin checks."
+                      created_at: "2026-04-02T08:30:00Z"
+                      expired_at: "2026-04-03T08:30:00Z"
+                      will_expire: true
+                      permission: "read,admin"
+                    - id: 13
+                      name: "writer-token"
+                      description: "Used by the nightly import job."
+                      created_at: "2026-04-02T09:00:00Z"
+                      expired_at: null
+                      will_expire: false
+                      permission: "write"
+        "403":
+          description: Authentication is not enabled on the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      x-codeSamples:
+        - lang: cURL
+          label: List access tokens
+          source: |
+            curl -X GET http://localhost:50052/auth/access_tokens \
+              -H "Accept: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>'
+
+  /auth/access_token/{token_id}:
+    delete:
+      tags:
+        - Access Tokens
+      summary: Delete access token
+      description: |
+        Deletes an access token by its ID. The token is immediately invalidated and can no longer be used for authentication.
+
+        Requires `auth_enabled=true` and an admin access token or admin JWT.
+      operationId: delete_access_token
+      parameters:
+        - name: token_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the access token to delete.
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Admin JWT or admin access token. Format `Bearer <admin-jwt-or-access-token>`.
+      responses:
+        "200":
+          description: Token deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                success:
+                  value:
+                    status: "success"
+                    message: "Access token deleted successfully"
+        "404":
+          description: Token not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_found:
+                  value:
+                    status: "error"
+                    message: "Access token not found"
+        "401":
+          description: Missing or invalid authorization credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unauthorized:
+                  value:
+                    status: "error"
+                    message: "Invalid or missing authorization token"
+        "403":
+          description: Authentication is not enabled on the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                auth_disabled:
+                  value:
+                    status: "error"
+                    message: "Access token API requires auth_enabled=true"
+      x-codeSamples:
+        - lang: cURL
+          label: Delete access token
+          source: |
+            curl -X DELETE http://localhost:50052/auth/access_token/12 \
+              -H "Accept: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>'
+
+  /auth/access_token/{token_id}/rotate:
+    post:
+      tags:
+        - Access Tokens
+      summary: Rotate access token
+      description: |
+        Generates a new raw token for an existing access token and invalidates the previous raw token immediately. The token `id`, `name`, `description`, `permission`, `will_expire`, and `expired_at` values are preserved.
+
+        Requires `auth_enabled=true` and an admin access token or admin JWT. Expired tokens cannot be rotated.
+      operationId: rotate_access_token
+      parameters:
+        - name: token_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the access token to rotate.
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Admin JWT or admin access token. Format `Bearer <admin-jwt-or-access-token>`.
+      responses:
+        "200":
+          description: Token rotated successfully. Returns the new raw token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Unique identifier for the access token.
+                  name:
+                    type: string
+                    description: Human-readable name for the token.
+                  description:
+                    type: string
+                    description: Description of the token's intended use.
+                  token:
+                    type: string
+                    description: The new raw access token value. Store this securely, as it cannot be retrieved after rotation.
+                  created_at:
+                    type: string
+                    format: date-time
+                    description: Original creation timestamp, in RFC 3339 UTC format.
+                  expired_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: Expiration timestamp. `null` when `will_expire` is `false`.
+                  will_expire:
+                    type: boolean
+                    description: Whether the token has an expiration date.
+                  permission:
+                    type: string
+                    description: Comma-separated permission names assigned to the token.
+              examples:
+                success:
+                  value:
+                    id: 12
+                    name: "reader-admin-token"
+                    description: "Used by the analytics dashboard to run read-only admin checks."
+                    token: "vdai_<newly-generated-token>"
+                    created_at: "2026-04-02T08:30:00Z"
+                    expired_at: "2026-04-03T08:30:00Z"
+                    will_expire: true
+                    permission: "read,admin"
+        "400":
+          description: Token is expired and cannot be rotated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired:
+                  value:
+                    status: "error"
+                    message: "Cannot rotate an expired access token"
+        "403":
+          description: Authentication is not enabled on the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      x-codeSamples:
+        - lang: cURL
+          label: Rotate access token
+          source: |
+            curl -X POST http://localhost:50052/auth/access_token/12/rotate \
+              -H "Accept: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>'
+
+  /auth/admin:
+    post:
+      tags:
+        - Admin User
+      summary: Create admin user
+      description: |
+        Creates the built-in admin user with the given password. The username is always fixed to `admin`.
+
+        This endpoint can only be called from localhost (the same machine as the server). The password must satisfy the password policy: at least 12 characters, including uppercase, lowercase, digit, and special characters. The password must not be empty, only whitespace, or match the username.
+      operationId: create_admin_user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  description: Password for the admin user. Must satisfy the password policy.
+      responses:
+        "200":
+          description: Admin user created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                success:
+                  value:
+                    status: "success"
+                    message: "User registered successfully"
+        "400":
+          description: Missing or invalid password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_password:
+                  value:
+                    status: "error"
+                    message: "Missing required field: password"
+        "409":
+          description: Admin user already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                already_exists:
+                  value:
+                    status: "error"
+                    message: "Username already exists"
+      x-codeSamples:
+        - lang: cURL
+          label: Create admin user
+          source: |
+            curl -X POST http://localhost:50052/auth/admin \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "password": "MySecurePwd!1"
+              }'
+
+  /auth/admin/reset-password:
+    post:
+      tags:
+        - Admin User
+      summary: Reset admin password
+      description: |
+        Resets the built-in admin user's password. The username is always fixed to `admin`.
+
+        This endpoint can only be called from localhost (the same machine as the server). The new password must satisfy the same password policy as the create endpoint.
+      operationId: reset_admin_password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  description: New password for the admin user. Must satisfy the password policy.
+      responses:
+        "200":
+          description: Password reset successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                success:
+                  value:
+                    status: "success"
+                    message: "Password reset successfully"
+        "400":
+          description: Missing or invalid password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_password:
+                  value:
+                    status: "error"
+                    message: "Missing required field: password"
+        "404":
+          description: Admin user does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_found:
+                  value:
+                    status: "error"
+                    message: "User not found"
+      x-codeSamples:
+        - lang: cURL
+          label: Reset admin password
+          source: |
+            curl -X POST http://localhost:50052/auth/admin/reset-password \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "password": "MyNewSecurePwd!2"
+              }'
+
+  /auth/admin/login:
+    post:
+      tags:
+        - Admin User
+      summary: Admin login
+      description: |
+        Authenticates the admin user and returns a JWT token. The username is always fixed to `admin`. No authorization header is required for this endpoint.
+
+        When the server starts, it uses `ACTIAN_VECTORAI_JWT_SECRET` if present and persists that value to `server_params.btr`. If the environment variable is absent, the server loads the previously persisted secret or generates and persists a new one automatically.
+      operationId: admin_login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  description: The admin user's password.
+      responses:
+        "200":
+          description: Login successful. Returns a JWT token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT token for authenticating subsequent requests.
+                  message:
+                    type: string
+                    description: Human-readable status message.
+                  expires_in:
+                    type: integer
+                    description: Number of seconds until the JWT token expires.
+              examples:
+                success:
+                  value:
+                    token: "<jwt-token>"
+                    message: "Login successful"
+                    expires_in: 3600
+        "401":
+          description: Invalid password.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    nullable: true
+                  message:
+                    type: string
+                  expires_in:
+                    type: integer
+              examples:
+                invalid_password:
+                  value:
+                    token: null
+                    message: "Invalid username or password"
+                    expires_in: 0
+        "400":
+          description: Missing or blank password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_password:
+                  value:
+                    status: "error"
+                    message: "Missing required field: password"
+      x-codeSamples:
+        - lang: cURL
+          label: Admin login
+          source: |
+            curl -X POST http://localhost:50052/auth/admin/login \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "password": "MyNewSecurePwd!2"
+              }'
+
+  /auth/admin/exists:
+    get:
+      tags:
+        - Admin User
+      summary: Check admin exists
+      description: |
+        Returns whether the admin user has been created. No authorization is required for this endpoint.
+      operationId: check_admin_exists
+      security: []
+      responses:
+        "200":
+          description: Returns the admin existence status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    nullable: true
+                  time:
+                    type: number
+                    format: double
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                  result:
+                    type: boolean
+                    description: "`true` if the admin user exists, `false` otherwise."
+              examples:
+                exists:
+                  value:
+                    usage: {}
+                    time: 0.0
+                    status: "ok"
+                    result: true
+                does_not_exist:
+                  value:
+                    usage: {}
+                    time: 0.0
+                    status: "ok"
+                    result: false
+      x-codeSamples:
+        - lang: cURL
+          label: Check admin exists
+          source: |
+            curl -X GET http://localhost:50052/auth/admin/exists \
+              -H "Accept: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>'
+
+  /auth/enabled:
+    patch:
+      tags:
+        - Admin User
+      summary: Set auth enabled
+      description: |
+        Enables or disables authentication enforcement for the server. When auth is disabled, endpoints that normally require access tokens or JWT authorization can be called without credentials.
+
+        Requires an admin JWT in the `Authorization` header.
+      operationId: set_auth_enabled
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Admin JWT. Format `Bearer <admin-jwt>`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - enabled
+              properties:
+                enabled:
+                  type: boolean
+                  description: Set to `true` to enable authentication, `false` to disable it.
+      responses:
+        "200":
+          description: Auth setting updated. The `result` field reflects the current auth-enabled state after the update.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    nullable: true
+                  time:
+                    type: number
+                    format: double
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                  result:
+                    type: boolean
+                    description: The current auth-enabled state after the update.
+              examples:
+                enabled:
+                  value:
+                    usage: {}
+                    time: 0.0
+                    status: "ok"
+                    result: true
+        "400":
+          description: Missing `enabled` field.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_field:
+                  value:
+                    status: "error"
+                    message: "Missing required field: enabled"
+      x-codeSamples:
+        - lang: cURL
+          label: Enable authentication
+          source: |
+            curl -X PATCH http://localhost:50052/auth/enabled \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt>' \
+              -d '{
+                "enabled": true
+              }'
+        - lang: cURL
+          label: Disable authentication
+          source: |
+            curl -X PATCH http://localhost:50052/auth/enabled \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt>' \
+              -d '{
+                "enabled": false
+              }'
+
+components:
+  schemas:
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Operation result status.
+        message:
+          type: string
+          description: Human-readable status message.
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Error status indicator.
+        message:
+          type: string
+          description: Human-readable error description.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Admin JWT obtained from the login endpoint.

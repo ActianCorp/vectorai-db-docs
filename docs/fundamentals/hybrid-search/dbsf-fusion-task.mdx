@@ -1,0 +1,145 @@
+---
+title: "Distribution-Based Score Fusion"
+description: "Combine semantic and keyword search results using Distribution-Based Score Fusion."
+icon: "code"
+---
+
+Distribution-Based Score Fusion (DBSF) normalizes scores based on the statistical distribution of each result set before combining them. DBSF produces balanced rankings when different searches have different score distributions, such as combining semantic search with keyword search.
+
+The example below creates a collection, inserts 100 sample points with metadata, and runs two vector searches with different query characteristics. It then passes both result sets to the DBSF fusion function, which normalizes the scores from each search and combines them into a single ranked list of the top 10 results.
+
+<CodeGroup>
+```python Python
+import asyncio
+import random
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, PointStruct, distribution_based_score_fusion
+
+COLLECTION = "documents"
+DIMENSION = 128
+
+async def main():
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Create collection if it doesn't exist
+        if not await client.collections.exists(COLLECTION):
+            await client.collections.create(
+                COLLECTION,
+                vectors_config=VectorParams(size=DIMENSION, distance=Distance.Cosine)
+            )
+
+            # Insert sample points
+            points = [
+                PointStruct(
+                    id=i,
+                    vector=[random.gauss(0, 1) for _ in range(DIMENSION)],
+                    payload={
+                        "text": f"Document {i} about {['AI', 'ML', 'NLP', 'CV'][i % 4]}",
+                        "title": f"Article {i}"
+                    }
+                )
+                for i in range(1, 101)
+            ]
+            await client.points.upsert(COLLECTION, points)
+            print(f"✓ Inserted {len(points)} points")
+
+        # Multiple search queries with different characteristics
+        semantic_query = [random.gauss(0, 1) for _ in range(DIMENSION)]
+        keyword_query = [random.gauss(0.5, 0.8) for _ in range(DIMENSION)]
+
+        # Perform searches
+        semantic_results = await client.points.search(
+            COLLECTION,
+            vector=semantic_query,
+            limit=20
+        )
+
+        keyword_results = await client.points.search(
+            COLLECTION,
+            vector=keyword_query,
+            limit=20
+        )
+
+        # Fuse with weights (semantic search weighted higher)
+        print("DBSF fusion")
+        fused_results = distribution_based_score_fusion(
+            [semantic_results, keyword_results],
+            limit=10
+        )
+
+        for i, point in enumerate(fused_results[:5], 1):
+            print(f"{i}. ID: {point.id}, Fused Score: {point.score:.4f}")
+            if point.payload:
+                print(f"   Title: {point.payload.get('title', 'N/A')}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient, distributionBasedScoreFusion } from '@actian/cortex-client';
+
+const COLLECTION = "documents";
+const DIMENSION = 128;
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    // Create collection if it doesn't exist
+    await client.collections.create(COLLECTION, {
+        dimension: DIMENSION,
+        distanceMetric: 'COSINE'
+    });
+
+    // Insert sample points
+    const points = Array.from({ length: 100 }, (_, i) => ({
+        id: i + 1,
+        vector: Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1),
+        payload: {
+            text: `Document ${i + 1} about ${['AI', 'ML', 'NLP', 'CV'][i % 4]}`,
+            title: `Article ${i + 1}`
+        }
+    }));
+    await client.points.upsert(COLLECTION, points, { wait: true });
+    console.log(`Inserted ${points.length} points`);
+
+    // Multiple search queries with different characteristics
+    const semanticQuery = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+    const keywordQuery = Array.from({ length: DIMENSION }, () => (Math.random() * 2 - 1) * 0.8 + 0.5);
+
+    // Perform searches
+    const semanticResults = await client.points.search(COLLECTION, semanticQuery, {
+        limit: 20
+    });
+
+    const keywordResults = await client.points.search(COLLECTION, keywordQuery, {
+        limit: 20
+    });
+
+    // Fuse with DBSF
+    console.log("DBSF fusion");
+    const fusedResults = distributionBasedScoreFusion(
+        [semanticResults, keywordResults],
+        { limit: 10 }
+    );
+
+    fusedResults.slice(0, 5).forEach((point, i) => {
+        console.log(`${i + 1}. ID: ${point.id}, Fused Score: ${point.score.toFixed(4)}`);
+        if (point.payload) {
+            console.log(`   Title: ${point.payload.title || 'N/A'}`);
+        }
+    });
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each fused result includes these fields:
+
+- `id`: The unique identifier of the matching point
+- `score`: Normalized fused score based on score distributions
+- `payload`: Metadata object from the matching point
+
+DBSF is particularly effective when:
+
+- Combining searches with different score ranges or distributions
+- One search type consistently produces higher raw scores than another
+- You need normalized scores that reflect relative relevance across search types

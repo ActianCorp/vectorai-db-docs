@@ -1,0 +1,145 @@
+---
+title: "Delete points"
+description: "Remove points from a collection by ID and compact to reclaim storage."
+icon: "code"
+---
+
+Delete individual points or batches of points from your collection. Deleted points can be recovered only before you compact the collection.
+
+<Note>
+Before you begin, make sure you have a running VectorAI DB instance and an existing collection with points. See [Insert points](/docs/fundamentals/points/insert-points-task) to add data first.
+</Note>
+
+## Delete a single point
+
+The following example removes a single point by ID.
+
+<CodeGroup>
+```python Python
+from actian_vectorai import VectorAIClient
+
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Delete point with ID 11
+    client.points.delete_by_ids(COLLECTION, ids=[11])
+    print("Point deleted successfully")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const COLLECTION = "products";
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Delete point with ID 11
+        await client.points.deleteByIds(COLLECTION, [11], { wait: true });
+        console.log("Point deleted successfully");
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Delete multiple points
+
+Deleting a nonexistent point does not cause an error — the operation completes successfully regardless of whether the point exists. The following example removes multiple points at once.
+
+<CodeGroup>
+```python Python
+from actian_vectorai import VectorAIClient
+
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Delete multiple points
+    delete_ids = [9, 10, 12, 13]
+    client.points.delete_by_ids(COLLECTION, ids=delete_ids)
+    
+    print(f"Deleted {len(delete_ids)} points")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const COLLECTION = "products";
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Delete multiple points
+        const deleteIds = [9, 10, 12, 13];
+        await client.points.deleteByIds(COLLECTION, deleteIds, { wait: true });
+
+        console.log(`Deleted ${deleteIds.length} points`);
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Compact a collection
+
+After deleting points, run a compaction operation to reclaim storage space and optimize the index. The `compact()` method is an alias for `optimize()`.
+
+Compaction permanently removes deleted points from storage, rebuilds the index structure, and reclaims disk space. Run compaction after large-scale deletions to maintain optimal performance.
+
+<Warning>
+Compaction is a resource-intensive operation that may temporarily impact collection performance. Run during low-traffic periods when possible.
+</Warning>
+
+<CodeGroup>
+```python Python
+from actian_vectorai import VectorAIClient
+
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Delete points
+    client.points.delete_by_ids(COLLECTION, ids=[9, 10, 11, 12])
+    print("Deleted 4 points")
+
+    # Compact to reclaim storage
+    print("Compacting collection...")
+    client.vde.optimize(COLLECTION)  # Optimize and reclaim space
+    print("Collection compacted successfully")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const COLLECTION = "products";
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Delete points
+        await client.points.deleteByIds(COLLECTION, [9, 10, 11, 12], { wait: true });
+        console.log("Deleted 4 points");
+
+        // Compact to reclaim storage
+        console.log("Compacting collection...");
+        await client.vde.optimize(COLLECTION);  // Optimize and reclaim space
+        console.log("Collection compacted successfully");
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>

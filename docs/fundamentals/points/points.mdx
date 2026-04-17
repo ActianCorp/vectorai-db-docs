@@ -1,0 +1,69 @@
+---
+title: "Points overview"
+description: "Points are the fundamental data units in Actian VectorAI DB, each containing a unique ID, a vector embedding, and an optional JSON payload. Covers point structure, supported operations, and how points relate to collections."
+---
+
+_Points_ are the fundamental data units in Actian VectorAI DB. Each point contains the following three components:
+
+- A unique ID
+- A [vector embedding](/docs/fundamentals/vectors/vectors)
+- An optional metadata [payload](/docs/fundamentals/payload/payload)
+
+$$
+\text{Point} = \text{ID} + \text{Vector} + \text{Payload}
+$$
+
+Points represent any data type, including text, images, audio, video, and structured data. Unlike traditional database rows with fixed schemas, VectorAI DB points store high-dimensional embeddings with rich metadata through flexible JSON payloads.
+
+## Point structure
+
+Each point contains three key components:
+
+```json
+{
+  "id": 1,                            // Required: Unique integer identifier
+  "vector": [0.12, -0.34, 0.56, ...], // Required: Fixed-size embedding
+  "payload": {                        // Optional: JSON metadata
+    "name": "Laptop",
+    "category": "electronics",
+    "price": 999.99,
+    "in_stock": true
+  }
+}
+```
+
+The following table describes each component:
+
+| Component | Required | Description |
+|-----------|----------|-------------|
+| ID | Yes | Unique integer identifier within the collection. |
+| Vector | Yes | Fixed-size embedding that matches your collection dimension configuration. |
+| Payload | No | Nested JSON for rich filtering and metadata storage. |
+
+## Point operations overview
+
+VectorAI DB supports the following operations for managing points:
+
+| Operation | Description |
+|-----------|-------------|
+| Insert | Add individual points or batches of points to your collection. |
+| Retrieve | Fetch specific points from your collection by their IDs. |
+| Update | Modify existing points by providing new vector and payload data. |
+| Delete | Remove individual points or batches of points from your collection. |
+| Compact | Reclaim storage space and optimize the index after deletions. See [Delete points](/docs/fundamentals/points/delete-points-task). |
+
+## Task guides
+
+See step-by-step guides for point operations:
+
+- [Insert points](/docs/fundamentals/points/insert-points-task)
+- [Retrieve points](/docs/fundamentals/points/retrieve-points-task)
+- [Update points](/docs/fundamentals/points/update-points-task)
+- [Delete points](/docs/fundamentals/points/delete-points-task)
+
+## Next steps
+
+- [Payload management](/docs/fundamentals/payload/payload) — Attach and filter metadata on points.
+- [Vector embeddings](/docs/fundamentals/vectors/vectors) — Understand the embeddings stored in points.
+- [Search operations](/docs/fundamentals/search/search) — Run similarity queries across points.
+- [Filtering](/docs/fundamentals/filtering/filtering) — Narrow search results using point payload fields.

@@ -1,0 +1,994 @@
+---
+title: "Similarity search fundamentals"
+description: "Learn the core vector similarity search workflow with Actian VectorAI DB: embedding, storing, searching, scoring, tuning, batching, and paginating results."
+---
+
+This tutorial covers the core vector similarity search workflow with Actian VectorAI DB. By the end, you will be able to:
+
+- Store and retrieve vectors using `PointStruct`, `points.upsert`, and `points.search`.
+- Control search behaviour with distance metrics, score thresholds, `SearchParams`, and pagination.
+- Fetch, count, and batch-search points using `points.get`, `points.count`, and `search_batch`.
+
+Similarity search is the foundation of every vector database application. Instead of matching exact keywords, it finds items that are semantically close to a query. For example, "affordable flights to Europe" retrieves results about "cheap airfare to Paris" even though no words overlap.
+
+The workflow has four stages:
+
+1. Embed — Convert text, images, or audio into dense numerical vectors using a model.
+2. Store — Insert vectors with metadata into a collection.
+3. Search — Encode a query into the same vector space and find the nearest neighbors.
+4. Score — Rank results by distance (cosine, Euclidean, dot product, or Manhattan).
+
+## Environment setup
+
+Run this command to install the two packages the tutorial depends on.
+
+```bash
+pip install actian-vectorai sentence-transformers
+```
+
+## Step 1: Import and configure
+
+Run this cell to import the SDK classes, set the server address and collection name, and load the embedding model. The two helper functions at the bottom are used throughout the tutorial to convert text into vectors.
+
+```python
+import asyncio
+from sentence_transformers import SentenceTransformer
+
+# Core client, vector config, and distance metrics
+from actian_vectorai import (
+    AsyncVectorAIClient,
+    Distance,
+    VectorParams,
+)
+
+# Points and search
+from actian_vectorai import (
+    PointStruct,
+    SearchParams,
+    QuantizationSearchParams,
+)
+
+# Filtering
+from actian_vectorai import (
+    Field,
+    FilterBuilder,
+)
+
+# Collection index configuration
+from actian_vectorai.models.collections import HnswConfigDiff
+
+# Payload selector for controlling which fields are returned
+from actian_vectorai.models.points import WithPayloadSelector
+
+SERVER = "localhost:50051"
+COLLECTION = "search-fundamentals"
+EMBED_DIM = 384
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+def embed_text(text: str) -> list[float]:
+    # Encode a single string to a float vector
+    return model.encode(text).tolist()
+
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    # Encode a batch of strings to float vectors in one pass
+    return model.encode(texts).tolist()
+
+print(f"Server: {SERVER}")
+print(f"Model: all-MiniLM-L6-v2 ({EMBED_DIM}-dim)")
+```
+
+#### Expected output
+
+The cell prints the configured server address and confirms the embedding model loaded successfully with its dimensionality.
+
+```text
+Server: localhost:50051
+Model: all-MiniLM-L6-v2 (384-dim)
+```
+
+## Step 2: Create a collection
+
+Run this cell to create the collection that all subsequent steps will use. If the collection already exists, `get_or_create` returns without error.
+
+```python
+async def create_collection():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        await client.collections.get_or_create(
+            name=COLLECTION,
+            vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.Cosine),
+            hnsw_config=HnswConfigDiff(m=16, ef_construct=128),
+        )
+    print(f"Collection '{COLLECTION}' ready.")
+
+asyncio.run(create_collection())
+```
+
+#### Key parameters
+
+The following parameters are passed to `collections.get_or_create()` to define the collection structure.
+
+| Parameter | Value | Meaning |
+|-----------|-------|---------|
+| `size` | 384 | Vector dimensionality — must match the embedding model dimension |
+| `distance` | `Distance.Cosine` | Similarity metric for scoring |
+| `m` | 16 | HNSW graph connectivity (higher = more accurate, more memory) |
+| `ef_construct` | 128 | HNSW build-time search width (higher = better index quality) |
+
+#### Distance metrics
+
+Actian VectorAI DB supports four distance metrics. The choice is made at collection creation time and cannot be changed afterwards.
+
+| Metric | Enum | Score meaning | Best for |
+|--------|------|--------------|----------|
+| Cosine | `Distance.Cosine` | Higher = more similar | Normalized text/image embeddings |
+| Dot product | `Distance.Dot` | Higher = more similar | When magnitude matters |
+| Euclidean | `Distance.Euclid` | Lower = more similar | Absolute distance measurement |
+| Manhattan | `Distance.Manhattan` | Lower = more similar | Robust to outlier dimensions |
+
+Most text embedding models produce normalized vectors, making cosine the standard choice. The other metrics are useful in specialized scenarios covered later in this tutorial.
+
+#### Expected output
+
+A single confirmation line prints once the collection is created (or already exists).
+
+```text
+Collection 'search-fundamentals' ready.
+```
+
+## Step 3: Embed and store vectors
+
+Run this cell to embed all ten sample documents and store them as points in the collection. Each point has an integer ID, a 384-dimensional vector, and a payload containing the original text plus topic and difficulty metadata.
+
+```python
+documents = [
+    {"text": "Python is a high-level programming language known for its readability and versatility.", "topic": "programming", "difficulty": "beginner"},
+    {"text": "Machine learning algorithms learn patterns from data to make predictions on unseen examples.", "topic": "machine_learning", "difficulty": "intermediate"},
+    {"text": "Neural networks are composed of layers of interconnected nodes that transform input data.", "topic": "deep_learning", "difficulty": "intermediate"},
+    {"text": "Kubernetes orchestrates containerized applications across clusters of machines.", "topic": "devops", "difficulty": "advanced"},
+    {"text": "SQL databases store data in structured tables with rows and columns and support ACID transactions.", "topic": "databases", "difficulty": "beginner"},
+    {"text": "Vector databases store high-dimensional embeddings and retrieve them by similarity rather than exact match.", "topic": "databases", "difficulty": "intermediate"},
+    {"text": "Transformers use self-attention mechanisms to process sequences in parallel, enabling large language models.", "topic": "deep_learning", "difficulty": "advanced"},
+    {"text": "REST APIs use HTTP methods to create, read, update, and delete resources on a server.", "topic": "programming", "difficulty": "beginner"},
+    {"text": "Gradient descent optimizes model parameters by iteratively adjusting weights in the direction that reduces the loss function.", "topic": "machine_learning", "difficulty": "intermediate"},
+    {"text": "Docker packages applications and their dependencies into portable containers that run consistently across environments.", "topic": "devops", "difficulty": "intermediate"},
+]
+
+async def ingest():
+    texts = [d["text"] for d in documents]
+    vectors = embed_texts(texts)
+
+    points = []
+    for i, (doc, vector) in enumerate(zip(documents, vectors)):
+        points.append(
+            PointStruct(
+                id=i,
+                vector=vector,
+                payload=doc,
+            )
+        )
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        await client.points.upsert(COLLECTION, points=points)
+        await client.vde.flush(COLLECTION)       # Persist vectors to disk immediately
+        count = await client.vde.get_vector_count(COLLECTION)
+
+    print(f"Stored {count} vectors.")
+
+asyncio.run(ingest())
+```
+
+#### How it works
+
+The ingestion pipeline converts raw text into vectors and stores them with metadata in a single batch operation.
+
+1. `embed_texts()` converts each document's text into a 384-dimensional float vector using `all-MiniLM-L6-v2`.
+2. `PointStruct(id, vector, payload)` packages the ID, vector, and metadata together.
+3. `points.upsert()` inserts (or updates) the points in the collection.
+4. `vde.flush()` persists vectors to disk immediately.
+
+#### Expected output
+
+The count confirms all ten documents were stored successfully.
+
+```text
+Stored 10 vectors.
+```
+
+## Step 4: Run a basic similarity search
+
+Run this cell to search the collection using a natural-language query. The function embeds the query string and returns the five most similar documents, each with its ID, cosine score, topic, and a text preview.
+
+```python
+async def basic_search(query: str, top_k: int = 5):
+    query_vector = embed_text(query)
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.search(
+            COLLECTION,
+            vector=query_vector,
+            limit=top_k,
+            with_payload=True,
+        )
+
+    return results or []
+
+query = "How do neural networks work?"
+results = asyncio.run(basic_search(query))
+
+print(f"Query: {query}\n")
+for r in results:
+    print(f"  id={r.id}  score={r.score:.4f}  topic={r.payload.get('topic')}")
+    print(f"    {r.payload.get('text')[:80]}...")
+```
+
+#### How it works
+
+The search follows a three-step flow: encode, retrieve, rank.
+
+1. The query text is embedded into the same 384-dim vector space as the stored documents.
+2. `points.search()` finds the nearest vectors by cosine similarity.
+3. Results are returned as scored point objects, ranked by score (highest first for cosine).
+
+#### Key parameters
+
+The following parameters are accepted by `points.search()`.
+
+| Parameter | Type | Default | Purpose |
+|-----------|------|---------|---------|
+| `vector` | `list[float]` | required | The query embedding |
+| `limit` | `int` | 10 | Maximum number of results |
+| `with_payload` | `bool` | `True` | Include metadata in results |
+
+#### Expected output
+
+The five closest documents are printed in score order. The top result is about neural networks, followed by transformers and machine learning — demonstrating that the search captured semantic relationships rather than exact keyword overlap.
+
+```text
+Query: How do neural networks work?
+
+  id=2  score=0.7834  topic=deep_learning
+    Neural networks are composed of layers of interconnected nodes that transform i...
+  id=6  score=0.6521  topic=deep_learning
+    Transformers use self-attention mechanisms to process sequences in parallel, ena...
+  id=1  score=0.5890  topic=machine_learning
+    Machine learning algorithms learn patterns from data to make predictions on uns...
+  id=8  score=0.4523  topic=machine_learning
+    Gradient descent optimizes model parameters by iteratively adjusting weights in...
+  id=5  score=0.3912  topic=databases
+    Vector databases store high-dimensional embeddings and retrieve them by similar...
+```
+
+The top result (id=2) is about neural networks — an exact topic match. The second result (id=6) is about transformers, which are a type of neural network. The third (id=1) is about machine learning more broadly. The search captures semantic relationships, not just keyword overlap.
+
+## Step 5: Understanding scores
+
+The score value returned by each search result depends on the distance metric configured on the collection.
+
+### Cosine similarity
+
+For cosine distance — the metric used in this tutorial — scores represent the cosine similarity between normalized vectors. When both the stored vectors and query vectors are unit-normalized (as produced by `all-MiniLM-L6-v2`), scores range from 0 to 1 and are interpreted as follows.
+
+| Score | Interpretation |
+|-------|---------------|
+| 1.0 | Identical vectors (perfect match) |
+| 0.7–0.9 | Strongly similar |
+| 0.4–0.7 | Moderately similar |
+| 0.1–0.4 | Weakly similar |
+| 0.0 | Orthogonal (no similarity) |
+
+### Comparing queries
+
+Run this cell to issue three different queries against the collection and compare their score distributions. Each query will return three results with scores that reflect how closely the corpus matches that particular topic.
+
+```python
+queries = [
+    "What is deep learning?",
+    "How do I deploy containers to production?",
+    "Explain SQL database tables and transactions",
+]
+
+for q in queries:
+    results = asyncio.run(basic_search(q, top_k=3))
+    print(f"\nQuery: {q}")
+    for r in results:
+        print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('text')[:60]}...")
+```
+
+#### Expected output
+
+Each query surfaces a different set of top results. The scores shift noticeably between topics, confirming that semantic relevance drives the ranking rather than surface-level word matching.
+
+```text
+Query: What is deep learning?
+  id=2  score=0.7521  Neural networks are composed of layers of interconnected no...
+  id=6  score=0.6834  Transformers use self-attention mechanisms to process sequen...
+  id=1  score=0.5612  Machine learning algorithms learn patterns from data to mak...
+
+Query: How do I deploy containers to production?
+  id=9  score=0.7234  Docker packages applications and their dependencies into po...
+  id=3  score=0.6890  Kubernetes orchestrates containerized applications across cl...
+  id=7  score=0.3200  REST APIs use HTTP methods to create, read, update, and del...
+
+Query: Explain SQL database tables and transactions
+  id=4  score=0.8100  SQL databases store data in structured tables with rows and...
+  id=5  score=0.5234  Vector databases store high-dimensional embeddings and retr...
+  id=0  score=0.3100  Python is a high-level programming language known for its r...
+```
+
+Each query surfaces the most semantically relevant documents, even when the exact words differ.
+
+## Step 6: Tune search accuracy with SearchParams
+
+`SearchParams` controls how the HNSW index is traversed at query time. Adjusting these values lets you trade search speed for recall accuracy.
+
+Run this cell to compare the results of three search modes — low-effort approximate, high-effort approximate, and exact brute-force — against the same query.
+
+```python
+async def tuned_search(query: str, hnsw_ef: int = 128, exact: bool = False, top_k: int = 5):
+    query_vector = embed_text(query)
+
+    params = SearchParams(
+        hnsw_ef=hnsw_ef,   # Controls graph traversal depth at query time
+        exact=exact,        # True enables brute-force scan for 100% recall
+    )
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.search(
+            COLLECTION,
+            vector=query_vector,
+            limit=top_k,
+            with_payload=True,
+            params=params,
+        ) or []
+
+    return results
+
+query = "machine learning optimization"
+
+# Fast approximate search (default)
+approx = asyncio.run(tuned_search(query, hnsw_ef=64))
+print("=== Approximate (hnsw_ef=64) ===")
+for r in approx:
+    print(f"  id={r.id}  score={r.score:.4f}")
+
+# Higher accuracy (more graph exploration)
+accurate = asyncio.run(tuned_search(query, hnsw_ef=256))
+print("\n=== Higher accuracy (hnsw_ef=256) ===")
+for r in accurate:
+    print(f"  id={r.id}  score={r.score:.4f}")
+
+# Brute-force exact search (100% recall)
+exact_results = asyncio.run(tuned_search(query, exact=True))
+print("\n=== Exact brute-force ===")
+for r in exact_results:
+    print(f"  id={r.id}  score={r.score:.4f}")
+```
+
+#### SearchParams reference
+
+All fields are optional. Omitting `SearchParams` entirely uses the collection's default HNSW configuration.
+
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `hnsw_ef` | Collection default | Search-time exploration factor. Higher = more accurate, slower. |
+| `exact` | `False` | `True` disables HNSW and performs a brute-force scan (100% recall). |
+| `indexed_only` | `False` | `True` skips unindexed segments (useful during bulk ingestion). |
+| `quantization` | None | Controls quantized vector search behavior (see below). |
+| `ivf_nprobe` | Collection default | For IVF indexes: number of partitions to search. |
+
+#### Quantization-aware search
+
+When a collection uses scalar or product quantization, use `QuantizationSearchParams` to control how quantized vectors are used during the search. The following example enables rescoring, which re-ranks the initial candidates using the original full-precision vectors for higher accuracy.
+
+```python
+params = SearchParams(
+    hnsw_ef=128,
+    quantization=QuantizationSearchParams(
+        ignore=False,       # Use quantized vectors for the initial candidate pass
+        rescore=True,       # Re-rank the top candidates with full-precision vectors
+        oversampling=2.0,   # Retrieve 2x candidates before rescoring
+    ),
+)
+```
+
+| Parameter | Effect |
+|-----------|--------|
+| `ignore=False` | Use quantized vectors for initial search (fast) |
+| `rescore=True` | Re-rank candidates with original full-precision vectors |
+| `oversampling=2.0` | Retrieve 2x candidates before rescoring for higher recall |
+
+## Step 7: Score threshold — filter low-confidence results
+
+`score_threshold` discards results below a minimum similarity score server-side before they are returned. Run this cell to see how raising the threshold progressively narrows the result set for a deep-learning query.
+
+```python
+async def threshold_search(query: str, threshold: float, top_k: int = 10):
+    query_vector = embed_text(query)
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.search(
+            COLLECTION,
+            vector=query_vector,
+            limit=top_k,
+            with_payload=True,
+            score_threshold=threshold,
+        ) or []
+
+    return results
+
+query = "deep learning neural network architecture"
+
+results_no_threshold = asyncio.run(threshold_search(query, threshold=0.0))
+results_moderate = asyncio.run(threshold_search(query, threshold=0.5))
+results_strict = asyncio.run(threshold_search(query, threshold=0.7))
+
+print(f"No threshold:  {len(results_no_threshold)} results")
+print(f"Threshold 0.5: {len(results_moderate)} results")
+print(f"Threshold 0.7: {len(results_strict)} results")
+
+print("\n=== Strict (>= 0.7) ===")
+for r in results_strict:
+    print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('text')[:60]}...")
+```
+
+#### When to use score thresholds
+
+Choose a threshold based on how strictly the results need to match the query intent.
+
+| Scenario | Threshold |
+|----------|-----------|
+| Exploratory search (cast wide net) | 0.2–0.3 |
+| General retrieval | 0.4–0.5 |
+| Precise matching (reduce false positives) | 0.6–0.7 |
+| Near-duplicate detection | 0.8+ |
+
+#### Expected output
+
+The result counts drop as the threshold rises, and the strict pass returns only the two documents that score above 0.7.
+
+```text
+No threshold:  10 results
+Threshold 0.5: 4 results
+Threshold 0.7: 2 results
+
+=== Strict (>= 0.7) ===
+  id=2  score=0.7834  Neural networks are composed of layers of interconnected no...
+  id=6  score=0.7102  Transformers use self-attention mechanisms to process sequen...
+```
+
+## Step 8: Pagination with offset and limit
+
+For large result sets, use `offset` and `limit` to retrieve results one page at a time. Run this cell to walk through three pages of results for a programming query, with three results per page.
+
+```python
+async def paginated_search(query: str, page_size: int = 3):
+    query_vector = embed_text(query)
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        page = 0
+        while True:
+            results = await client.points.search(
+                COLLECTION,
+                vector=query_vector,
+                limit=page_size,
+                offset=page * page_size,
+                with_payload=True,
+            ) or []
+
+            if not results:
+                break
+
+            print(f"--- Page {page + 1} (offset={page * page_size}) ---")
+            for r in results:
+                print(f"  id={r.id}  score={r.score:.4f}  topic={r.payload.get('topic')}")
+
+            page += 1
+            if page >= 3:
+                break
+
+asyncio.run(paginated_search("programming and software development"))
+```
+
+#### How pagination works
+
+Each call advances the window by incrementing `offset` by `limit`. Results are always ranked by similarity score before the window is applied.
+
+| Call | Offset | Limit | Returns |
+|------|--------|-------|---------|
+| Page 1 | 0 | 3 | Results 1–3 |
+| Page 2 | 3 | 3 | Results 4–6 |
+| Page 3 | 6 | 3 | Results 7–9 |
+
+`offset` skips the first N results and `limit` controls how many are returned per page.
+
+#### Expected output
+
+Three labeled pages print in sequence, each showing a different slice of the ranked result set.
+
+```text
+--- Page 1 (offset=0) ---
+  id=0  score=0.7200  topic=programming
+  id=7  score=0.6800  topic=programming
+  id=9  score=0.5400  topic=devops
+--- Page 2 (offset=3) ---
+  id=3  score=0.4800  topic=devops
+  id=1  score=0.4200  topic=machine_learning
+  id=5  score=0.3900  topic=databases
+--- Page 3 (offset=6) ---
+  id=4  score=0.3500  topic=databases
+  id=8  score=0.3100  topic=machine_learning
+  id=2  score=0.2800  topic=deep_learning
+```
+
+## Step 9: Retrieve points by ID
+
+`points.get` retrieves specific points by their IDs without performing any vector similarity search. Run this cell to fetch points 0, 4, and 6 and print their topic and text.
+
+```python
+async def get_by_id(ids: list[int]):
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        points = await client.points.get(
+            COLLECTION,
+            ids=ids,
+            with_payload=True,
+            with_vectors=False,  # Omit vector data to reduce response size
+        )
+    return points
+
+points = asyncio.run(get_by_id([0, 4, 6]))
+print("=== Get by ID ===")
+for p in points:
+    print(f"  id={p.id}  topic={p.payload.get('topic')}  text={p.payload.get('text')[:60]}...")
+```
+
+#### Parameters
+
+The following parameters control what `points.get()` returns alongside the point IDs.
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `ids` | required | List of point IDs (int or UUID string) |
+| `with_payload` | `True` | Include payload in response |
+| `with_vectors` | `False` | Include vector data in response |
+
+#### Expected output
+
+The three requested points are returned with their payload metadata. No vector data is included because `with_vectors` is set to `False`.
+
+```text
+=== Get by ID ===
+  id=0  topic=programming  text=Python is a high-level programming language known for its r...
+  id=4  topic=databases  text=SQL databases store data in structured tables with rows and...
+  id=6  topic=deep_learning  text=Transformers use self-attention mechanisms to process sequen...
+```
+
+## Step 10: Count points
+
+`points.count` returns the number of points in a collection, with an option to apply a filter. Run this cell to count the total collection, an approximate count, and two filtered subsets.
+
+```python
+async def count_examples():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        # Exact count — slower but precise
+        total = await client.points.count(COLLECTION, exact=True)
+        print(f"Total points: {total}")
+
+        # Approximate count — faster, suitable for dashboards
+        approx = await client.points.count(COLLECTION, exact=False)
+        print(f"Approximate count: {approx}")
+
+        # Filtered count — only deep learning points
+        f = FilterBuilder().must(Field("topic").eq("deep_learning")).build()
+        dl_count = await client.points.count(COLLECTION, filter=f, exact=True)
+        print(f"Deep learning points: {dl_count}")
+
+        # Filtered count — only beginner difficulty points
+        f = FilterBuilder().must(Field("difficulty").eq("beginner")).build()
+        beginner = await client.points.count(COLLECTION, filter=f, exact=True)
+        print(f"Beginner points: {beginner}")
+
+asyncio.run(count_examples())
+```
+
+The `exact` flag trades speed for accuracy. Choose based on whether the count needs to be precise.
+
+| Mode | Speed | Use case |
+|------|-------|----------|
+| `exact=True` | Slower | Precise counts for reports |
+| `exact=False` | Faster | Dashboard approximations |
+
+#### Expected output
+
+Both the exact and approximate counts return 10 for this small collection. The filtered counts confirm there are two deep learning documents and three beginner-level documents.
+
+```text
+Total points: 10
+Approximate count: 10
+Deep learning points: 2
+Beginner points: 3
+```
+
+## Step 11: Batch search — multiple queries in one call
+
+`search_batch` sends up to 100 searches in a single gRPC round-trip, which eliminates per-request connection overhead. Run this cell to issue three different queries simultaneously and print their results side by side.
+
+```python
+from actian_vectorai import SearchRequest
+
+async def batch_search():
+    queries = [
+        "What is machine learning?",
+        "How do containers work?",
+        "Explain vector databases",
+    ]
+
+    # Build typed SearchRequest objects — required by the SDK
+    searches = [
+        SearchRequest(vector=embed_text(q), limit=3, with_payload=True)
+        for q in queries
+    ]
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        batch_results = await client.points.search_batch(
+            COLLECTION,
+            searches=searches,
+        )
+
+    for query, results in zip(queries, batch_results):
+        print(f"\nQuery: {query}")
+        for r in results:
+            print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('text')[:60]}...")
+
+asyncio.run(batch_search())
+```
+
+#### Why batch search matters
+
+Sending multiple searches in a single call eliminates per-request connection overhead and reduces total latency significantly at scale.
+
+| Approach | Network round-trips | Overhead |
+|----------|-------------------|----------|
+| 3 separate `search()` calls | 3 | 3x connection overhead |
+| 1 `search_batch()` call | 1 | Minimal overhead |
+
+Each search in the batch can have its own `vector`, `limit`, `filter`, `params`, `score_threshold`, `using`, and `offset`. The results are returned in the same order as the input queries.
+
+Maximum batch size: 100 searches per call.
+
+#### Expected output
+
+All three queries return results in a single round-trip, each with its own ranked list.
+
+```text
+Query: What is machine learning?
+  id=1  score=0.8200  Machine learning algorithms learn patterns from data to mak...
+  id=8  score=0.6500  Gradient descent optimizes model parameters by iteratively ...
+  id=2  score=0.5800  Neural networks are composed of layers of interconnected no...
+
+Query: How do containers work?
+  id=9  score=0.7800  Docker packages applications and their dependencies into po...
+  id=3  score=0.7200  Kubernetes orchestrates containerized applications across cl...
+  id=7  score=0.3400  REST APIs use HTTP methods to create, read, update, and del...
+
+Query: Explain vector databases
+  id=5  score=0.8500  Vector databases store high-dimensional embeddings and retr...
+  id=4  score=0.5100  SQL databases store data in structured tables with rows and...
+  id=1  score=0.3800  Machine learning algorithms learn patterns from data to mak...
+```
+
+## Step 12: The universal query endpoint
+
+`points.query` is a more powerful alternative to `points.search`. It supports vector search, payload ordering, server-side fusion, random sampling, and multi-stage prefetch — all through a single endpoint.
+
+### Vector search via points.query
+
+Run this cell to perform a standard nearest-neighbour search using `points.query`. It produces the same ranked results as `points.search` but makes the full query feature set available.
+
+```python
+async def query_vector(query: str, top_k: int = 5):
+    query_vector = embed_text(query)
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.query(
+            COLLECTION,
+            query=query_vector,   # Pass the vector directly
+            limit=top_k,
+            with_payload=True,
+        )
+
+    return results
+
+results = asyncio.run(query_vector("neural network training"))
+print("=== query: vector search ===")
+for r in results:
+    print(f"  id={r.id}  score={r.score:.4f}  topic={r.payload.get('topic')}")
+```
+
+### Payload-sorted retrieval
+
+Run this cell to retrieve points sorted by the `difficulty` payload field rather than by vector similarity. Passing an `OrderBy` object instead of a vector tells the endpoint to skip similarity computation entirely.
+
+```python
+from actian_vectorai import OrderBy, Direction
+
+async def query_ordered():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.query(
+            COLLECTION,
+            query=OrderBy(key="difficulty", direction=Direction.Asc),
+            limit=5,
+            with_payload=True,
+        )
+    return results
+
+results = asyncio.run(query_ordered())
+print("\n=== query: order_by difficulty ASC ===")
+for r in results:
+    print(f"  id={r.id}  difficulty={r.payload.get('difficulty')}  topic={r.payload.get('topic')}")
+```
+
+### Multi-stage prefetch
+
+Run this cell to run two filtered sub-searches in parallel — one for machine learning documents and one for deep learning documents — and then re-rank the merged candidate pool with a final similarity query, all in a single round-trip.
+
+```python
+from actian_vectorai import PrefetchQuery
+
+async def query_prefetch(query: str):
+    vec = embed_text(query)
+
+    ml_filter = FilterBuilder().must(Field("topic").eq("machine_learning")).build()
+    dl_filter = FilterBuilder().must(Field("topic").eq("deep_learning")).build()
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.query(
+            COLLECTION,
+            query=vec,
+            prefetch=[
+                PrefetchQuery(query=vec, filter=ml_filter, limit=10),
+                PrefetchQuery(query=vec, filter=dl_filter, limit=10),
+            ],
+            limit=5,
+            with_payload=True,
+        )
+    return results
+
+results = asyncio.run(query_prefetch("How models learn from data"))
+print("\n=== query: prefetch ML + DL, then re-rank ===")
+for r in results:
+    print(f"  id={r.id}  score={r.score:.4f}  topic={r.payload.get('topic')}")
+```
+
+#### How prefetch works
+
+Prefetch executes the filtered sub-searches first, then merges their results for a final re-ranking pass.
+
+1. In the first stage, the engine fetches candidates matching the machine learning topic filter.
+2. In the second stage, the engine fetches candidates matching the deep learning topic filter.
+3. In the final stage, the top-level query re-ranks the merged candidate pool by similarity.
+
+This is more efficient than running two separate searches and merging the results on the client side.
+
+## Step 13: Return vectors with results
+
+Setting `with_vectors=True` includes the raw embedding vectors in the response alongside the payload and score. Run this cell to search for "machine learning" and print the dimensionality and first five values of each returned vector.
+
+```python
+async def search_with_vectors(query: str, top_k: int = 3):
+    query_vector = embed_text(query)
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.search(
+            COLLECTION,
+            vector=query_vector,
+            limit=top_k,
+            with_payload=WithPayloadSelector(include=["topic", "difficulty"]),
+            with_vectors=True,   # Include full embedding vectors in the response
+        ) or []
+
+    return results
+
+results = asyncio.run(search_with_vectors("machine learning"))
+print("=== Search with vectors ===")
+for r in results:
+    vec = r.vector if isinstance(r.vector, list) else []
+    print(f"  id={r.id}  score={r.score:.4f}  dim={len(vec)}  topic={r.payload.get('topic')}")
+    if vec:
+        print(f"    first 5 values: {[round(v, 4) for v in vec[:5]]}")
+```
+
+#### When to return vectors
+
+Returning vectors increases response size significantly — each 384-dim float vector adds approximately 1.5 KB per result — so only enable this when needed.
+
+| Use case | `with_vectors` |
+|----------|---------------|
+| Normal search (most cases) | False (default) |
+| Client-side re-ranking | `True` |
+| Similarity visualization (t-SNE, UMAP) | `True` |
+| Debugging embeddings | `True` |
+| Export for another system | `True` |
+
+#### Selective payload with WithPayloadSelector
+
+Instead of `with_payload=True` (which returns all payload fields), use `WithPayloadSelector` to include or exclude specific fields.
+
+```python
+# Return only specific fields
+with_payload=WithPayloadSelector(include=["topic", "difficulty"])
+
+# Return everything except certain fields
+with_payload=WithPayloadSelector(exclude=["text"])
+
+# Return no payload
+with_payload=WithPayloadSelector(enable=False)
+```
+
+#### Expected output
+
+Each result includes the full 384-dimensional vector. The dimensionality confirms the vector is present, and the first five values show a sample of its contents.
+
+```text
+=== Search with vectors ===
+  id=1  score=0.8200  dim=384  topic=machine_learning
+    first 5 values: [0.0234, -0.0891, 0.0456, 0.0123, -0.0345]
+  id=8  score=0.6500  dim=384  topic=machine_learning
+    first 5 values: [0.0189, -0.0734, 0.0512, 0.0098, -0.0412]
+  id=2  score=0.5800  dim=384  topic=deep_learning
+    first 5 values: [0.0312, -0.0923, 0.0389, 0.0156, -0.0278]
+```
+
+## Step 14: Combine search with filters
+
+Filters restrict which points are considered during similarity search. The filter is evaluated server-side before ranking, so only matching points are scored. Run this cell to search by topic and by difficulty level separately.
+
+```python
+async def filtered_search(query: str, topic: str = None, difficulty: str = None, top_k: int = 5):
+    query_vector = embed_text(query)
+
+    fb = FilterBuilder()
+    if topic:
+        fb = fb.must(Field("topic").eq(topic))
+    if difficulty:
+        fb = fb.must(Field("difficulty").eq(difficulty))
+
+    filter_obj = fb.build() if not fb.is_empty() else None
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.search(
+            COLLECTION,
+            vector=query_vector,
+            limit=top_k,
+            with_payload=True,
+            filter=filter_obj,
+        ) or []
+
+    return results
+
+results = asyncio.run(filtered_search("How do computers learn?", topic="machine_learning"))
+print("=== Filtered: topic=machine_learning ===")
+for r in results:
+    print(f"  id={r.id}  score={r.score:.4f}  topic={r.payload.get('topic')}  {r.payload.get('text')[:60]}...")
+
+results = asyncio.run(filtered_search("programming basics", difficulty="beginner"))
+print("\n=== Filtered: difficulty=beginner ===")
+for r in results:
+    print(f"  id={r.id}  score={r.score:.4f}  difficulty={r.payload.get('difficulty')}  {r.payload.get('text')[:60]}...")
+```
+
+#### Expected output
+
+The first search returns only machine learning documents, and the second returns only beginner-level documents, regardless of topic.
+
+```text
+=== Filtered: topic=machine_learning ===
+  id=1  score=0.7200  topic=machine_learning  Machine learning algorithms learn patterns from data to mak...
+  id=8  score=0.5800  topic=machine_learning  Gradient descent optimizes model parameters by iteratively ...
+
+=== Filtered: difficulty=beginner ===
+  id=0  score=0.6800  difficulty=beginner  Python is a high-level programming language known for its r...
+  id=7  score=0.5400  difficulty=beginner  REST APIs use HTTP methods to create, read, update, and del...
+  id=4  score=0.3200  difficulty=beginner  SQL databases store data in structured tables with rows and...
+```
+
+For a deep dive into all available filter types, see the [Predicate filters](/academy/tutorials/predicate-filters) tutorial.
+
+## Step 15: Collection cleanup
+
+Run this cell to flush any pending writes to disk and confirm the vector count. Uncomment the delete lines to remove the collection entirely once finished.
+
+```python
+async def cleanup():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        count = await client.vde.get_vector_count(COLLECTION)
+        print(f"Collection '{COLLECTION}' contains {count} vectors.")
+
+        await client.vde.flush(COLLECTION)
+        print("Flushed to disk.")
+
+        # Uncomment to delete:
+        # await client.collections.delete(COLLECTION)
+        # print("Collection deleted.")
+
+asyncio.run(cleanup())
+```
+
+#### Expected output
+
+The vector count confirms nothing was lost during the session, and the flush line confirms all data is persisted to disk.
+
+```text
+Collection 'search-fundamentals' contains 10 vectors.
+Flushed to disk.
+```
+
+## Complete API reference
+
+The following tables summarize the methods, parameters, and distance metrics covered in this tutorial.
+
+### Core search methods
+
+The primary methods for running vector similarity searches are listed below.
+
+| Method | Purpose |
+|--------|---------|
+| `points.search(vector, limit, ...)` | Find nearest vectors by similarity |
+| `points.search_batch(searches)` | Run up to 100 searches in one call |
+| `points.query(query, ...)` | Universal endpoint: search, order, fuse, sample, prefetch |
+| `points.query_batch(queries)` | Run up to 100 queries in one call |
+
+### Retrieval and counting
+
+The following methods fetch points by ID and count collection contents.
+
+| Method | Purpose |
+|--------|---------|
+| `points.get(ids, ...)` | Retrieve specific points by ID |
+| `points.count(filter, exact)` | Count points, optionally filtered |
+
+### Search parameters
+
+All search methods accept the following parameters to control retrieval behaviour.
+
+| Parameter | Type | Purpose |
+|-----------|------|---------|
+| `vector` | `list[float]` | Query embedding |
+| `limit` | `int` | Maximum results |
+| `filter` | `Filter` | Payload filter conditions |
+| `params` | `SearchParams` | HNSW ef, exact mode, quantization, IVF nprobe |
+| `score_threshold` | `float` | Minimum score cutoff |
+| `offset` | `int` | Skip first N results (pagination) |
+| `using` | `str` | Named vector to search |
+| `with_payload` | `bool \| WithPayloadSelector` | Control payload in response |
+| `with_vectors` | `bool` | Control vectors in response |
+
+### Distance metrics
+
+The metric must be set at collection creation time and cannot be changed afterwards.
+
+| Metric | Score direction | `Distance` enum |
+|--------|----------------|----------------|
+| Cosine | Higher = more similar | `Distance.Cosine` |
+| Dot product | Higher = more similar | `Distance.Dot` |
+| Euclidean | Lower = more similar | `Distance.Euclid` |
+| Manhattan | Lower = more similar | `Distance.Manhattan` |
+
+## Next steps
+
+Now that you can embed, store, search, and tune vector queries, explore the following tutorials to add more capabilities to your search pipeline.
+
+<CardGroup cols={2}>
+  <Card title="Predicate filters" href="/academy/tutorials/predicate-filters">
+    Combine similarity search with structured payload constraints
+  </Card>
+  <Card title="Hybrid search patterns" href="/academy/tutorials/hybrid-search">
+    Mix dense and sparse retrieval with fusion
+  </Card>
+  <Card title="Filtering with boolean logic" href="/academy/tutorials/filtering-boolean-logic">
+    Add must, should, and must_not conditions
+  </Card>
+  <Card title="Geospatial search" href="/academy/tutorials/geospatial-search">
+    Make retrieval location-aware
+  </Card>
+</CardGroup>

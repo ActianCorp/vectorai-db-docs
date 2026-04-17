@@ -1,0 +1,105 @@
+---
+title: "Configure HNSW parameters"
+description: "Set HNSW parameters when creating a collection to control the tradeoff between search speed, recall accuracy, and memory usage in VectorAI DB."
+icon: "code"
+---
+
+Configure HNSW parameters when creating a collection to balance search speed, accuracy, and memory usage. Custom parameters are useful when default settings do not meet your recall or latency requirements.
+
+<Note>
+Before you begin, make sure you have a running VectorAI DB instance. HNSW parameters can only be set at collection creation and cannot be changed afterward.
+</Note>
+
+## Create a collection with custom parameters
+
+The following example creates a collection with custom `m` and `ef_construct` values inside `HnswConfigDiff`.
+
+<CodeGroup>
+```python Python
+from actian_vectorai import VectorAIClient, VectorParams, Distance, HnswConfigDiff
+
+# Connect to VectorAI DB server (use context manager to ensure proper connection)
+with VectorAIClient("localhost:50051") as client:
+    # Create collection with custom HNSW parameters
+    client.collections.create(
+        "my_collection",  # Collection name
+        vectors_config=VectorParams(size=384, distance=Distance.Cosine),  # Vector configuration
+        hnsw_config=HnswConfigDiff(
+            m=32,              # More connections for better recall
+            ef_construct=200   # Higher quality index
+        )
+    )
+    print("✓ Collection 'my_collection' created successfully")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+
+    // Create collection with custom HNSW parameters
+    await client.collections.create('my_collection', {
+        dimension: 384,
+        distanceMetric: 'COSINE',
+        hnswConfig: {
+            m: 32,              // More connections for better recall
+            efConstruct: 200    // Higher quality index
+        }
+    });
+
+    console.log("Collection 'my_collection' created successfully");
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+<Note>
+Higher parameter values improve accuracy at the cost of increased memory usage, slower index construction, and longer search times. Lower values prioritize speed and memory efficiency but can reduce recall.
+</Note>
+
+## Create a collection with default settings
+
+When you omit `hnsw_config`, VectorAI DB applies balanced default settings that work well for general-purpose vector search. Test with your data to determine if custom parameters provide improvements.
+
+<CodeGroup>
+```python Python
+from actian_vectorai import VectorAIClient, VectorParams, Distance
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Collection with default index settings
+    client.collections.create(
+        "my_collection",  # Collection name
+        vectors_config=VectorParams(size=384, distance=Distance.Cosine)  # Vector configuration
+        # hnsw_m=16 (default)
+        # hnsw_ef_construct=200 (default)
+        # hnsw_ef_search=50 (default)
+    )
+    print("✓ Collection created successfully")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+
+    // Collection with default index settings
+    await client.collections.create('my_collection', {
+        dimension: 384,
+        distanceMetric: 'COSINE'
+        // hnswConfig uses defaults:
+        // m: 16
+        // efConstruct: 200
+    });
+
+    console.log("Collection created successfully");
+}
+
+main().catch(console.error);
+```
+</CodeGroup>

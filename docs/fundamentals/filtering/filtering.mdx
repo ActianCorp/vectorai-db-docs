@@ -1,0 +1,83 @@
+---
+title: "Filtering overview"
+description: "Narrow vector search results using must, should, and must-not metadata conditions."
+---
+
+Filtering combines vector similarity search with metadata conditions to find results that match both semantic meaning and specific criteria. Actian VectorAI DB applies filter conditions during the search process rather than after it, which typically makes filtered searches more efficient than post-processing results.
+
+Filtered search returns similar vectors that also meet your specified requirements. For example, find products similar to a query vector that are under $100, in stock, and have a rating greater than 4.
+
+## Filter types
+
+VectorAI DB supports three filter types that combine to create complex queries:
+
+| Filter type | Logic | Requirement | Use case |
+|-------------|-------|-------------|----------|
+| Must | AND | All conditions must be true | Strict requirements like user permissions or availability |
+| Should | OR | At least one condition must be true | Flexible matching across multiple categories |
+| Must-not | NOT | All conditions must be false | Exclude unwanted content or out-of-stock items |
+
+### Must filters
+
+All conditions in a must filter must be true for a result to be returned. This makes must filters the right choice for non-negotiable requirements such as user permissions, availability status, or regulatory constraints.
+
+### Should filters
+
+At least one condition in a should filter must be true for a result to match. Use should filters to broaden search scope across multiple related categories or to accommodate varied user preferences.
+
+### Must-not filters
+
+Any result matching a must-not condition is excluded. Use must-not filters to remove inappropriate content, out-of-stock items, or categories a user wants to avoid.
+
+### Combine filter types
+
+Combine all three filter types to create complex queries. For example, require a specific category (must), prefer items that are cheap or highly rated (should), and exclude refurbished items (must-not). Complex filters give precise control over results while maintaining semantic similarity.
+
+## Filter operators
+
+VectorAI DB supports multiple comparison operators for different data types and matching requirements.
+
+### Equality operators
+
+- `eq()`: Equal to specified value.
+- `ne()`: Not equal to specified value.
+
+### Comparison operators
+
+- `lt()`: Less than specified value.
+- `lte()`: Less than or equal to specified value.
+- `gt()`: Greater than specified value.
+- `gte()`: Greater than or equal to specified value.
+
+### Array operators
+
+- `contains()`: Array contains specified value.
+- `contains_any()`: Array contains any of the specified values.
+- `contains_all()`: Array contains all of the specified values.
+
+Use appropriate operators based on your payload field types and query requirements. Numeric fields work with comparison operators, while string and array fields work best with equality and contains operators.
+
+## When to use filtering
+
+Use filtering when you need to:
+
+- Restrict search to specific categories, price ranges, or date ranges.
+- Enforce availability constraints, user permissions, or compliance requirements.
+- Match both semantic meaning and metadata conditions simultaneously.
+- Remove inappropriate content, out-of-stock items, or avoided categories.
+
+## Task guides
+
+The following guides cover common filter patterns step by step.
+
+- [Filter with must conditions](/docs/fundamentals/filtering/must-filter-task).
+- [Filter with should conditions](/docs/fundamentals/filtering/should-filter-task).
+- [Filter with must-not conditions](/docs/fundamentals/filtering/must-not-filter-task).
+- [Combine filter types](/docs/fundamentals/filtering/combined-filter-task).
+
+## Next steps
+
+- [Search operations](/docs/fundamentals/search/search) — Apply filters in vector queries.
+- [Payload structure](/docs/fundamentals/payload/payload) — Design metadata for filtering.
+- [Points](/docs/fundamentals/points/points) — Manage the data that filters operate on.
+- [Distance metrics](/docs/fundamentals/distance-metrics/distance-metrics) — Choose the right similarity measure.

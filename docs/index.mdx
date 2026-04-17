@@ -1,0 +1,80 @@
+---
+title: "Documentation"
+description: "Technical reference for VectorAI DB concepts, configuration, and deployment."
+---
+
+Find technical documentation for understanding, configuring, and deploying VectorAI DB. Each section provides reference material and task-based guides.
+
+## Fundamentals
+
+Understand the core concepts and data structures in VectorAI DB.
+
+<CardGroup cols={2}>
+  <Card title="Data structures" href="/docs/fundamentals/index">
+    Collections, points, vectors, and payloads that organize your data.
+  </Card>
+  <Card title="Search and filtering" href="/docs/fundamentals/search/search">
+    Vector similarity search with metadata filtering using must, should, and must-not conditions.
+  </Card>
+  <Card title="Indexing" href="/docs/fundamentals/indexing/indexing">
+    HNSW algorithm configuration for efficient approximate nearest neighbor search.
+  </Card>
+  <Card title="Distance metrics" href="/docs/fundamentals/distance-metrics/distance-metrics">
+    Cosine similarity, Euclidean distance, and dot product for measuring similarity.
+  </Card>
+</CardGroup>
+
+## Guides
+
+Configure, secure, and operate VectorAI DB in production environments.
+
+<CardGroup cols={2}>
+  <Card title="Configuration" href="/docs/guides/configuration">
+    Server settings, performance tuning, and environment configuration.
+  </Card>
+  <Card title="Security" href="/docs/guides/security">
+    Authentication, authorization, and secure deployment practices.
+  </Card>
+  <Card title="Monitoring and logging" href="/docs/guides/monitoring-and-logging">
+    Observability, metrics collection, and log management.
+  </Card>
+  <Card title="Troubleshooting" href="/docs/guides/troubleshooting">
+    Diagnose and resolve common issues.
+  </Card>
+</CardGroup>
+
+## Installation and deployment
+
+Set up VectorAI DB in your environment.
+
+<CardGroup cols={2}>
+  <Card title="Docker" href="/docs/installation/docker">
+    Run VectorAI DB in containers for development and production.
+  </Card>
+</CardGroup>
+
+## Integrations
+
+Connect VectorAI DB with embedding providers and AI frameworks.
+
+<CardGroup cols={3}>
+  <Card title="OpenAI" href="/docs/integrations/openai-embedding-model">
+    Generate embeddings using OpenAI models.
+  </Card>
+  <Card title="LangChain" href="/docs/integrations/langchain">
+    Build RAG pipelines with the LangChain framework.
+  </Card>
+  <Card title="LlamaIndex" href="/docs/integrations/llama-index">
+    Build RAG applications with the LlamaIndex framework.
+  </Card>
+</CardGroup>
+
+## Quick reference
+
+| Section | Content | Use case |
+|---------|---------|----------|
+| Fundamentals | Core concepts and data structures | Understanding VectorAI DB architecture |
+| Guides | Configuration and operations | Production deployment and maintenance |
+| Installation | Setup procedures | Getting VectorAI DB running |
+| Cloud platforms | AWS, Azure, GCP deployment | Cloud infrastructure setup |
+| Integrations | Third-party connections | Connecting embedding providers and frameworks |

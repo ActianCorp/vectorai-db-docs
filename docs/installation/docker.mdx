@@ -1,0 +1,150 @@
+---
+title: "Docker"
+description: "Get VectorAI DB running locally using Docker in just a few minutes."
+---
+
+This guide walks you through installing and running VectorAI DB as a Docker container on your local machine.
+
+## Prerequisites
+
+Before installing, ensure you have the following minimum system requirements.
+- At least 8 GB RAM (16 GB+ recommended)
+- 10 GB disk space (100 GB+ recommended)
+
+<Warning>
+**Docker required**: VectorAI DB runs as a Docker container. Make sure Docker is installed and running on your system before proceeding. [Get Docker](https://docs.docker.com/get-docker/)
+</Warning>
+
+<Tip>
+For best performance, use the recommended configuration.
+</Tip>
+
+## Pull and run VectorAI DB
+
+Choose one of the following options depending on your needs.
+
+### Option 1: Quickstart (single command)
+
+Pull and run the VectorAI DB Docker container.
+
+{/* ```bash
+docker pull actian/cortex-server:latest
+docker run -p 50051:50051 actian/cortex-server:latest
+``` */}
+
+<Info>
+Coming soon
+</Info>
+
+The server is available at `localhost:50051`.
+
+### Option 2: With data persistence
+
+To persist your data between container restarts, mount a local directory as a volume.
+
+{/* ```bash
+docker run -p 50051:50051 \
+  -v $(pwd)/data:/app/data \
+  actian/cortex-server:latest
+``` */}
+
+
+<Info>
+Coming soon
+</Info>
+
+
+### Option 3: Using Docker Compose
+
+Create a `docker-compose.yml` file with the following configuration.
+
+```yaml
+version: '3.8'
+services:
+  vectorai:
+    image: actian/cortex-server:latest
+    ports:
+      - "50051:50051"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    environment:
+      - VECTORAI_LOG_LEVEL=info
+    restart: unless-stopped
+```
+
+Run the following commands to manage the service.
+
+Start the service.
+
+```bash
+docker-compose up -d
+```
+
+Stop the service.
+
+```bash
+docker-compose down
+```
+
+## Verify installation
+
+<Warning>
+**Python SDK Required**: To verify your installation, you need to have the Cortex Python SDK installed. Install it using `pip install actian-cortex-client` or follow the [SDK installation guide](/sdks/python/installation).
+</Warning>
+
+Test your installation by checking the server health:
+
+```python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
+
+async def main():
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        info = await client.health_check()
+        print(f"Connected to {info['title']} v{info['version']}")
+
+asyncio.run(main())
+```
+
+## Troubleshooting
+
+If you run into problems, check the table below for common issues and solutions.
+
+| Issue                | Solution                                                        |
+|----------------------|-----------------------------------------------------------------|
+| Connection failed    | Verify the Docker container is running with `docker ps`. |
+| Port already in use  | Stop services using port 50051 or map to a different port with `-p 50052:50051`. |
+| Permission denied    | Run Docker commands with appropriate permissions or add your user to the docker group. |
+| Container exits      | Inspect the logs with `docker logs <container-id>`. |
+
+### View Docker logs
+
+If a container exits unexpectedly or fails to start, then inspect the logs to identify the cause.
+
+```bash
+# List running containers
+docker ps
+
+# View logs
+docker logs <container-id>
+
+# Follow logs in real-time
+docker logs -f <container-id>
+```
+
+## Next steps
+
+Now that VectorAI DB is running, explore these resources to start building.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Follow the quickstart guide to create your first collection
+  </Card>
+  <Card title="Core Concepts" icon="book-open" href="/docs/fundamentals/index">
+    Learn about vector databases and embeddings
+  </Card>
+  <Card title="SDK Reference" icon="code" href="/sdks/python/index">
+    Explore the complete SDK API
+  </Card>
+</CardGroup>

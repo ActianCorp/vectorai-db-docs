@@ -1,0 +1,170 @@
+---
+title: "Hybrid RAG retrieval"
+description: "Combine original and reformulated question embeddings for improved RAG context retrieval."
+icon: "code"
+---
+
+Hybrid RAG retrieval combines searches from an original question embedding and a reformulated question embedding to retrieve more comprehensive context for Retrieval-Augmented Generation. A single query embedding may miss relevant documents that a reformulated version of the question would surface. Fusing both result sets captures relevant context from multiple perspectives.
+
+This code example defines a reusable retrieval function that generates embeddings for both the original and reformulated question, searches with each embedding, and fuses the results using RRF. It then builds a context string from the retrieved documents for use in an LLM prompt.
+
+<Note>
+In production, use an actual embedding model to generate question embeddings and an LLM to reformulate the user's question. The example below uses random vectors as placeholders to demonstrate the retrieval and fusion pattern.
+</Note>
+
+<CodeGroup>
+```python Python
+from actian_vectorai import VectorAIClient, reciprocal_rank_fusion
+import random
+
+COLLECTION = "documents"
+DIMENSION = 384
+
+def hybrid_rag_retrieval(client, user_question, top_k=5):
+    """
+    Perform hybrid retrieval for RAG application
+
+    Combines:
+    1. Semantic search on question
+    2. Semantic search on reformulated question
+    3. Returns top-k most relevant documents
+    """
+
+    # In production, use actual embedding model
+    # question_embedding = embed_model.encode(user_question)
+    question_embedding = [random.gauss(0, 1) for _ in range(DIMENSION)]
+
+    # Reformulate question (in production, use LLM)
+    # reformulated = llm.reformulate(user_question)
+    # reformulated_embedding = embed_model.encode(reformulated)
+    reformulated_embedding = [random.gauss(0.1, 0.95) for _ in range(DIMENSION)]
+
+    # Search with both queries
+    original_results = client.points.search(
+        COLLECTION,
+        vector=question_embedding,
+        limit=15,
+        with_payload=True
+    )
+
+    reformulated_results = client.points.search(
+        COLLECTION,
+        vector=reformulated_embedding,
+        limit=15,
+        with_payload=True
+    )
+
+    # Fuse results
+    fused = reciprocal_rank_fusion(
+        [original_results, reformulated_results],
+        ranking_constant_k=60,
+        limit=15
+    )
+
+    # Return top-k for context
+    return fused[:top_k]
+
+# Usage in RAG pipeline
+with VectorAIClient("localhost:50051") as client:
+    user_question = "How do I reset my password?"
+
+    # Retrieve relevant context
+    context_docs = hybrid_rag_retrieval(client, user_question, top_k=3)
+
+    # Build context for LLM
+    context = "\n\n".join([
+        doc.payload.get('text', '')
+        for doc in context_docs
+    ])
+
+    print(f"Retrieved {len(context_docs)} context documents for RAG")
+    print(f"\nContext for LLM ({len(context)} chars):")
+    print(context[:500] + "...")
+
+    # In production: Pass context + question to LLM
+    # response = llm.generate(question=user_question, context=context)
+```
+
+```javascript JavaScript
+import { CortexClient, reciprocalRankFusion } from '@actian/cortex-client';
+
+const COLLECTION = "documents";
+const DIMENSION = 384;
+
+function hybridRagRetrieval(client, userQuestion, topK = 5) {
+    /**
+     * Perform hybrid retrieval for RAG application
+     *
+     * Combines:
+     * 1. Semantic search on question
+     * 2. Semantic search on reformulated question
+     * 3. Returns top-k most relevant documents
+     */
+
+    // In production, use actual embedding model
+    // const questionEmbedding = embedModel.encode(userQuestion);
+    const questionEmbedding = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+
+    // Reformulate question (in production, use LLM)
+    // const reformulated = llm.reformulate(userQuestion);
+    // const reformulatedEmbedding = embedModel.encode(reformulated);
+    const reformulatedEmbedding = Array.from({ length: DIMENSION }, () => (Math.random() * 2 - 1) * 0.95 + 0.1);
+
+    // Search with both queries
+    return Promise.all([
+        client.points.search(COLLECTION, questionEmbedding, {
+            limit: 15,
+            withPayload: true
+        }),
+        client.points.search(COLLECTION, reformulatedEmbedding, {
+            limit: 15,
+            withPayload: true
+        })
+    ]).then(([originalResults, reformulatedResults]) => {
+        // Fuse results
+        const fused = reciprocalRankFusion(
+            [originalResults, reformulatedResults],
+            { k: 60, limit: 15 }
+        );
+
+        // Return top-k for context
+        return fused.slice(0, topK);
+    });
+}
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    const userQuestion = "How do I reset my password?";
+
+    // Retrieve relevant context
+    const contextDocs = await hybridRagRetrieval(client, userQuestion, 3);
+
+    // Build context for LLM
+    const context = contextDocs
+        .map(doc => doc.payload?.text || '')
+        .join('\n\n');
+
+    console.log(`Retrieved ${contextDocs.length} context documents for RAG`);
+    console.log(`\nContext for LLM (${context.length} chars):`);
+    console.log(context.slice(0, 500) + "...");
+
+    // In production: Pass context + question to LLM
+    // const response = llm.generate({ question: userQuestion, context });
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+The hybrid RAG retrieval function (`hybrid_rag_retrieval` in Python, `hybridRagRetrieval` in JavaScript) returns a list of fused results, each containing:
+
+- `id`: The unique identifier of the matching point
+- `score`: Fused score from RRF across both query searches
+- `payload`: Metadata object containing the document text and any additional fields
+
+Hybrid RAG retrieval improves context quality by:
+
+- Capturing relevant documents that a single query might miss
+- Combining signals from both the original and reformulated question
+- Providing more diverse context to the LLM for answer generation

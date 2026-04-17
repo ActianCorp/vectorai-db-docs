@@ -1,0 +1,239 @@
+---
+title: "OpenAI"
+description: "Generate embeddings with OpenAI models and store them in VectorAI DB for semantic search."
+---
+
+[OpenAI](https://openai.com/) provides pre-trained embedding models that convert text into dense vector representations. These embeddings capture semantic meaning, making them well-suited for similarity search, retrieval-augmented generation (RAG), and clustering tasks.
+
+VectorAI DB works with any OpenAI embedding model. You generate embeddings using the OpenAI API, then store and search them in VectorAI DB using a supported client.
+
+<Note>
+Before running the examples on this page, make sure you have a VectorAI DB collection created and your VectorAI DB instance running. See [Collections](/docs/fundamentals/collections/collections) for setup instructions.
+</Note>
+
+## Supported models
+
+| Model | Dimensions | Description |
+|-------|------------|-------------|
+| `text-embedding-3-small` | 1536 | Smaller, faster model with strong performance for most use cases. |
+| `text-embedding-3-large` | 3072 | Higher-dimensional model for maximum accuracy. |
+| `text-embedding-ada-002` | 1536 | Legacy model. Use `text-embedding-3-small` for new projects. |
+
+## Installation
+
+Install the OpenAI Python client and the VectorAI DB client:
+
+```bash
+pip install openai actian-vectorai
+```
+
+## Generate and store embeddings
+
+The following example generates embeddings for a set of texts using OpenAI's `text-embedding-3-small` model, stores them in a VectorAI DB collection, and runs a similarity search:
+
+<CodeGroup>
+```python Python
+import openai
+from actian_vectorai import VectorAIClient, VectorParams, Distance, PointStruct
+
+OPENAI_API_KEY = "<YOUR_API_KEY>"
+EMBEDDING_MODEL = "text-embedding-3-small"
+COLLECTION = "openai_docs"
+
+# Initialize OpenAI client
+openai_client = openai.Client(api_key=OPENAI_API_KEY)
+
+# Texts to embed
+texts = [
+    "VectorAI DB enables fast and scalable semantic search.",
+    "Embeddings capture the meaning of text as dense vectors.",
+    "Cosine similarity measures the angle between two vectors.",
+]
+
+# Generate embeddings using OpenAI
+response = openai_client.embeddings.create(input=texts, model=EMBEDDING_MODEL)
+
+# Connect to VectorAI DB and create a collection
+with VectorAIClient("localhost:50051") as client:
+    client.collections.create(
+        COLLECTION,  # Collection name
+        vectors_config=VectorParams(
+            size=1536,  # Matches text-embedding-3-small output
+            distance=Distance.Cosine,  # Distance metric
+        ),
+    )
+
+    # Build points from embeddings
+    points = [
+        PointStruct(
+            id=idx,  # Point ID
+            vector=data.embedding,  # OpenAI embedding vector
+            payload={"text": text},  # Original text as metadata
+        )
+        for idx, (data, text) in enumerate(zip(response.data, texts))
+    ]
+
+    # Store vectors in the collection
+    client.points.upsert(COLLECTION, points)
+    print(f"Stored {len(points)} vectors in '{COLLECTION}'")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+import OpenAI from 'openai';
+
+const OPENAI_API_KEY = '<YOUR_API_KEY>';
+const EMBEDDING_MODEL = 'text-embedding-3-small';
+const COLLECTION = 'openai_docs';
+
+async function main() {
+  // Initialize OpenAI client
+  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+  const client = new CortexClient('localhost:50051');
+
+  // Texts to embed
+  const texts = [
+    'VectorAI DB enables fast and scalable semantic search.',
+    'Embeddings capture the meaning of text as dense vectors.',
+    'Cosine similarity measures the angle between two vectors.',
+  ];
+
+  // Generate embeddings using OpenAI
+  const response = await openai.embeddings.create({
+    input: texts,
+    model: EMBEDDING_MODEL,
+  });
+
+  // Create a collection
+  await client.collections.create(COLLECTION, {
+    dimension: 1536,  // Matches text-embedding-3-small output
+    distanceMetric: 'COSINE',  // Distance metric
+  });
+
+  // Build points from embeddings
+  const points = response.data.map((item, idx) => ({
+    id: idx,  // Point ID
+    vector: item.embedding,  // OpenAI embedding vector
+    payload: { text: texts[idx] },  // Original text as metadata
+  }));
+
+  // Store vectors in the collection
+  await client.points.upsert(COLLECTION, points, { wait: true });
+  console.log(`Stored ${points.length} vectors in '${COLLECTION}'`);
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Search with OpenAI embeddings
+
+Before running this example, create the collection and upsert the sample points from the previous section.
+
+To search, generate an embedding for the query text using the same model, then pass it as the query vector:
+
+<CodeGroup>
+```python Python
+# Generate an embedding for the search query
+query = "How does vector similarity work?"
+query_embedding = openai_client.embeddings.create(
+    input=[query], model=EMBEDDING_MODEL
+).data[0].embedding
+
+# Search the collection
+with VectorAIClient("localhost:50051") as client:
+    results = client.points.search(
+        COLLECTION,
+        query_vector=query_embedding,  # Query embedding
+        limit=3,  # Number of results
+    )
+
+    for result in results:
+        print(f"[{result.score:.4f}] {result.payload['text']}")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+import OpenAI from 'openai';
+
+const OPENAI_API_KEY = '<YOUR_API_KEY>';
+const EMBEDDING_MODEL = 'text-embedding-3-small';
+const COLLECTION = 'openai_docs';
+
+async function main() {
+  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+  const client = new CortexClient('localhost:50051');
+
+  // Generate an embedding for the search query
+  const query = 'How does vector similarity work?';
+  const queryResponse = await openai.embeddings.create({
+    input: [query],
+    model: EMBEDDING_MODEL,
+  });
+  const queryEmbedding = queryResponse.data[0].embedding;
+
+  // Search the collection
+  const results = await client.points.search(COLLECTION, queryEmbedding, {
+    limit: 3,  // Number of results
+    withPayload: true,
+  });
+
+  for (const result of results) {
+    console.log(`[${result.score.toFixed(4)}] ${result.payload.text}`);
+  }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+<Note>
+Always use the same embedding model for both indexing and querying. Mixing models produces incompatible vector spaces and returns meaningless results.
+</Note>
+
+## Using `text-embedding-3-large`
+
+For higher accuracy, use `text-embedding-3-large`, which produces 3072-dimensional vectors. Update the model name and collection dimension accordingly:
+
+<CodeGroup>
+```python Python
+EMBEDDING_MODEL = "text-embedding-3-large"
+
+# Create a collection sized for the larger model
+with VectorAIClient("localhost:50051") as client:
+    client.collections.create(
+        "openai_large_docs",
+        vectors_config=VectorParams(
+            size=3072,  # Matches text-embedding-3-large output
+            distance=Distance.Cosine,
+        ),
+    )
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const EMBEDDING_MODEL = 'text-embedding-3-large';
+
+async function main() {
+  const client = new CortexClient('localhost:50051');
+
+  // Create a collection sized for the larger model
+  await client.collections.create('openai_large_docs', {
+    dimension: 3072,  // Matches text-embedding-3-large output
+    distanceMetric: 'COSINE',
+  });
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Next steps
+
+To continue building with embeddings, see the following resources:
+
+- [LangChain](/docs/integrations/langchain) — Use OpenAI embeddings with VectorAI DB through the LangChain framework.
+- [Vectors](/docs/fundamentals/vectors/vectors) — Learn how VectorAI DB stores and indexes vector data.
+- [Search](/docs/fundamentals/search/search) — Explore the vector search operations available in VectorAI DB.
+- [Collections](/docs/fundamentals/collections/collections) — Understand how collections organize your vectors.

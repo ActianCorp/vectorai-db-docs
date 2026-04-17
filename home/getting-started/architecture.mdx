@@ -1,0 +1,38 @@
+---
+title: "Architecture"
+description: "A high-level overview of the VectorAI DB architecture."
+---
+
+The VectorAI DB architecture consists of multiple layers that work together to provide high-performance vector operations. Client applications interact with the system through SDKs, which communicate with the Vector Data Engine (VDE) via gRPC. The VDE coordinates between the index manager, storage manager, ANN algorithms, and the underlying database engine for efficient vector storage and retrieval.
+
+<img src="/images/home/overview-architecture-diagram.png" alt="VectorAI DB architecture diagram" />
+
+## Architecture components
+
+<Steps>
+
+<Step title="Cortex SDKs">
+Client libraries (such as Python) communicate with the Cortex Server via gRPC to create collections, insert vectors, and run similarity searches. The SDK abstracts the complexity of gRPC communication and provides an intuitive API for developers.
+</Step>
+
+<Step title="Vector data engine (VDE) API layer">
+Receives gRPC requests from SDKs, validates and processes them, then routes them to the appropriate internal components in the VDE core. This layer serves as the gateway between client applications and the vector processing engine.
+</Step>
+
+<Step title="Storage manager">
+Handles persistent storage and retrieval of vectors and metadata while coordinating with the underlying database engine for durability and consistency. This component ensures data integrity across all vector operations.
+</Step>
+
+<Step title="Index manager">
+Manages vector indexes by building, updating, and querying them for efficient similarity search. The index manager coordinates with ANN algorithms to optimize search performance.
+</Step>
+
+<Step title="Approximate nearest neighbor (ANN)">
+Uses an in-process vector index optimized for fast similarity search over high-dimensional embeddings. This component trades exact precision for performance, delivering sub-millisecond query times on large datasets.
+</Step>
+
+<Step title="Database engine">
+Stores vector data, metadata, and collection information durably on disk. This underlying database engine provides ACID compliance and reliability for all vector operations.
+</Step>
+
+</Steps>

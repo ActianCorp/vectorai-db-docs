@@ -1,0 +1,26 @@
+---
+title: "Key features"
+description: "Key features of VectorAI DB."
+---
+
+VectorAI DB combines enterprise-grade infrastructure with cutting-edge vector search capabilities. This page outlines the key features that make VectorAI a production-ready solution for AI-powered applications, from high-performance indexing and hybrid search to multi-vector support and seamless AI integration.
+
+## <Icon icon="database" iconType="solid" /> Production-ready vector database
+
+VectorAI DB is an enterprise-grade vector database engine with native vector data types and ACID-compliant transactions. It combines vector operations with relational database capabilities, enabling seamless hybrid workloads. The system supports horizontal and vertical scaling with zero-downtime deployment and maintenance.
+
+## <Icon icon="gauge-high" iconType="solid" /> High-performance ANN indexing
+
+VectorAI DB provides multiple indexing strategies optimized for different use cases. HNSW (Hierarchical Navigable Small World) delivers sub-millisecond k-NN queries on million-scale datasets. IVF (Inverted File Index) offers memory-efficient indexing for large deployments, while Product Quantization compresses vectors to reduce storage footprint.
+
+## <Icon icon="magnifying-glass" iconType="solid" /> Hybrid search
+
+VectorAI DB combines vector similarity search with SQL filtering for complex queries. It supports cosine similarity, Euclidean distance, and dot product metrics alongside MUST, SHOULD, and MUST NOT filter clauses. This enables precise semantic search with structured data filtering in a single query.
+
+## <Icon icon="layer-group" iconType="solid" /> Multi-vector support
+
+VectorAI DB enables each data object to be represented by multiple vector embeddings rather than a single embedding. Models such as ColBERT, ColPali, and ColQwen generate these multi-vector representations, allowing fine-grained semantic matching at the token or segment level. This architecture improves search precision by comparing corresponding parts of documents instead of treating entire texts as monolithic units, resulting in more accurate retrieval for complex queries.
+
+## <Icon icon="plug" iconType="solid" /> Model Context Protocol (MCP)
+
+VectorAI DB integrates with AI agents and LLM applications through the Model Context Protocol. The MCP server exposes vector database operations as standardized tools, resources, and prompts, simplifying integration for RAG workflows and agentic systems.

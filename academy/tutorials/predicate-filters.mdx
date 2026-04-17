@@ -1,0 +1,1403 @@
+---
+title: "Predicate filters"
+description: "Learn how to combine vector similarity search with structured payload filters using Actian VectorAI DB's type-safe Filter DSL."
+---
+
+This tutorial shows you how to use predicate filters to combine vector similarity search with structured payload conditions in Actian VectorAI DB.
+
+Vector search finds the most semantically similar results, but real applications need more than similarity. An e-commerce search for "blue running shoes" should not return red hiking boots just because the embeddings are close. A job matcher should not surface expired postings. A medical system should not return patients from the wrong department.
+
+_Predicate filters_ solve this by constraining vector search results with structured conditions on payload fields. Actian VectorAI DB applies filters server-side during the search, so only matching points are considered for ranking — this is more efficient than filtering after retrieval.
+
+In this tutorial, you learn how to:
+
+- Build filters using the `Field` and `FilterBuilder` API.
+- Use every filter type: equality, range, datetime, geo, text, array, and null checks.
+- Apply boolean logic: `must`, `should`, `must_not`, and `min_should`.
+- Compose operators (`&`, `|`, and `~`) on conditions and builders.
+- Use standalone conditions: `has_id`, `has_vector`, `is_empty`, `is_null`, and `nested`.
+- Integrate filters with `points.search`, `points.query`, and `points.count`.
+
+## Environment setup
+
+Run the following command to install the required packages:
+
+```bash
+pip install actian-vectorai sentence-transformers
+```
+
+## Setup: Create a collection and ingest sample data
+
+Before exploring filters, set up a product catalog collection with rich payload metadata. The steps below create the collection, load five sample products, and define the helper functions used throughout this tutorial.
+
+### Step 1: Configure and initialize
+
+The following code imports the required modules and defines the embedding helpers used throughout the tutorial. Running it makes `embed_text` and `embed_texts` available for converting strings to vectors:
+
+```python
+import asyncio
+from datetime import datetime, timezone
+
+# Import VectorAI client, data models, and filter primitives
+from actian_vectorai import (
+    AsyncVectorAIClient,
+    Distance,
+    Field,
+    FilterBuilder,
+    PointStruct,
+    VectorParams,
+    has_id,
+    has_vector,
+    is_empty,
+    is_null,
+    nested,
+)
+from actian_vectorai.models.collections import HnswConfigDiff
+from sentence_transformers import SentenceTransformer
+
+SERVER = "localhost:50051"
+COLLECTION = "Filter-Tutorial"
+EMBED_DIM = 384  # output dimension of all-MiniLM-L6-v2
+
+# Load the sentence embedding model once at module level
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+def embed_text(text: str) -> list[float]:
+    """Embed a single string into a float vector."""
+    return model.encode(text).tolist()
+
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    """Batch-embed a list of strings into float vectors."""
+    return model.encode(texts).tolist()
+```
+
+### Step 2: Create the collection
+
+The following code creates a cosine-distance collection sized for the `all-MiniLM-L6-v2` model. Running it prints a confirmation message once the collection is ready:
+
+```python
+async def setup():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        # Create the collection if it does not already exist
+        await client.collections.get_or_create(
+            name=COLLECTION,
+            vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.Cosine),
+            hnsw_config=HnswConfigDiff(m=16, ef_construct=128),
+        )
+    print(f"Collection '{COLLECTION}' ready.")
+
+asyncio.run(setup())
+```
+
+### Expected output
+
+This block creates the `Filter-Tutorial` collection with a cosine-distance HNSW index. The `get_or_create` call is idempotent — running it multiple times will not create duplicate collections. The `print` confirms the collection is ready before ingestion begins.
+
+```text
+Collection 'Filter-Tutorial' ready.
+```
+
+### Step 3: Ingest sample products
+
+The five products below cover a range of categories, colors, prices, and payload shapes, giving you meaningful filter results throughout the tutorial. Running the `ingest` function embeds all product descriptions and upserts the points into the collection:
+
+```python
+products = [
+    {
+        "text": "Lightweight blue running shoes with breathable mesh upper and responsive foam cushioning",
+        "category": "footwear",
+        "sub_category": "running",
+        "brand": "SpeedRunner",
+        "color": "blue",
+        "price": 129.99,
+        "rating": 4.5,
+        "in_stock": True,
+        "tags": ["running", "lightweight", "breathable"],
+        "created_at": "2026-01-15T10:00:00Z",
+        "location": {"lat": 40.7128, "lon": -74.0060},
+        "reviews": [
+            {"author": "Alex", "score": 5, "verified": True},
+            {"author": "Sam", "score": 4, "verified": True},
+        ],
+        "discontinued": False,
+        "clearance_note": None,
+    },
+    {
+        "text": "Red trail hiking boots with waterproof Gore-Tex lining and Vibram outsole",
+        "category": "footwear",
+        "sub_category": "hiking",
+        "brand": "TrailMaster",
+        "color": "red",
+        "price": 189.99,
+        "rating": 4.8,
+        "in_stock": True,
+        "tags": ["hiking", "waterproof", "durable"],
+        "created_at": "2025-11-20T08:30:00Z",
+        "location": {"lat": 47.6062, "lon": -122.3321},
+        "reviews": [
+            {"author": "Jordan", "score": 5, "verified": True},
+        ],
+        "discontinued": False,
+        "clearance_note": None,
+    },
+    {
+        "text": "Classic white leather sneakers with minimalist design and orthopedic insole",
+        "category": "footwear",
+        "sub_category": "casual",
+        "brand": "UrbanStep",
+        "color": "white",
+        "price": 89.99,
+        "rating": 4.2,
+        "in_stock": True,
+        "tags": ["casual", "minimalist", "comfortable"],
+        "created_at": "2026-02-01T12:00:00Z",
+        "location": {"lat": 34.0522, "lon": -118.2437},
+        "reviews": [],
+        "discontinued": False,
+        "clearance_note": None,
+    },
+    {
+        "text": "Black formal Oxford dress shoes in full-grain Italian leather with Goodyear welt",
+        "category": "footwear",
+        "sub_category": "formal",
+        "brand": "ClassicFit",
+        "color": "black",
+        "price": 249.99,
+        "rating": 4.9,
+        "in_stock": False,
+        "tags": ["formal", "leather", "premium"],
+        "created_at": "2025-08-10T14:00:00Z",
+        "location": {"lat": 51.5074, "lon": -0.1278},
+        "reviews": [
+            {"author": "Morgan", "score": 5, "verified": True},
+            {"author": "Casey", "score": 5, "verified": False},
+            {"author": "Pat", "score": 4, "verified": True},
+        ],
+        "discontinued": True,
+        "clearance_note": "Final sale — limited sizes remaining",
+    },
+    {
+        "text": "Blue and green trail running shoes with aggressive tread pattern and rock plate protection",
+        "category": "footwear",
+        "sub_category": "trail_running",
+        "brand": "TrailMaster",
+        "color": "blue",
+        "price": 159.99,
+        "rating": 4.6,
+        "in_stock": True,
+        "tags": ["running", "trail", "protective", "waterproof"],
+        "created_at": "2026-03-05T09:15:00Z",
+        "location": {"lat": 39.7392, "lon": -104.9903},
+        "reviews": [
+            {"author": "Riley", "score": 4, "verified": True},
+            {"author": "Drew", "score": 5, "verified": True},
+        ],
+        "discontinued": False,
+        "clearance_note": None,
+    },
+]
+
+async def ingest():
+    texts = [p["text"] for p in products]
+    vectors = embed_texts(texts)       # batch-embed all product descriptions
+    points = [
+        PointStruct(id=i, vector=vectors[i], payload=p)
+        for i, p in enumerate(products)
+    ]
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        await client.points.upsert(COLLECTION, points=points)
+        await client.vde.flush(COLLECTION)  # ensure points are persisted before querying
+    print(f"Ingested {len(points)} products.")
+
+asyncio.run(ingest())
+```
+
+### Expected output
+
+This block embeds all five product descriptions in a single batch call and upserts them as `PointStruct` objects, each carrying its source metadata. After upserting, it calls `flush` to persist the writes to disk, then prints the total number of products ingested.
+
+```text
+Ingested 5 products.
+```
+
+The following helper functions are used by every example in this tutorial. `search` runs a filtered vector search against the collection and returns the top-k results. `show` prints a compact one-line summary per result:
+
+```python
+async def search(query: str, filter_obj=None, top_k: int = 5):
+    query_vector = embed_text(query)   # convert the query string to a vector
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.search(
+            COLLECTION,
+            vector=query_vector,
+            limit=top_k,
+            with_payload=True,
+            filter=filter_obj,         # None means no filter — return all top-k
+        ) or []
+    return results
+
+def show(results):
+    """Print a compact summary of each search result."""
+    for r in results:
+        p = r.payload
+        print(f"  id={r.id}  score={r.score:.4f}  {p.get('brand')} {p.get('color')} {p.get('sub_category')} ${p.get('price')}")
+```
+
+## Equality filters
+
+Equality filters match payload values exactly. Use them to constrain results by a specific string, number, boolean, or set of values.
+
+### Exact match with Field.eq
+
+`Field.eq` matches a string, integer, or boolean value exactly. Use it when you need results that correspond to one precise value in the payload.
+
+The following code filters the search for "running shoes" to only products where `color` equals `"blue"`. Running it returns two blue products ranked by vector similarity:
+
+```python
+# Restrict results to products where color equals "blue"
+f = FilterBuilder().must(Field("color").eq("blue")).build()
+results = asyncio.run(search("running shoes", f))
+print("=== color == 'blue' ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "running shoes" and applies a `color == "blue"` exact-match filter using `Field.eq`. Only products whose `color` field is exactly the string `"blue"` are eligible for ranking. The output returns the two blue products — the SpeedRunner running shoes and the TrailMaster trail running shoes — ranked by their cosine similarity to the query, while the red, white, and black products are excluded.
+
+```
+=== color == 'blue' ===
+  id=0  score=0.8521  SpeedRunner blue running $129.99
+  id=4  score=0.7834  TrailMaster blue trail_running $159.99
+```
+
+`Field.eq` also works on boolean fields. The following code filters the search for "formal leather shoes" to products where `in_stock` is `True`. Running it returns only in-stock products, even though the out-of-stock Oxford (id=3) is the most semantically similar:
+
+```python
+# Match products where in_stock is True
+f = FilterBuilder().must(Field("in_stock").eq(True)).build()
+results = asyncio.run(search("formal leather shoes", f))
+print("=== in_stock == True ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "formal leather shoes" and applies an `in_stock == True` filter. Only products whose `in_stock` boolean field is `True` are eligible for ranking. The output shows the four in-stock products sorted by similarity, confirming that the out-of-stock Oxford (id=3) is excluded even though its description is the closest semantic match.
+
+```
+=== in_stock == True ===
+  id=2  score=0.7500  UrbanStep white casual $89.99
+  id=0  score=0.7200  SpeedRunner blue running $129.99
+  id=1  score=0.6800  TrailMaster red hiking $189.99
+  id=4  score=0.6200  TrailMaster blue trail_running $159.99
+```
+
+### Full-text match with Field.text
+
+`Field.text` performs token-based matching against text-indexed fields. It requires a `TextIndexParams` payload index on the field and matches documents that contain the given token anywhere in the indexed content.
+
+The following code filters the search for "outdoor shoes" to products whose `text` field contains the token `"waterproof"`. Running it returns only the single product whose description includes that word:
+
+```python
+# Match products whose "text" field contains the token "waterproof"
+f = FilterBuilder().must(Field("text").text("waterproof")).build()
+results = asyncio.run(search("outdoor shoes", f))
+print("=== text contains 'waterproof' ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "outdoor shoes" and applies a full-text `waterproof` token filter on the `text` field. Only products whose `text` description contains the word "waterproof" are eligible for ranking. The output returns a single result — the red hiking boots (id=1) — because it is the only product whose `text` field includes the word "waterproof." The trail running shoes (id=4) have "waterproof" in their `tags` array but not in their `text` description, so they are excluded by this filter.
+
+```
+=== text contains 'waterproof' ===
+  id=1  score=0.7200  TrailMaster red hiking $189.99
+```
+
+### IN list with Field.any_of
+
+`Field.any_of` matches any value in a provided list, equivalent to a SQL `IN` clause. Pass a list of accepted values to keep only results whose field matches at least one of them.
+
+The following code restricts the search for "comfortable shoes" to products where `color` is either `"blue"` or `"white"`. Running it returns three products and excludes the red and black products:
+
+```python
+# Keep products where color is "blue" or "white"
+f = FilterBuilder().must(Field("color").any_of(["blue", "white"])).build()
+results = asyncio.run(search("comfortable shoes", f))
+print("=== color IN ['blue', 'white'] ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "comfortable shoes" and applies an `any_of(["blue", "white"])` filter on `color`. Only products whose color is either blue or white pass the filter and are ranked by similarity. The output returns the white UrbanStep sneaker, the blue SpeedRunner, and the blue TrailMaster trail shoe, while the red hiking boots and the black Oxford are excluded.
+
+```
+=== color IN ['blue', 'white'] ===
+  id=2  score=0.7500  UrbanStep white casual $89.99
+  id=0  score=0.7200  SpeedRunner blue running $129.99
+  id=4  score=0.6100  TrailMaster blue trail_running $159.99
+```
+
+### NOT IN list with Field.except_of
+
+`Field.except_of` is the inverse of `any_of`, equivalent to a SQL `NOT IN` clause. It excludes any point whose field value matches an entry in the provided list.
+
+The following code excludes all products from `"TrailMaster"` and `"ClassicFit"` brands. Running it returns only the SpeedRunner and UrbanStep products:
+
+```python
+# Exclude products from "TrailMaster" and "ClassicFit"
+f = FilterBuilder().must(Field("brand").except_of(["TrailMaster", "ClassicFit"])).build()
+results = asyncio.run(search("shoes", f))
+print("=== brand NOT IN ['TrailMaster', 'ClassicFit'] ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies an `except_of(["TrailMaster", "ClassicFit"])` exclusion filter on `brand`. Any product belonging to those two brands is removed from the candidate set before similarity ranking. The output returns only the SpeedRunner and the UrbanStep — the two products that belong to neither excluded brand.
+
+```
+=== brand NOT IN ['TrailMaster', 'ClassicFit'] ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=2  score=0.7200  UrbanStep white casual $89.99
+```
+
+## Numeric range filters
+
+Range filters constrain results by numeric bounds. You can apply a single bound, a closed range, or a flexible combination of inclusive and exclusive limits.
+
+### Single-bound range
+
+A single comparison operator filters by one numeric bound. The following code applies `gt(150.0)` to the `price` field. Running it returns only the three products priced above $150:
+
+```python
+# Filter to products where price is strictly greater than 150
+f = FilterBuilder().must(Field("price").gt(150.0)).build()
+results = asyncio.run(search("shoes", f))
+print("=== price > 150 ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies a `price > 150` single-bound filter using `gt(150.0)`. Only products whose numeric `price` field strictly exceeds $150 are ranked by similarity. The output returns the three higher-priced products — the TrailMaster hiking boots, the ClassicFit Oxford, and the TrailMaster trail running shoes — while the SpeedRunner ($129.99) and the UrbanStep ($89.99) are excluded.
+
+```
+=== price > 150 ===
+  id=1  score=0.7800  TrailMaster red hiking $189.99
+  id=3  score=0.7200  ClassicFit black formal $249.99
+  id=4  score=0.6800  TrailMaster blue trail_running $159.99
+```
+
+The same approach works with `gte`, `lt`, and `lte`. The following code applies `gte(4.5)` to the `rating` field. Running it returns only products rated 4.5 or higher:
+
+```python
+# Filter to products with a rating of 4.5 or higher
+f = FilterBuilder().must(Field("rating").gte(4.5)).build()
+results = asyncio.run(search("shoes", f))
+print("=== rating >= 4.5 ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies a `rating >= 4.5` lower-bound filter. Only products whose numeric `rating` field meets or exceeds 4.5 are returned. The output shows the four qualifying products — the SpeedRunner (4.5), the TrailMaster hiking boot (4.8), the ClassicFit Oxford (4.9), and the trail running shoe (4.6) — ranked by vector similarity, while the UrbanStep (4.2) is excluded.
+
+```
+=== rating >= 4.5 ===
+  id=1  score=0.7800  TrailMaster red hiking $189.99
+  id=3  score=0.7200  ClassicFit black formal $249.99
+  id=0  score=0.6800  SpeedRunner blue running $129.99
+  id=4  score=0.6200  TrailMaster blue trail_running $159.99
+```
+
+### Closed range with Field.between
+
+`Field.between` filters within both a lower and upper bound in a single call. Set `inclusive=True` for a closed range that includes the endpoints, or `inclusive=False` for an open range that excludes them.
+
+The following code keeps products with a price between $100 and $200 inclusive. Running it returns three products and excludes the $89.99 sneakers and the $249.99 Oxford:
+
+```python
+# Keep products with price between $100 and $200 (inclusive)
+f = FilterBuilder().must(Field("price").between(100.0, 200.0, inclusive=True)).build()
+results = asyncio.run(search("shoes", f))
+print("=== 100 <= price <= 200 ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies a closed-range `between(100.0, 200.0, inclusive=True)` filter on `price`. Products whose price falls at or within the $100–$200 boundary are eligible for ranking. The output returns the three mid-range products while excluding the $89.99 UrbanStep (below the lower bound) and the $249.99 ClassicFit Oxford (above the upper bound).
+
+```
+=== 100 <= price <= 200 ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=1  score=0.7200  TrailMaster red hiking $189.99
+  id=4  score=0.6800  TrailMaster blue trail_running $159.99
+```
+
+Set `inclusive=False` for an open range `(100, 200)` that excludes the endpoints.
+
+### Flexible range with Field.range
+
+`Field.range` lets you combine any mix of inclusive and exclusive bounds on the same field in a single call. At least one bound (`gt`, `gte`, `lt`, `lte`) is required.
+
+The following code keeps products with a rating of 4.0 or higher but strictly below 4.8. Running it returns three products and excludes the 4.8-rated hiking boots and the 4.9-rated Oxford:
+
+```python
+# Keep products with rating >= 4.0 and rating < 4.8 (open upper bound)
+f = FilterBuilder().must(Field("rating").range(gte=4.0, lt=4.8)).build()
+results = asyncio.run(search("shoes", f))
+print("=== 4.0 <= rating < 4.8 ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies a `range(gte=4.0, lt=4.8)` filter on `rating`, combining an inclusive lower bound with an exclusive upper bound. Products with a rating of exactly 4.8 or higher are excluded. The output returns the SpeedRunner (4.5), the trail running shoes (4.6), and the UrbanStep (4.2), while the TrailMaster hiking boots (4.8) and the ClassicFit Oxford (4.9) fall outside the allowed range.
+
+```
+=== 4.0 <= rating < 4.8 ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=4  score=0.6800  TrailMaster blue trail_running $159.99
+  id=2  score=0.6200  UrbanStep white casual $89.99
+```
+
+## Datetime filters
+
+Datetime filters work the same way as numeric range filters but operate on timestamp fields. Use them to restrict results to a specific time window.
+
+### Single-bound datetime filter
+
+A single datetime bound limits results to points created before or after a given moment. The following code keeps only products with a `created_at` value on or after January 1, 2026. Running it returns the three products added in 2026 and excludes the two from 2025:
+
+```python
+from datetime import datetime as dt
+
+# Keep products created on or after January 1, 2026
+f = FilterBuilder().must(
+    Field("created_at").datetime_gte(dt.fromisoformat("2026-01-01T00:00:00+00:00"))
+).build()
+results = asyncio.run(search("shoes", f))
+print("=== created_at >= 2026-01-01 ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies a `datetime_gte` filter on `created_at`, keeping only products whose timestamp is on or after January 1, 2026. Products created in 2025 — the TrailMaster hiking boots (November 2025) and the ClassicFit Oxford (August 2025) — are excluded. The output returns the three products added during 2026, ranked by similarity.
+
+```
+=== created_at >= 2026-01-01 ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=2  score=0.7200  UrbanStep white casual $89.99
+  id=4  score=0.6800  TrailMaster blue trail_running $159.99
+```
+
+### Datetime range with datetime_between
+
+`datetime_between` keeps only points that fall within a specific date window. Like `between` for numerics, it accepts an `inclusive` flag to control whether the boundary timestamps are included or excluded.
+
+The following code keeps only products with a `created_at` value between October 1 and December 31, 2025 inclusive. Running it returns the single product added during Q4 2025:
+
+```python
+# Keep products created between October 1 and December 31, 2025 (inclusive)
+f = FilterBuilder().must(
+    Field("created_at").datetime_between(
+        lower=dt.fromisoformat("2025-10-01T00:00:00+00:00"),
+        upper=dt.fromisoformat("2025-12-31T23:59:59+00:00"),
+        inclusive=True,
+    )
+).build()
+results = asyncio.run(search("shoes", f))
+print("=== created_at in Q4 2025 ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies a `datetime_between` filter with `inclusive=True` that bounds `created_at` between October 1 and December 31, 2025. Only products whose timestamp falls within Q4 2025 qualify. The output returns a single product — the TrailMaster red hiking boots created on November 20, 2025 — as the only entry within that time window.
+
+```
+=== created_at in Q4 2025 ===
+  id=1  score=0.7200  TrailMaster red hiking $189.99
+```
+
+## Geo filters
+
+Geo filters restrict results to points within a geographic area. The payload field must store `{"lat": ..., "lon": ...}` objects.
+
+### Radius with geo_radius
+
+`geo_radius` finds all points within a given radius (in metres) of a center coordinate. Use it when you want results within a circular area around a specific location.
+
+The following code restricts the search to products whose `location` field falls within 500 km of New York City. Running it returns only the single product stored with NYC coordinates:
+
+```python
+# Keep products located within 500 km of New York City
+f = FilterBuilder().must(
+    Field("location").geo_radius(lat=40.7128, lon=-74.0060, radius=500000)
+).build()
+results = asyncio.run(search("shoes", f))
+print("=== Within 500km of NYC ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies a `geo_radius` filter centered on New York City (lat=40.7128, lon=−74.0060) with a 500 km radius. Only products whose `location` payload falls within that circle are eligible for ranking. The output returns a single product — the SpeedRunner blue running shoes stored at NYC coordinates — as the only product within that geographic area.
+
+```
+=== Within 500km of NYC ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+```
+
+### Bounding box with geo_bounding_box
+
+`geo_bounding_box` finds all points within a rectangular geographic region defined by top-left and bottom-right corners. It is faster than a polygon check and useful when the region maps naturally to a lat/lon rectangle.
+
+The following code restricts the search to products located within the Continental US bounding box. Running it returns four products and excludes the Oxford stored in London:
+
+```python
+# Keep products within the Continental US bounding box
+f = FilterBuilder().must(
+    Field("location").geo_bounding_box(
+        top_left=(49.0, -125.0),
+        bottom_right=(25.0, -66.0),
+    )
+).build()
+results = asyncio.run(search("shoes", f))
+print("=== Within Continental US ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies a `geo_bounding_box` filter defined by a rectangle spanning the Continental United States. Products whose `location` coordinates fall inside the lat/lon rectangle are included; those outside it are dropped. The output returns four US-based products and excludes the ClassicFit Oxford (id=3), which is stored with London coordinates and lies outside the bounding box.
+
+```
+=== Within Continental US ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=1  score=0.7200  TrailMaster red hiking $189.99
+  id=2  score=0.6500  UrbanStep white casual $89.99
+  id=4  score=0.6200  TrailMaster blue trail_running $159.99
+```
+
+### Polygon with geo_polygon
+
+`geo_polygon` finds all points within an arbitrary polygon defined by an ordered list of `(lat, lon)` vertices. The polygon closes automatically, so the first point does not need to be repeated.
+
+The following code restricts the search to products located within a polygon covering the Northeast US. Running it returns only the single product stored with New York City coordinates:
+
+```python
+# Keep products located within a polygon covering the Northeast US
+f = FilterBuilder().must(
+    Field("location").geo_polygon(exterior=[
+        (42.5, -80.0),
+        (42.5, -70.0),
+        (38.0, -70.0),
+        (38.0, -80.0),
+    ])
+).build()
+results = asyncio.run(search("shoes", f))
+print("=== Within Northeast US polygon ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies a `geo_polygon` filter with four vertices that define a rectangular region covering the Northeast United States. Each product's `location` is checked against the polygon boundary, and only those that fall inside are ranked. The output returns only the SpeedRunner blue running shoes (id=0), whose New York City coordinates place it squarely within the polygon.
+
+```
+=== Within Northeast US polygon ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+```
+
+## Array cardinality filter
+
+Array cardinality filters restrict results based on the number of elements in an array payload field. Use them when you need to match points with arrays of a specific size.
+
+### Filter by number of values with values_count
+
+`values_count` keeps only points whose array field has a number of elements that satisfies the given bounds. Use it to filter by the size of an array such as `tags` or `reviews`.
+
+The following code keeps only products with four or more tags. Running it returns only the trail running shoe, which is the only product with four tags:
+
+```python
+# Keep products that have at least 4 tags
+f = FilterBuilder().must(Field("tags").values_count(gte=4)).build()
+results = asyncio.run(search("shoes", f))
+print("=== tags count >= 4 ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies a `values_count(gte=4)` cardinality filter on the `tags` array. Only products whose `tags` field contains four or more elements are eligible for ranking. The output shows a single result — the TrailMaster trail running shoe (id=4) — which is the only product in the dataset with exactly four tags.
+
+```
+=== tags count >= 4 ===
+  id=4  score=0.6800  TrailMaster blue trail_running $159.99
+```
+
+To match an exact count, set both `gte` and `lte` to the same value. The following code keeps only products with exactly three tags. Running it returns the four products that each have exactly three tags:
+
+```python
+# Keep products that have exactly 3 tags
+f = FilterBuilder().must(Field("tags").values_count(gte=3, lte=3)).build()
+results = asyncio.run(search("shoes", f))
+print("=== tags count == 3 ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies a `values_count(gte=3, lte=3)` filter on `tags`, which pinpoints products with an array length of exactly three. Setting both bounds to the same value mimics an equality check on array size. The output returns the four products — SpeedRunner, TrailMaster hiking, UrbanStep, and ClassicFit — each of which has precisely three tags in its payload, while the TrailMaster trail running shoe (id=4) is excluded because it has four tags.
+
+```
+=== tags count == 3 ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=1  score=0.7200  TrailMaster red hiking $189.99
+  id=2  score=0.6500  UrbanStep white casual $89.99
+  id=3  score=0.6100  ClassicFit black formal $249.99
+```
+
+`values_count` supports `lt`, `gt`, `gte`, and `lte` — at least one bound is required.
+
+## Null and empty checks
+
+Null and empty checks let you filter based on whether a payload field exists, is absent, or contains no value. Use them to surface or exclude points with missing or unset data.
+
+### Check for null with is_null
+
+`is_null` matches points where a payload field is present but explicitly set to `null`. Use it to find records that have a field key but no value assigned to it.
+
+The following code keeps products where `clearance_note` is explicitly `null`. Running it returns the four non-clearance products and excludes the one Oxford that has a clearance message:
+
+```python
+# Keep products where clearance_note is explicitly null (not on clearance)
+f = FilterBuilder().must(is_null("clearance_note")).build()
+results = asyncio.run(search("shoes", f))
+print("=== clearance_note IS NULL ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies an `is_null("clearance_note")` condition, which passes only products where `clearance_note` is present in the payload but explicitly set to `null`. The filter identifies regular catalogue items with no active clearance. The output returns all four non-clearance products and excludes the ClassicFit Oxford (id=3), whose `clearance_note` field holds an actual message string.
+
+```
+=== clearance_note IS NULL ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=1  score=0.7200  TrailMaster red hiking $189.99
+  id=2  score=0.6500  UrbanStep white casual $89.99
+  id=4  score=0.6200  TrailMaster blue trail_running $159.99
+```
+
+### Check for empty or missing with is_empty
+
+`is_empty` matches points where an array or string field contains no elements, or where the field key is absent from the payload entirely. Use it to find records with blank or omitted fields.
+
+The following code keeps products where the `reviews` array is empty. Running it returns only the white casual sneaker, which has no reviews:
+
+```python
+# Keep products with no reviews (empty array)
+f = FilterBuilder().must(is_empty("reviews")).build()
+results = asyncio.run(search("shoes", f))
+print("=== reviews IS EMPTY ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies an `is_empty("reviews")` condition, which matches products whose `reviews` array contains no elements. This filter surfaces products that have not yet received any customer feedback. The output returns only the white UrbanStep casual sneaker (id=2), which was ingested with an empty reviews list.
+
+```
+=== reviews IS EMPTY ===
+  id=2  score=0.6500  UrbanStep white casual $89.99
+```
+
+## Point-level conditions
+
+Point-level conditions filter by properties of the point itself rather than its payload fields. Use them to target specific IDs or vector slots without inspecting payload values.
+
+### Restrict search to specific IDs with has_id
+
+`has_id` narrows a search to a known subset of point IDs. Use it to apply a pre-filtered allowlist — for example, IDs returned by a business rules layer before the vector search runs.
+
+The following code restricts the search for "comfortable shoes" to points with IDs 0, 2, and 4. Running it returns those three points ranked by similarity, ignoring points 1 and 3 entirely:
+
+```python
+# Only consider points with IDs 0, 2, and 4
+f = FilterBuilder().must(has_id([0, 2, 4])).build()
+results = asyncio.run(search("comfortable shoes", f))
+print("=== has_id [0, 2, 4] ===")
+show(results)
+```
+
+#### Expected output
+
+The code searches for "comfortable shoes" and applies a `has_id([0, 2, 4])` condition that restricts the candidate set to points 0, 2, and 4 before similarity ranking. Points 1 (TrailMaster hiking boots) and 3 (ClassicFit Oxford) are entirely ignored. The output ranks the three allowed points by their cosine similarity to the query, with the white UrbanStep casual sneaker scoring highest for "comfortable shoes".
+
+```
+=== has_id [0, 2, 4] ===
+  id=2  score=0.7500  UrbanStep white casual $89.99
+  id=0  score=0.7200  SpeedRunner blue running $129.99
+  id=4  score=0.6100  TrailMaster blue trail_running $159.99
+```
+
+### Check for a named vector with has_vector
+
+`has_vector` restricts results to points that carry a particular named vector. Pass an empty string to target the default (unnamed) vector. Use this condition to skip points that are missing a vector slot before performing a search against it.
+
+The following code restricts the search to points that have the default vector populated. Running it prints the number of results, confirming that all five products have a default vector:
+
+```python
+# Restrict to points that have the default vector populated
+f = FilterBuilder().must(has_vector("")).build()  # "" selects the default vector
+results = asyncio.run(search("shoes", f))
+print(f"=== has default vector: {len(results)} results ===")
+```
+
+#### Expected output
+
+The code searches for "shoes" and applies a `has_vector("")` condition that restricts results to points carrying the default (unnamed) vector. Because every product in this collection was upserted with a default vector, all five points qualify. The output confirms that the result count equals the total number of ingested products.
+
+```
+=== has default vector: 5 results ===
+```
+
+## Nested filters
+
+The `nested` condition filters on fields within nested objects. Each item in an array of objects is evaluated independently, so all conditions must be satisfied by the same object — not spread across different objects in the array.
+
+The following code builds an inner filter requiring `score >= 5` and `verified == True`, then wraps it in `nested("reviews", ...)` so that each review is checked individually. Running it returns products that have at least one review satisfying both conditions at the same time:
+
+```python
+# Build an inner filter: score >= 5 AND verified == True
+inner = FilterBuilder().must(Field("score").gte(5.0)).must(Field("verified").eq(True))
+# Wrap with nested() so each review object is evaluated independently
+f = FilterBuilder().must(nested("reviews", inner)).build()
+results = asyncio.run(search("shoes", f))
+print("=== nested: reviews with score >= 5 AND verified ===")
+show(results)
+```
+
+#### Expected output
+
+The code constructs an inner `FilterBuilder` requiring both `score >= 5` and `verified == True`, then wraps it in `nested("reviews", inner)`. Each review object in a product's `reviews` array is checked individually against the inner conditions — both fields must match within the same review object, not across different reviews. The output returns the four products that contain at least one review where a single reviewer gave a verified score of 5: the SpeedRunner (Alex), the TrailMaster hiking boots (Jordan), the ClassicFit Oxford (Morgan), and the TrailMaster trail shoes (Drew). The UrbanStep (id=2) is excluded because its reviews array is empty.
+
+```
+=== nested: reviews with score >= 5 AND verified ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=1  score=0.7200  TrailMaster red hiking $189.99
+  id=3  score=0.6800  ClassicFit black formal $249.99
+  id=4  score=0.6200  TrailMaster blue trail_running $159.99
+```
+
+## Boolean logic
+
+The `FilterBuilder` supports four clause types that control how conditions combine. You can chain them on a single builder to express complex logic.
+
+### Require all conditions with must (AND)
+
+`must` requires every condition in the clause to be satisfied. Points that fail any one condition are excluded. Use it when multiple constraints must all hold simultaneously.
+
+The following code requires `color == "blue"`, `in_stock == True`, and `price < 150` to all be true. Running it returns only the SpeedRunner running shoe, which is the only product satisfying all three conditions:
+
+```python
+# Require: color == blue AND in_stock == True AND price < 150
+f = (
+    FilterBuilder()
+    .must(Field("color").eq("blue"))
+    .must(Field("in_stock").eq(True))
+    .must(Field("price").lt(150.0))
+    .build()
+)
+results = asyncio.run(search("running shoes", f))
+print("=== must: blue AND in_stock AND price < 150 ===")
+show(results)
+```
+
+#### Expected output
+
+The code chains three `must` conditions — `color == "blue"`, `in_stock == True`, and `price < 150` — on a single builder, requiring all three to hold simultaneously. The query embeds "running shoes" and ranks only products that clear every constraint. The output returns a single result: the SpeedRunner blue running shoes (id=0), which is the only product that is blue, currently in stock, and priced below $150.
+
+```
+=== must: blue AND in_stock AND price < 150 ===
+  id=0  score=0.8521  SpeedRunner blue running $129.99
+```
+
+### Accept alternatives with should (OR)
+
+`should` requires at least one condition in the clause to match. Use it when multiple alternative values are acceptable and any of several criteria is sufficient.
+
+The following code accepts products where `color` is `"blue"` or `"red"`. Running it returns three products and excludes the white and black products:
+
+```python
+# Accept products where color is "blue" OR color is "red"
+f = (
+    FilterBuilder()
+    .should(Field("color").eq("blue"))
+    .should(Field("color").eq("red"))
+    .build()
+)
+results = asyncio.run(search("outdoor shoes", f))
+print("=== should: blue OR red ===")
+show(results)
+```
+
+#### Expected output
+
+The code adds two `should` clauses — one matching blue products and one matching red — so any product satisfying at least one of them is eligible for ranking. The query embeds "outdoor shoes" and scores the qualifying candidates. The output returns the two blue products and the one red product, while the white UrbanStep and the black ClassicFit Oxford are excluded because they match neither condition.
+
+```
+=== should: blue OR red ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=1  score=0.7200  TrailMaster red hiking $189.99
+  id=4  score=0.6800  TrailMaster blue trail_running $159.99
+```
+
+### Exclude results with must_not (NOT)
+
+`must_not` removes any point that matches the condition from the results. Use it to suppress categories or attribute values that should never appear in the output.
+
+The following code requires the `footwear` category and then excludes both discontinued and formal products. Running it returns four in-catalogue, non-formal products:
+
+```python
+# Require footwear category, then exclude discontinued and formal products
+f = (
+    FilterBuilder()
+    .must(Field("category").eq("footwear"))
+    .must_not(Field("discontinued").eq(True))    # drop discontinued items
+    .must_not(Field("sub_category").eq("formal")) # drop formal shoes
+    .build()
+)
+results = asyncio.run(search("shoes", f))
+print("=== must_not: NOT discontinued AND NOT formal ===")
+show(results)
+```
+
+#### Expected output
+
+The code requires `category == "footwear"` via `must`, then applies two `must_not` clauses to remove discontinued products and products in the formal sub-category. The query searches for "shoes" and ranks only the candidates that pass all three constraints simultaneously. The output returns four active, non-formal footwear items and excludes the ClassicFit Oxford (id=3), which is both discontinued and categorised as formal.
+
+```
+=== must_not: NOT discontinued AND NOT formal ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=1  score=0.7200  TrailMaster red hiking $189.99
+  id=2  score=0.6500  UrbanStep white casual $89.99
+  id=4  score=0.6200  TrailMaster blue trail_running $159.99
+```
+
+### Match at least N conditions with min_should
+
+`min_should` qualifies a point when it satisfies at least `min_count` of the supplied conditions. Use it when partial matches are acceptable and you want to control the minimum number of criteria that must be met.
+
+The following code defines four independent conditions and requires at least three of them to be satisfied. Running it returns the two products that satisfy three or more of the four conditions:
+
+```python
+# Define four independent conditions
+conditions = [
+    Field("color").eq("blue"),
+    Field("brand").eq("TrailMaster"),
+    Field("price").lt(170.0),
+    Field("rating").gte(4.5),
+]
+# Require at least 3 of the 4 conditions to be satisfied
+f = FilterBuilder().min_should(conditions, min_count=3).build()
+results = asyncio.run(search("trail shoes", f))
+print("=== min_should: at least 3 of 4 conditions ===")
+show(results)
+```
+
+#### Expected output
+
+The code defines four independent conditions — `color == "blue"`, `brand == "TrailMaster"`, `price < 170`, and `rating >= 4.5` — and passes them to `min_should` with `min_count=3`. A product qualifies if it satisfies at least three of the four conditions. The query searches for "trail shoes" and returns two products: the TrailMaster trail running shoe (id=4), which satisfies all four conditions, and the SpeedRunner running shoe (id=0), which satisfies three (blue, price < 170, and rating >= 4.5).
+
+```
+=== min_should: at least 3 of 4 conditions ===
+  id=4  score=0.7800  TrailMaster blue trail_running $159.99
+  id=0  score=0.6200  SpeedRunner blue running $129.99
+```
+
+id=4 matches 4/4: blue, TrailMaster, price $159.99 < 170, rating 4.6 >= 4.5. id=0 matches 3/4: blue, price $129.99 < 170, rating 4.5 >= 4.5 (but brand is SpeedRunner, not TrailMaster).
+
+### Combining clauses
+
+You can chain `must`, `should`, and `must_not` on the same builder to express complex logic in a single filter. Each clause type is evaluated independently and the results are intersected.
+
+The following code combines all three clause types: `must` enforces stock and price constraints, `should` accepts blue or red products, and `must_not` excludes discontinued items. Running it returns the three products that satisfy every constraint simultaneously:
+
+```python
+# must: in_stock AND price in [100, 200]
+# should: color is blue OR red
+# must_not: not discontinued
+f = (
+    FilterBuilder()
+    .must(Field("in_stock").eq(True))
+    .must(Field("price").between(100.0, 200.0))
+    .should(Field("color").eq("blue"))
+    .should(Field("color").eq("red"))
+    .must_not(Field("discontinued").eq(True))
+    .build()
+)
+results = asyncio.run(search("shoes for outdoor activities", f))
+print("=== Combined: in_stock AND price 100-200 AND (blue OR red) AND NOT discontinued ===")
+show(results)
+```
+
+#### Expected output
+
+The code combines all three clause types on a single builder: two `must` conditions enforce that the product is in stock and priced between $100 and $200, two `should` conditions accept blue or red products, and one `must_not` condition rejects discontinued items. The query searches for "shoes for outdoor activities" and ranks only the candidates that clear every constraint simultaneously. The output returns the SpeedRunner (blue, $129.99), the TrailMaster hiking boots (red, $189.99), and the TrailMaster trail shoes (blue, $159.99), while the UrbanStep (white — fails the color condition) and the ClassicFit Oxford (discontinued, out of stock, and black) are excluded.
+
+```
+=== Combined: in_stock AND price 100-200 AND (blue OR red) AND NOT discontinued ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=1  score=0.7200  TrailMaster red hiking $189.99
+  id=4  score=0.6800  TrailMaster blue trail_running $159.99
+```
+
+## Operator composition
+
+Python operators let you combine conditions and builders without calling clause methods directly. This is useful for building filters programmatically from reusable condition variables.
+
+### Condition operators
+
+You can use Python operators directly on condition objects, which makes filter expressions more concise and readable when constructing filters from named variables.
+
+The following code defines three reusable conditions and combines `is_blue` and `is_cheap` with `&`. Running it returns only the blue SpeedRunner, which is the only product that is both blue and priced below $140:
+
+```python
+is_blue = Field("color").eq("blue")
+is_cheap = Field("price").lt(140.0)
+is_running = Field("sub_category").eq("running")
+
+# AND — both conditions must be true
+f = (is_blue & is_cheap).build()
+results = asyncio.run(search("shoes", f))
+print("=== blue & price < 140 ===")
+show(results)
+```
+
+#### Expected output
+
+The code defines three named condition objects and combines `is_blue` and `is_cheap` with the `&` operator, which places both into a `must` clause. The search for "shoes" ranks only products that are simultaneously blue and priced below $140. The output returns a single result — the SpeedRunner blue running shoes at $129.99 — because the blue TrailMaster trail shoes at $159.99 exceed the price cap.
+
+```
+=== blue & price < 140 ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+```
+
+The following code combines `is_blue` and `is_running` with `|`. Running it returns any product that is either blue or in the running sub-category:
+
+```python
+# OR — either condition is sufficient
+f = (is_blue | is_running).build()
+results = asyncio.run(search("shoes", f))
+print("=== blue | running ===")
+show(results)
+```
+
+#### Expected output
+
+The code combines `is_blue` and `is_running` with the `|` operator, which places both into a `should` clause so that either condition alone is enough to qualify a product. The search for "shoes" returns any product that is blue or belongs to the `running` sub-category. The output returns the SpeedRunner (blue and running) and the TrailMaster trail shoes (blue), while the white, red, and black products that are neither blue nor in the running sub-category are excluded.
+
+```
+=== blue | running ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=4  score=0.6800  TrailMaster blue trail_running $159.99
+```
+
+The following code negates `discontinued == True` with `~`. Running it returns all products that are not discontinued:
+
+```python
+# NOT — negate a condition (places it in must_not)
+f = (~Field("discontinued").eq(True)).build()
+results = asyncio.run(search("shoes", f))
+print("=== NOT discontinued ===")
+show(results)
+```
+
+#### Expected output
+
+The code negates the `discontinued == True` condition using the `~` prefix operator, which places the condition in `must_not`. The search for "shoes" returns every product that does not have `discontinued` set to `True`, excluding only the ClassicFit Oxford (id=3).
+
+```
+=== NOT discontinued ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=1  score=0.7200  TrailMaster red hiking $189.99
+  id=2  score=0.6500  UrbanStep white casual $89.99
+  id=4  score=0.6200  TrailMaster blue trail_running $159.99
+```
+
+### FilterBuilder operators
+
+Operators also work on entire `FilterBuilder` instances, letting you compose complex filters from simpler named builders.
+
+The following code uses `|` to OR two builders together. Each builder becomes a nested sub-filter inside `should`, so running it returns products that are either blue and cheap, or red and premium:
+
+```python
+blue_and_cheap = FilterBuilder().must(Field("color").eq("blue")).must(Field("price").lt(140.0))
+red_and_premium = FilterBuilder().must(Field("color").eq("red")).must(Field("price").gte(150.0))
+
+# OR two builders — each becomes a nested sub-filter in should
+f = (blue_and_cheap | red_and_premium).build()
+results = asyncio.run(search("shoes", f))
+print("=== (blue & cheap) | (red & premium) ===")
+show(results)
+```
+
+#### Expected output
+
+The code defines two named builders — `blue_and_cheap` (blue and price < $140) and `red_and_premium` (red and price >= $150) — and combines them with `|`. Each builder becomes a nested sub-filter inside a `should` clause, so any product satisfying either group qualifies. The search for "shoes" returns the SpeedRunner (blue, $129.99, satisfying the first group) and the TrailMaster hiking boots (red, $189.99, satisfying the second group).
+
+```
+=== (blue & cheap) | (red & premium) ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=1  score=0.7200  TrailMaster red hiking $189.99
+```
+
+The following code uses `&` to AND two builders together, which merges their `must`, `must_not`, and `should` lists into a single filter. Running it returns only products that are both in stock and rated 4.5 or higher:
+
+```python
+# AND two builders — merges their must/must_not/should lists into one filter
+in_stock_fb = FilterBuilder().must(Field("in_stock").eq(True))
+high_rated_fb = FilterBuilder().must(Field("rating").gte(4.5))
+f = (in_stock_fb & high_rated_fb).build()
+results = asyncio.run(search("shoes", f))
+print("=== in_stock & rating >= 4.5 ===")
+show(results)
+```
+
+#### Expected output
+
+The code AND-joins two separate builders using `&`, which merges their `must` lists into a single filter requiring both `in_stock == True` and `rating >= 4.5`. The search for "shoes" returns only the three products that are currently in stock and carry a rating of 4.5 or higher, excluding both the out-of-stock Oxford and the lower-rated white sneaker.
+
+```
+=== in_stock & rating >= 4.5 ===
+  id=1  score=0.7800  TrailMaster red hiking $189.99
+  id=0  score=0.7200  SpeedRunner blue running $129.99
+  id=4  score=0.6800  TrailMaster blue trail_running $159.99
+```
+
+The following code uses `~` on a builder to invert it, swapping `must` into `must_not`. Running it returns all products that are not discontinued:
+
+```python
+# INVERT a builder — swaps must and must_not so the result excludes discontinued items
+exclude_discontinued = ~FilterBuilder().must(Field("discontinued").eq(True))
+f = exclude_discontinued.build()
+results = asyncio.run(search("shoes", f))
+print("=== ~(discontinued) ===")
+show(results)
+```
+
+#### Expected output
+
+The code inverts an entire `FilterBuilder` using `~`, which swaps its `must` clauses into `must_not`. The resulting filter excludes every product where `discontinued == True`. The search for "shoes" returns the four active products and omits the ClassicFit Oxford (id=3), which is the only discontinued item.
+
+```
+=== ~(discontinued) ===
+  id=0  score=0.7800  SpeedRunner blue running $129.99
+  id=1  score=0.7200  TrailMaster red hiking $189.99
+  id=2  score=0.6500  UrbanStep white casual $89.99
+  id=4  score=0.6200  TrailMaster blue trail_running $159.99
+```
+
+## Using filters with different endpoints
+
+The same `FilterBuilder` objects work across all `points.*` methods. The following sections show the most common patterns.
+
+### With points.search
+
+The following code passes a brand filter to `points.search` as the `filter` keyword argument. Running it returns only TrailMaster products ranked by similarity to "hiking boots":
+
+```python
+# Restrict a similarity search to a specific brand
+f = FilterBuilder().must(Field("brand").eq("TrailMaster")).build()
+results = asyncio.run(search("hiking boots", f))
+```
+
+#### Expected output
+
+The code builds a `brand == "TrailMaster"` filter and passes it to `points.search` via the `filter` keyword argument. The query embeds "hiking boots" into a vector and ranks only the two TrailMaster products — the red hiking boots (id=1) and the blue trail running shoes (id=4) — by similarity, ignoring all other brands.
+
+```
+  id=1  score=0.7800  TrailMaster red hiking $189.99
+  id=4  score=0.6800  TrailMaster blue trail_running $159.99
+```
+
+### With points.query
+
+`points.query` accepts the same `filter` argument and supports additional query modes such as sparse or hybrid retrieval. The following code builds an `in_stock` filter and passes it to `points.query`. Running it returns the top five in-stock products most similar to "comfortable shoes":
+
+```python
+async def query_with_filter():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        # Build the filter and pass it directly to points.query
+        f = FilterBuilder().must(Field("in_stock").eq(True)).build()
+        results = await client.points.query(
+            COLLECTION,
+            query=embed_text("comfortable shoes"),
+            filter=f,
+            limit=5,
+            with_payload=True,
+        )
+    return results
+
+results = asyncio.run(query_with_filter())
+print("=== points.query with filter ===")
+show(results)
+```
+
+#### Expected output
+
+The code builds an `in_stock == True` filter and passes it to `points.query`, which embeds "comfortable shoes" and retrieves the top five in-stock products ranked by similarity. The output shows the four in-stock products ordered by their cosine similarity to the query, with the out-of-stock Oxford (id=3) excluded entirely.
+
+```
+=== points.query with filter ===
+  id=2  score=0.7500  UrbanStep white casual $89.99
+  id=0  score=0.7200  SpeedRunner blue running $129.99
+  id=1  score=0.6800  TrailMaster red hiking $189.99
+  id=4  score=0.6200  TrailMaster blue trail_running $159.99
+```
+
+### With points.count
+
+`points.count` returns the number of points that match a filter without performing a vector search. The following code runs two counts — one for in-stock products and one for products above $150. Running it prints both totals:
+
+```python
+async def count_with_filter():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        # Count in-stock products
+        f = FilterBuilder().must(Field("in_stock").eq(True)).build()
+        count = await client.points.count(COLLECTION, filter=f, exact=True)
+        print(f"In-stock products: {count}")
+
+        # Count products above $150
+        f = FilterBuilder().must(Field("price").gt(150.0)).build()
+        count = await client.points.count(COLLECTION, filter=f, exact=True)
+        print(f"Products > $150: {count}")
+
+asyncio.run(count_with_filter())
+```
+
+#### Expected output
+
+The code runs two sequential `points.count` calls — the first counts products where `in_stock == True`, and the second counts products where `price > 150`. Neither call performs a vector search; both return an exact integer count matching the filter. The output confirms that four of the five products are currently in stock and three are priced above $150.
+
+```
+In-stock products: 4
+Products > $150: 3
+```
+
+### With points.delete
+
+Filters work with `points.delete` to remove all matching points in bulk. The following code builds a filter that targets discontinued and out-of-stock products, counts how many match, and prints the result. Uncomment the delete line to permanently remove those points:
+
+```python
+async def delete_with_filter():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        # Target points that are both discontinued and out of stock
+        f = (
+            FilterBuilder()
+            .must(Field("discontinued").eq(True))
+            .must(Field("in_stock").eq(False))
+            .build()
+        )
+        count = await client.points.count(COLLECTION, filter=f, exact=True)
+        print(f"Discontinued + out of stock: {count}")
+        # Uncomment the line below to delete the matched points
+        # await client.points.delete(COLLECTION, filter=f)
+
+asyncio.run(delete_with_filter())
+```
+
+#### Expected output
+
+The code builds a filter targeting products where both `discontinued == True` and `in_stock == False`, then counts matching points using `points.count`. The delete line is left commented out for safety. The output confirms that exactly one product — the ClassicFit Oxford (id=3) — satisfies both conditions.
+
+```
+Discontinued + out of stock: 1
+```
+
+### With points.set_payload
+
+Filters work with `set_payload` to update a field on all matching points at once, without fetching, modifying, and re-upserting each point individually. The following code marks every TrailMaster product as featured. Running it updates both TrailMaster points and prints a confirmation:
+
+```python
+async def update_with_filter():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        # Mark every TrailMaster product as featured
+        f = FilterBuilder().must(Field("brand").eq("TrailMaster")).build()
+        await client.points.set_payload(
+            COLLECTION,
+            payload={"featured": True},
+            filter=f,
+        )
+        print("All TrailMaster products marked as featured.")
+
+asyncio.run(update_with_filter())
+```
+
+#### Expected output
+
+The code builds a `brand == "TrailMaster"` filter and passes it to `points.set_payload`, which adds the field `featured: True` to every matching product without fetching or re-upserting them individually. The output confirms that both TrailMaster products — the red hiking boots (id=1) and the trail running shoes (id=4) — were updated in a single server-side operation.
+
+```
+All TrailMaster products marked as featured.
+```
+
+## Utility methods
+
+`FilterBuilder` provides a few convenience methods for inspecting and branching filter logic.
+
+### Check whether a builder has conditions with is_empty
+
+`FilterBuilder.is_empty()` returns `True` if no conditions have been added to the builder. The following code checks the same builder before and after adding a condition. Running it prints `True` for the empty builder and `False` after the condition is added:
+
+```python
+fb = FilterBuilder()
+print(f"Empty: {fb.is_empty()}")   # True — no conditions added yet
+
+fb = fb.must(Field("color").eq("blue"))
+print(f"Empty: {fb.is_empty()}")   # False — has at least one must condition
+```
+
+#### Expected output
+
+The code calls `is_empty()` on a freshly instantiated `FilterBuilder` before and after appending a `must` condition. The first call returns `True` because no conditions have been added. The second call returns `False` after the `color == "blue"` condition is appended, confirming that the builder now holds at least one clause.
+
+```
+Empty: True
+Empty: False
+```
+
+### Branch filter logic with copy
+
+`FilterBuilder.copy()` creates a shallow copy of the builder so you can derive multiple filter variants from a shared base without mutating the original.
+
+The following code creates a base filter for in-stock products and branches it into two separate filters — one for blue products and one for red. Running it prints each builder's condition count, confirming that the base remains unchanged at one condition while each branch has two:
+
+```python
+# Start with a shared base condition
+base = FilterBuilder().must(Field("in_stock").eq(True))
+
+# Branch independently — base is not modified
+branch_a = base.copy().must(Field("color").eq("blue"))
+branch_b = base.copy().must(Field("color").eq("red"))
+
+print(f"Base: {base}")         # FilterBuilder(must=1)
+print(f"Branch A: {branch_a}") # FilterBuilder(must=2)
+print(f"Branch B: {branch_b}") # FilterBuilder(must=2)
+```
+
+#### Expected output
+
+The code creates a base builder with a single `in_stock == True` condition, then uses `copy()` to derive two independent branches — one that also requires `color == "blue"` and one that requires `color == "red"`. The output shows that the base builder retains its original one condition while each branch now holds two, confirming that `copy()` creates a true independent snapshot rather than a shared reference.
+
+```
+Base: FilterBuilder(must=1)
+Branch A: FilterBuilder(must=2)
+Branch B: FilterBuilder(must=2)
+```
+
+### Test truthiness with bool
+
+`FilterBuilder` evaluates to `True` when it has at least one condition and `False` when empty. The following code checks an empty builder and prints a message when no filters have been configured:
+
+```python
+fb = FilterBuilder()
+if not fb:
+    print("No filters applied — searching without constraints.")
+```
+
+#### Expected output
+
+The code instantiates an empty `FilterBuilder` and checks its boolean truthiness with `if not fb`. Because no conditions have been added, the builder evaluates to `False`, and the guard message is printed. This pattern is useful in application code to decide at runtime whether to pass a filter to the search call or skip it entirely.
+
+```
+No filters applied — searching without constraints.
+```
+
+## Complete filter reference
+
+The following tables summarize every available method and operator in the Filter DSL.
+
+### Field conditions
+
+The table below lists every method available on a `Field` object, along with the filter type and a short example:
+
+| Method | Type | Example |
+|--------|------|---------|
+| `eq(value)` | Exact match (str, int, bool) | `Field("color").eq("blue")` |
+| `text(value)` | Full-text token match | `Field("description").text("waterproof")` |
+| `any_of(values)` | IN list | `Field("color").any_of(["blue", "red"])` |
+| `except_of(values)` | NOT IN list | `Field("brand").except_of(["X", "Y"])` |
+| `gt(value)` | Greater than | `Field("price").gt(100.0)` |
+| `gte(value)` | Greater than or equal | `Field("rating").gte(4.5)` |
+| `lt(value)` | Less than | `Field("price").lt(200.0)` |
+| `lte(value)` | Less than or equal | `Field("rating").lte(5.0)` |
+| `between(lo, hi)` | Closed/open range | `Field("price").between(50, 150)` |
+| `range(gt=, gte=, lt=, lte=)` | Flexible bounds | `Field("price").range(gte=50, lt=200)` |
+| `datetime_gt(dt)` | After datetime | `Field("created").datetime_gt(dt)` |
+| `datetime_gte(dt)` | At or after datetime | `Field("created").datetime_gte(dt)` |
+| `datetime_lt(dt)` | Before datetime | `Field("created").datetime_lt(dt)` |
+| `datetime_lte(dt)` | At or before datetime | `Field("created").datetime_lte(dt)` |
+| `datetime_between(lo, hi)` | Datetime range | `Field("created").datetime_between(lo, hi)` |
+| `values_count(gte=, lte=, ...)` | Array cardinality | `Field("tags").values_count(gte=3)` |
+| `geo_radius(lat, lon, r)` | Circle (metres) | `Field("loc").geo_radius(40.7, -74.0, 5000)` |
+| `geo_bounding_box(tl, br)` | Rectangle | `Field("loc").geo_bounding_box((49,-125),(25,-66))` |
+| `geo_polygon(exterior)` | Polygon | `Field("loc").geo_polygon([(a,b),(c,d),...])` |
+
+### Standalone conditions
+
+The following functions are imported directly and passed to `.must()`, `.should()`, or `.must_not()`:
+
+| Function | Purpose | Example |
+|----------|---------|---------|
+| `is_null(key)` | Field is null | `is_null("notes")` |
+| `is_empty(key)` | Field is empty or missing | `is_empty("reviews")` |
+| `has_id(ids)` | Point ID in list | `has_id([0, 1, 2])` |
+| `has_vector(name)` | Named vector exists | `has_vector("image")` |
+| `nested(key, filter)` | Nested object filter | `nested("reviews", inner_fb)` |
+
+### FilterBuilder clauses
+
+Each clause method appends conditions to the corresponding logical group:
+
+| Method | Logic | Effect |
+|--------|-------|--------|
+| `.must(cond)` | AND | All `must` conditions required |
+| `.should(cond)` | OR | At least one `should` condition |
+| `.must_not(cond)` | NOT | Exclude matching |
+| `.min_should(conds, N)` | N-of-M | At least N conditions match |
+
+### Operators
+
+Python operators work on both individual conditions and `FilterBuilder` instances:
+
+| Operator | On condition | On FilterBuilder |
+|----------|-------------|-----------------|
+| `a & b` | `must=[a, b]` | Merge lists |
+| `a \| b` | `should=[a, b]` | Nested sub-filters in `should` |
+| `~a` | `must_not=[a]` | Swap `must` and `must_not` |
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Hybrid search patterns" href="/academy/tutorials/hybrid-search">
+    Combine vector similarity with structured constraints
+  </Card>
+  <Card title="Similarity search basics" href="/academy/tutorials/semantic-search-basics">
+    Learn the core retrieval workflow
+  </Card>
+  <Card title="Filtering with boolean logic" href="/academy/tutorials/filtering-boolean-logic">
+    Add `must`, `should`, and `must_not` conditions
+  </Card>
+  <Card title="Geospatial search" href="/academy/tutorials/geospatial-search">
+    Make retrieval location-aware
+  </Card>
+</CardGroup>

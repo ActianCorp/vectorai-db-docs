@@ -1,0 +1,82 @@
+---
+title: "Overview"
+description: "Hybrid search in Actian VectorAI DB combines results from multiple search queries using fusion algorithms like Reciprocal Rank Fusion and Distribution-Based Score Fusion to improve retrieval quality."
+---
+
+_Hybrid search_ combines results from multiple search queries into a single, ranked result set using fusion algorithms. Actian VectorAI DB provides built-in fusion methods that merge results from different query vectors, embedding models, or search strategies to improve retrieval quality beyond what a single search achieves.
+
+Hybrid search works by running multiple independent searches and then fusing their results into a unified ranking. Each search can use a different query vector, embedding model, or search strategy. The fusion algorithm resolves differences in scoring and ranking to produce a final result set that captures relevance signals from all sources.
+
+Common use cases include:
+
+- Combining results from multiple embedding models
+- Merging semantic and keyword search results
+- Query expansion with reformulated questions
+- Multi-perspective retrieval for RAG applications
+- Improving robustness through query variations
+
+## Fusion methods
+
+VectorAI DB supports two fusion algorithms for combining search results:
+
+| Method | Function | Best for |
+|--------|----------|----------|
+| Reciprocal Rank Fusion (RRF) | `reciprocal_rank_fusion()` | Combining results from different models or query types where score distributions differ significantly. |
+| Distribution-Based Score Fusion (DBSF) | `distribution_based_score_fusion()` | Combining results where score normalization based on statistical distribution produces more balanced rankings. |
+
+### Reciprocal Rank Fusion
+
+RRF scores each result based on its rank position across multiple result lists rather than raw similarity scores. This makes RRF effective when combining results from different models or search types where scores are not directly comparable.
+
+The `ranking_constant_k` parameter controls how much weight is given to higher-ranked results. The default value of 60 works well for most use cases. Lower values emphasize top-ranked results more heavily, while higher values distribute weight more evenly across ranks.
+
+### Distribution-Based Score Fusion
+
+DBSF normalizes scores based on the statistical distribution of each result set before combining them. This approach produces more balanced rankings when the score distributions from different searches have different means and variances.
+
+DBSF is particularly effective when combining results from searches that use different vector distributions or when one search consistently produces higher scores than another.
+
+## Hybrid search patterns
+
+Several patterns leverage hybrid search for improved retrieval:
+
+### Multi-model ensemble
+
+Run the same query through multiple embedding models and fuse the results. Different models capture different aspects of semantic meaning, and fusion combines their strengths.
+
+### Query variation
+
+Generate slight perturbations of a query vector and search with each variation. Fusing the results improves robustness by reducing sensitivity to the exact query representation.
+
+### Hybrid RAG retrieval
+
+Combine searches from an original question embedding and a reformulated question embedding. This retrieves relevant context that a single query might miss, improving RAG pipeline quality.
+
+## Performance considerations
+
+Hybrid search runs multiple queries, so latency increases roughly linearly with the number of searches. The fusion step itself adds minimal overhead. Consider these tradeoffs:
+
+- More searches improve retrieval quality but increase latency
+- Fusion algorithms operate on result lists in memory and are fast relative to search
+- Use `limit` on individual searches to control the candidate pool size
+- Benchmark single versus hybrid search to find the right balance for your use case
+
+## Task guides
+
+See step-by-step guides for hybrid search operations:
+
+- [Reciprocal Rank Fusion](/docs/fundamentals/hybrid-search/rrf-fusion-task)
+- [Distribution-Based Score Fusion](/docs/fundamentals/hybrid-search/dbsf-fusion-task)
+- [Multi-model fusion](/docs/fundamentals/hybrid-search/multi-model-fusion-task)
+- [Query variation fusion](/docs/fundamentals/hybrid-search/query-variation-task)
+- [Hybrid RAG retrieval](/docs/fundamentals/hybrid-search/hybrid-rag-task)
+- [Performance benchmarking](/docs/fundamentals/hybrid-search/performance-benchmark-task)
+
+## Next steps
+
+Explore related topics to deepen your understanding of search in VectorAI DB:
+
+- [Search](/docs/fundamentals/search/search) — Understand the underlying vector search operations.
+- [Filtering](/docs/fundamentals/filtering/filtering) — Apply metadata conditions to hybrid search queries.
+- [Distance metrics](/docs/fundamentals/distance-metrics/distance-metrics) — Understand how similarity scores are calculated.
+- [Points](/docs/fundamentals/points/points) — Manage the data being searched.

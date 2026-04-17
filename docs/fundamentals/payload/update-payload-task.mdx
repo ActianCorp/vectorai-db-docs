@@ -1,0 +1,157 @@
+---
+title: "Update payloads"
+description: "Modify payload metadata for existing points."
+icon: "code"
+---
+
+Update payload metadata by re-upserting points with new data. This replaces the entire payload — partial field updates are not supported.
+
+<Note>
+Before you begin, make sure the target points already exist in your collection. If a point ID does not exist, then the upsert operation creates a new point instead of updating.
+</Note>
+
+## Update a single payload
+
+The `upsert` method updates existing points or creates new ones if they do not exist. When updating metadata, you must provide the vector, but payload is optional. It is common to retrieve and preserve the existing vector. The following example updates one point's payload.
+
+<CodeGroup>
+```python Python
+import random
+from actian_vectorai import VectorAIClient, PointStruct
+
+DIMENSION = 128
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Get existing point
+    existing = client.points.get(COLLECTION, ids=[1])
+    # Preserve existing vector or generate new one
+    vector = existing[0].vectors if existing[0].vectors else [random.gauss(0, 1) for _ in range(DIMENSION)]
+    
+    # Update with new payload
+    point = PointStruct(
+        id=1,  # Point ID to update
+        vector=vector,  # Keep existing vector
+        payload={  # New metadata (optional)
+            "name": "Gaming Laptop",
+            "category": "electronics",
+            "price": 899.99,
+            "in_stock": True,
+            "updated": True
+        }
+    )
+    
+    # Upsert point with updated payload
+    client.points.upsert(COLLECTION, [point])
+    print("Payload updated successfully")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const DIMENSION = 128;
+const COLLECTION = 'products';
+
+async function main() {
+  const client = new CortexClient('localhost:50051');
+
+  // Get existing point
+  const existing = await client.points.get(COLLECTION, { ids: [1] });
+  // Preserve existing vector or generate new one
+  const vector = existing[0].vector || Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+
+  // Update with new payload
+  await client.points.upsert(COLLECTION, [
+    {
+      id: 1,  // Point ID to update
+      vector: vector,  // Keep existing vector
+      payload: {  // New metadata (optional)
+        name: 'Gaming Laptop',
+        category: 'electronics',
+        price: 899.99,
+        in_stock: true,
+        updated: true,
+      },
+    },
+  ], { wait: true });
+
+  console.log('Payload updated successfully');
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Update multiple payloads
+
+Upsert operations perform full replacement of payload data when provided. You must provide the complete new payload — partial updates are not supported. If you need to preserve some fields, then retrieve the existing payload first.
+
+The following example updates multiple payloads at once.
+
+<CodeGroup>
+```python Python
+import random
+from actian_vectorai import VectorAIClient, PointStruct
+
+DIMENSION = 128
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Retrieve existing points
+    results = client.points.get(COLLECTION, ids=[1, 2])
+    
+    # Update multiple points with new payloads
+    points = [
+        PointStruct(
+            id=1,  # Point ID
+            vector=results[0].vectors if results[0].vectors else [random.gauss(0, 1) for _ in range(DIMENSION)],  # Preserve vector
+            payload={"name": "Gaming Laptop", "category": "electronics", "price": 1299.99}  # New metadata (optional)
+        ),
+        PointStruct(
+            id=2,  # Point ID
+            vector=results[1].vectors if results[1].vectors else [random.gauss(0, 1) for _ in range(DIMENSION)],  # Preserve vector
+            payload={"name": "Smartphone", "category": "electronics", "price": 799.99}  # New metadata (optional)
+        )
+    ]
+    
+    # Batch upsert updated points
+    client.points.upsert(COLLECTION, points)
+    print("Batch updated 2 payloads")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const DIMENSION = 128;
+const COLLECTION = 'products';
+
+async function main() {
+  const client = new CortexClient('localhost:50051');
+
+  // Retrieve existing points
+  const results = await client.points.get(COLLECTION, { ids: [1, 2] });
+
+  // Update multiple points with new payloads
+  const points = [
+    {
+      id: 1,  // Point ID
+      vector: results[0].vector || Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1),  // Preserve vector
+      payload: { name: 'Gaming Laptop', category: 'electronics', price: 1299.99 },  // New metadata (optional)
+    },
+    {
+      id: 2,  // Point ID
+      vector: results[1].vector || Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1),  // Preserve vector
+      payload: { name: 'Smartphone', category: 'electronics', price: 799.99 },  // New metadata (optional)
+    },
+  ];
+
+  // Batch upsert updated points
+  await client.points.upsert(COLLECTION, points, { wait: true });
+  console.log('Batch updated 2 payloads');
+}
+
+main().catch(console.error);
+```
+</CodeGroup>

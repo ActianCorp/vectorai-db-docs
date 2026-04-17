@@ -1,0 +1,157 @@
+---
+title: "Reciprocal Rank Fusion"
+description: "Combine results from multiple dense vector searches using Reciprocal Rank Fusion."
+icon: "code"
+---
+
+Reciprocal Rank Fusion (RRF) combines results from multiple search queries by scoring each result based on its rank position across all result lists. RRF is effective when combining searches that use different query vectors or embedding models where raw scores are not directly comparable.
+
+The `ranking_constant_k` parameter controls how much weight higher-ranked results receive. The default value of 60 provides balanced fusion for most use cases.
+
+The example below creates a collection, inserts 100 sample documents, and runs two vector searches using different query vectors. It then applies RRF to fuse both result lists into a single ranking of the top 10 results based on rank position.
+
+<CodeGroup>
+```python Python
+import asyncio
+import random
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, PointStruct, reciprocal_rank_fusion
+
+COLLECTION = "documents"
+DIMENSION = 128
+
+async def main():
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Create collection if it doesn't exist
+        if not await client.collections.exists(COLLECTION):
+            await client.collections.create(
+                COLLECTION,
+                vectors_config=VectorParams(size=DIMENSION, distance=Distance.Cosine)
+            )
+
+            # Insert sample points
+            points = [
+                PointStruct(
+                    id=i,
+                    vector=[random.gauss(0, 1) for _ in range(DIMENSION)],
+                    payload={
+                        "text": f"Document {i} about {['AI', 'ML', 'NLP', 'CV'][i % 4]}",
+                        "category": ["AI", "ML", "NLP", "CV"][i % 4]
+                    }
+                )
+                for i in range(1, 101)
+            ]
+            await client.points.upsert(COLLECTION, points)
+            print(f"✓ Inserted {len(points)} points")
+
+        # Generate multiple query vectors (e.g., from different models)
+        query_dense = [random.gauss(0, 1) for _ in range(DIMENSION)]
+        query_semantic = [random.gauss(0, 1) for _ in range(DIMENSION)]
+
+        # Perform separate searches
+        print("Dense search #1")
+        results_a = await client.points.search(
+            COLLECTION,
+            vector=query_dense,
+            limit=20
+        )
+        for r in results_a[:5]:
+            print(f"  id={r.id:3d}  score={r.score:.4f}")
+
+        print("\nDense search #2 (different vector)")
+        results_b = await client.points.search(
+            COLLECTION,
+            vector=query_semantic,
+            limit=20
+        )
+        for r in results_b[:5]:
+            print(f"  id={r.id:3d}  score={r.score:.4f}")
+
+        # Fuse results using RRF
+        print("\nRRF fusion (k=60)")
+        fused_results = reciprocal_rank_fusion(
+            [results_a, results_b],
+            limit=10,
+            ranking_constant_k=60
+        )
+
+        for i, point in enumerate(fused_results[:5], 1):
+            print(f"{i}. ID: {point.id}, Fused Score: {point.score:.4f}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient, reciprocalRankFusion } from '@actian/cortex-client';
+
+const COLLECTION = "documents";
+const DIMENSION = 128;
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    // Create collection if it doesn't exist
+    await client.collections.create(COLLECTION, {
+        dimension: DIMENSION,
+        distanceMetric: 'COSINE'
+    });
+
+    // Insert sample points
+    const points = Array.from({ length: 100 }, (_, i) => ({
+        id: i + 1,
+        vector: Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1),
+        payload: {
+            text: `Document ${i + 1} about ${['AI', 'ML', 'NLP', 'CV'][i % 4]}`,
+            category: ['AI', 'ML', 'NLP', 'CV'][i % 4]
+        }
+    }));
+    await client.points.upsert(COLLECTION, points, { wait: true });
+    console.log(`Inserted ${points.length} points`);
+
+    // Generate multiple query vectors (e.g., from different models)
+    const queryDense = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+    const querySemantic = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+
+    // Perform separate searches
+    console.log("Dense search #1");
+    const resultsA = await client.points.search(COLLECTION, queryDense, {
+        limit: 20
+    });
+    resultsA.slice(0, 5).forEach(r => {
+        console.log(`  id=${r.id}  score=${r.score.toFixed(4)}`);
+    });
+
+    console.log("\nDense search #2 (different vector)");
+    const resultsB = await client.points.search(COLLECTION, querySemantic, {
+        limit: 20
+    });
+    resultsB.slice(0, 5).forEach(r => {
+        console.log(`  id=${r.id}  score=${r.score.toFixed(4)}`);
+    });
+
+    // Fuse results using RRF
+    console.log("\nRRF fusion (k=60)");
+    const fusedResults = reciprocalRankFusion(
+        [resultsA, resultsB],
+        { k: 60, limit: 10 }
+    );
+
+    fusedResults.slice(0, 5).forEach((point, i) => {
+        console.log(`${i + 1}. ID: ${point.id}, Fused Score: ${point.score.toFixed(4)}`);
+    });
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each fused result includes these fields:
+
+- `id`: The unique identifier of the matching point
+- `score`: Fused score based on rank positions across all result lists
+- `payload`: Metadata object if the original searches included payloads
+
+The `ranking_constant_k` parameter affects how scores are distributed:
+
+- **Lower values** (for example, 10) give significantly more weight to top-ranked results
+- **Default value** (60) provides balanced weight distribution
+- **Higher values** (for example, 100) distribute weight more evenly across all ranks

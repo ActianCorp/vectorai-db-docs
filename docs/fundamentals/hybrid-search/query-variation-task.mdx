@@ -1,0 +1,120 @@
+---
+title: "Query variation fusion"
+description: "Improve search robustness by fusing results from query vector variations."
+icon: "code"
+---
+
+Query variation fusion generates slight perturbations of a query vector and searches with each variation. Fusing the results reduces sensitivity to the exact query representation and improves the robustness of retrieval. This approach is useful when small changes in the query vector can lead to different result rankings.
+
+The example below creates four variations of a base query vector by adding small amounts of random noise, searches with each variation, and then applies DBSF to combine the results into a single ranked list.
+
+<CodeGroup>
+```python Python
+from actian_vectorai import VectorAIClient, distribution_based_score_fusion
+import random
+
+COLLECTION = "documents"
+DIMENSION = 128
+
+def generate_query_variations(base_query_vector, num_variations=3):
+    """Generate query variations with slight perturbations"""
+    variations = [base_query_vector]
+
+    for _ in range(num_variations - 1):
+        # Add small random noise to create variations
+        variation = [
+            x + random.gauss(0, 0.1)
+            for x in base_query_vector
+        ]
+        variations.append(variation)
+
+    return variations
+
+with VectorAIClient("localhost:50051") as client:
+    # Base query
+    base_query = [random.gauss(0, 1) for _ in range(DIMENSION)]
+
+    # Generate variations
+    query_variations = generate_query_variations(base_query, num_variations=4)
+
+    # Search with each variation
+    all_results = []
+    for i, query in enumerate(query_variations, 1):
+        results = client.points.search(
+            COLLECTION,
+            vector=query,
+            limit=10
+        )
+        print(f"Query variation {i}: {len(results)} results")
+        all_results.append(results)
+
+    # Fuse all variations
+    final_results = distribution_based_score_fusion(all_results)
+
+    print(f"\nFinal fused results: {len(final_results)}")
+    for i, point in enumerate(final_results[:3], 1):
+        print(f"{i}. Score: {point.score:.4f}, Payload: {point.payload}")
+```
+
+```javascript JavaScript
+import { CortexClient, distributionBasedScoreFusion } from '@actian/cortex-client';
+
+const COLLECTION = "documents";
+const DIMENSION = 128;
+
+function generateQueryVariations(baseQueryVector, numVariations = 3) {
+    /** Generate query variations with slight perturbations */
+    const variations = [baseQueryVector];
+
+    for (let i = 1; i < numVariations; i++) {
+        // Add small random noise to create variations
+        const variation = baseQueryVector.map(x => x + (Math.random() * 0.2 - 0.1));
+        variations.push(variation);
+    }
+
+    return variations;
+}
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    // Base query
+    const baseQuery = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+
+    // Generate variations
+    const queryVariations = generateQueryVariations(baseQuery, 4);
+
+    // Search with each variation
+    const allResults = [];
+    for (let i = 0; i < queryVariations.length; i++) {
+        const results = await client.points.search(COLLECTION, queryVariations[i], {
+            limit: 10
+        });
+        console.log(`Query variation ${i + 1}: ${results.length} results`);
+        allResults.push(results);
+    }
+
+    // Fuse all variations
+    const finalResults = distributionBasedScoreFusion(allResults);
+
+    console.log(`\nFinal fused results: ${finalResults.length}`);
+    finalResults.slice(0, 3).forEach((point, i) => {
+        console.log(`${i + 1}. Score: ${point.score.toFixed(4)}, Payload: ${JSON.stringify(point.payload)}`);
+    });
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each fused result includes these fields:
+
+- `id`: The unique identifier of the matching point
+- `score`: Normalized fused score from distribution-based fusion across all query variations
+- `payload`: Metadata object from the matching point
+
+Query variation fusion is effective when:
+
+- Small perturbations in embedding space lead to different result rankings
+- You want more stable, reproducible search results
+- The query embedding may not perfectly capture the user's intent

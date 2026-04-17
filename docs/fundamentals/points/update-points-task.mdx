@@ -1,0 +1,158 @@
+---
+title: "Update points"
+description: "Modify existing points with new vector and payload data."
+icon: "code"
+---
+
+Update existing points by providing a new vector and optionally new payload data. The upsert operation replaces the point components you provide.
+
+## Update a single point
+
+The update operation replaces the vector and optionally the payload. When updating a point, you must provide the vector, but payload is optional.
+
+To update only specific payload fields, first retrieve the existing point, modify the payload, then upsert it back.
+
+<CodeGroup>
+```python Python
+import random
+from actian_vectorai import VectorAIClient, PointStruct
+
+DIMENSION = 128
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Generate new vector
+    updated_vector = [random.gauss(0, 1) for _ in range(DIMENSION)]
+    
+    # Update point with new data
+    point = PointStruct(
+        id=1,  # Point ID to update
+        vector=updated_vector,  # New vector embedding
+        payload={  # New metadata (optional)
+            "name": "Gaming Laptop",
+            "category": "electronics",
+            "price": 1499.99,
+            "updated": True
+        }
+    )
+    
+    # Upsert updated point
+    client.points.upsert(COLLECTION, [point])
+    
+    print("Point updated successfully")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const DIMENSION = 128;
+const COLLECTION = "products";
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Generate new vector
+        const updatedVector = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+
+        // Update point with new data
+        await client.points.upsert(COLLECTION, [{
+            id: 1,  // Point ID to update
+            vector: updatedVector,  // New vector embedding
+            payload: {  // New metadata (optional)
+                name: "Gaming Laptop",
+                category: "electronics",
+                price: 1499.99,
+                updated: true
+            }
+        }], { wait: true });
+
+        console.log("Point updated successfully");
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Update multiple points
+
+The same replacement rules from single-point updates apply here. You must provide the vector, and payload is optional. Partial payload updates are not supported.
+
+<CodeGroup>
+```python Python
+import random
+from actian_vectorai import VectorAIClient, PointStruct
+
+DIMENSION = 128
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Prepare update data
+    updates = [
+        {"id": 2, "name": "5G Smartphone", "category": "electronics", "price": 899.99, "updated": True},
+        {"id": 3, "name": "Pro Tablet", "category": "electronics", "price": 799.99, "updated": True},
+        {"id": 4, "name": "Premium T-Shirt", "category": "clothing", "price": 49.99, "updated": True}
+    ]
+    
+    # Create points with new data
+    points = [
+        PointStruct(
+            id=item["id"],  # Point ID to update
+            vector=[random.gauss(0, 1) for _ in range(DIMENSION)],  # New vector
+            payload={k: v for k, v in item.items() if k != "id"}  # Extract payload fields (optional)
+        )
+        for item in updates
+    ]
+    
+    # Batch update all points
+    client.points.upsert(COLLECTION, points)
+    
+    print(f"Updated {len(points)} points")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const DIMENSION = 128;
+const COLLECTION = "products";
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Prepare update data
+        const updates = [
+            { id: 2, name: "5G Smartphone", category: "electronics", price: 899.99, updated: true },
+            { id: 3, name: "Pro Tablet", category: "electronics", price: 799.99, updated: true },
+            { id: 4, name: "Premium T-Shirt", category: "clothing", price: 49.99, updated: true }
+        ];
+
+        // Create points with new data
+        const points = updates.map(item => ({
+            id: item.id,  // Point ID to update
+            vector: Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1),  // New vector
+            payload: {  // Extract payload fields (optional)
+                name: item.name,
+                category: item.category,
+                price: item.price,
+                updated: item.updated
+            }
+        }));
+
+        // Batch update all points
+        await client.points.upsert(COLLECTION, points, { wait: true });
+
+        console.log(`Updated ${points.length} points`);
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>

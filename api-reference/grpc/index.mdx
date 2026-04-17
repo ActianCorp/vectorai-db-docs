@@ -1,0 +1,85 @@
+---
+title: "gRPC endpoints"
+description: "gRPC endpoints for VectorAI DB."
+---
+
+VectorAI DB provides high-performance gRPC endpoints for applications that require low-latency operations and efficient binary communication. gRPC uses Protocol Buffers for serialization and HTTP/2 for transport, making it ideal for production workloads with demanding performance requirements.
+
+From this page you can learn about the gRPC connection details, understand when to choose gRPC over REST, and run a sample workflow using the Python SDK.
+
+## Connection details
+
+- **Default port**: 50051.
+- **Protocol**: gRPC over HTTP/2.
+- **Serialization**: Protocol Buffers (protobuf).
+
+## Benefits of gRPC
+
+gRPC offers several advantages over REST for vector database operations.
+
+- **High performance**: binary serialization is faster and more compact than JSON.
+- **Low latency**: HTTP/2 multiplexing reduces connection overhead.
+- **Type safety**: strong typing with Protocol Buffers.
+- **Bidirectional streaming**: support for streaming requests and responses.
+- **Code generation**: automatic client generation from .proto files.
+
+## When to use gRPC
+
+Choose gRPC endpoints when you need:
+
+- Minimal latency for vector operations.
+- High-throughput batch processing.
+- Microservices architecture with service-to-service communication.
+- Streaming data operations.
+- Strong typing and contract-first API design.
+
+For standard web applications and quick prototyping, the [REST API](/api-reference/rest) may be simpler to integrate.
+
+## Client libraries
+
+The Python SDK supports gRPC endpoints for communication with VectorAI DB. For more information about using the Python SDK with gRPC endpoints, see [Python SDK](/sdks/python/index).
+
+## Create a collection and run a search
+
+The following example connects to a VectorAI DB gRPC endpoint, creates a collection with 128-dimensional cosine vectors, inserts a point, and runs a similarity search. After running this code you should see the search results printed to the console, confirming that your gRPC connection is working.
+
+```python
+from actian_vectorai import (
+    Distance,
+    PointStruct,
+    VectorAIClient,
+    VectorParams,
+)
+
+# Connect to gRPC endpoint (default port 50051)
+with VectorAIClient("localhost:50051") as client:
+    # Health check
+    info = client.health_check()
+    print(f"Connected to {info['title']} v{info['version']}")
+
+    # Create a collection
+    client.collections.create(
+        "my_collection",
+        vectors_config=VectorParams(size=128, distance=Distance.Cosine),
+    )
+
+    # Insert a point
+    client.points.upsert(
+        "my_collection",
+        points=[
+            PointStruct(
+                id=1,
+                vector=[0.1] * 128,
+                payload={"category": "example"}
+            )
+        ]
+    )
+
+    # Perform search operations
+    results = client.points.search(
+        "my_collection",
+        vector=[0.1] * 128,
+        limit=10
+    )
+    print(f"Found {len(results)} results")
+```

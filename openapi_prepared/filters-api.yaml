@@ -1,0 +1,707 @@
+openapi: 3.0.3
+info:
+  title: Actian VectorAI DB - Filters API
+  description: Filters API for narrowing search, scroll, count, and other point operations.
+  version: 1.0.0
+  contact:
+    name: Actian Corporation
+    url: https://www.actian.com
+
+servers:
+  - url: http://localhost:50052
+    description: Local development server (REST API)
+  - url: https://api.vectorai.actian.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Filters
+    description: Filter construction and usage
+
+# NOTE: Filters are not a standalone endpoint. They are used as parameters in search, scroll, count,
+# and other point operations. This file documents filter syntax and examples as reference material.
+# The /filters/examples path below is a documentation-only route used by Mintlify to render the page.
+
+paths:
+  /filters/examples:
+    get:
+      tags:
+        - Filters
+      summary: Filter examples
+      description: |
+        Filters narrow the results of search, scroll, count, and other point operations by applying conditions to payload fields. You pass a filter object in the `filter` parameter of these operations.
+
+        A filter object contains one or more boolean clauses that combine field conditions.
+
+        ## Boolean clauses
+
+        - `must` — all conditions must match (AND logic). Points are included only when every condition in the array evaluates to true.
+        - `should` — at least one condition must match (OR logic). Points are included when any condition in the array evaluates to true.
+        - `must_not` — no condition may match (exclusion logic). Points are excluded when any condition in the array evaluates to true.
+
+        You can combine all three clauses in a single filter. For example, require a category (must), accept multiple price ranges (should), and exclude a specific brand (must_not).
+
+        ## Field conditions
+
+        Each condition targets a payload field by `key` and applies an operator.
+
+        - `match` — exact value match. Supports strings, numbers, and booleans.
+        - `range` — numeric range with `gt`, `gte`, `lt`, `lte` operators. Combine multiple range operators for between queries.
+        - `has_id` — matches points by their ID. Pass an array of point IDs.
+
+        ## Equality filter
+
+        Match points where a field has an exact value.
+
+        ```bash
+        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+          -H "Content-Type: application/json" \
+          -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+          -d '{
+            "vector": [0.1, 0.2, 0.3, 0.4],
+            "limit": 5,
+            "filter": {
+              "must": [
+                {
+                  "key": "category",
+                  "match": { "value": "A" }
+                }
+              ]
+            }
+          }'
+        ```
+
+        ```json
+        {
+          "usage": { "hardware": null },
+          "time": 0.001326298,
+          "status": "ok",
+          "result": [
+            { "id": 1, "version": 0, "score": 1, "payload": null, "vector": null }
+          ]
+        }
+        ```
+
+        ## Range filter
+
+        Match points where a numeric field falls within a range.
+
+        ```bash
+        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+          -H "Content-Type: application/json" \
+          -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+          -d '{
+            "vector": [0.1, 0.2, 0.3, 0.4],
+            "limit": 5,
+            "filter": {
+              "must": [
+                {
+                  "key": "value",
+                  "range": { "gte": 5, "lte": 50 }
+                }
+              ]
+            }
+          }'
+        ```
+
+        ```json
+        {
+          "usage": { "hardware": null },
+          "time": 0.001511138,
+          "status": "ok",
+          "result": [
+            { "id": 1, "version": 0, "score": 1, "payload": null, "vector": null },
+            { "id": 3, "version": 0, "score": 0.9843740463256836, "payload": null, "vector": null },
+            { "id": 2, "version": 0, "score": 0.9688639640808105, "payload": null, "vector": null }
+          ]
+        }
+        ```
+
+        ## Combined AND filter
+
+        Require multiple conditions to all be true.
+
+        ```bash
+        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+          -H "Content-Type: application/json" \
+          -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+          -d '{
+            "vector": [0.1, 0.2, 0.3, 0.4],
+            "limit": 5,
+            "filter": {
+              "must": [
+                {"key": "category", "match": {"value": "A"}},
+                {"key": "value", "range": {"gte": 5}}
+              ]
+            }
+          }'
+        ```
+
+        ```json
+        {
+          "usage": { "hardware": null },
+          "time": 0.001966431,
+          "status": "ok",
+          "result": [
+            { "id": 1, "version": 0, "score": 1, "payload": null, "vector": null }
+          ]
+        }
+        ```
+
+        ## Exclusion filter
+
+        Include points matching one condition while excluding those matching another.
+
+        ```bash
+        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+          -H "Content-Type: application/json" \
+          -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+          -d '{
+            "vector": [0.1, 0.2, 0.3, 0.4],
+            "limit": 5,
+            "filter": {
+              "must": [
+                {"key": "category", "match": {"value": "A"}}
+              ],
+              "must_not": [
+                {"key": "value", "range": {"gt": 50}}
+              ]
+            }
+          }'
+        ```
+
+        ```json
+        {
+          "usage": { "hardware": null },
+          "time": 0.001301257,
+          "status": "ok",
+          "result": [
+            { "id": 1, "version": 0, "score": 1, "payload": null, "vector": null }
+          ]
+        }
+        ```
+
+        ## OR filter
+
+        Match points where at least one condition is true.
+
+        ```bash
+        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+          -H "Content-Type: application/json" \
+          -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+          -d '{
+            "vector": [0.1, 0.2, 0.3, 0.4],
+            "limit": 5,
+            "filter": {
+              "should": [
+                {"key": "category", "match": {"value": "A"}},
+                {"key": "category", "match": {"value": "B"}}
+              ]
+            }
+          }'
+        ```
+
+        ```json
+        {
+          "usage": { "hardware": null },
+          "time": 0.001109878,
+          "status": "ok",
+          "result": [
+            { "id": 1, "version": 0, "score": 1, "payload": null, "vector": null },
+            { "id": 2, "version": 0, "score": 0.9688639640808105, "payload": null, "vector": null }
+          ]
+        }
+        ```
+
+        ## ID filter
+
+        Restrict results to specific point IDs using `has_id`.
+
+        ```bash
+        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+          -H "Content-Type: application/json" \
+          -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+          -d '{
+            "vector": [0.1, 0.2, 0.3, 0.4],
+            "limit": 5,
+            "filter": {
+              "must": [
+                { "has_id": [1, 2] }
+              ]
+            }
+          }'
+        ```
+
+        ```json
+        {
+          "usage": { "hardware": null },
+          "time": 0.001272852,
+          "status": "ok",
+          "result": [
+            { "id": 1, "version": 0, "score": 1, "payload": null, "vector": null },
+            { "id": 2, "version": 0, "score": 0.9688639640808105, "payload": null, "vector": null }
+          ]
+        }
+        ```
+
+        ## Combined boolean filter
+
+        Combine `should`, `must`, and `must_not` clauses in a single filter.
+
+        ```bash
+        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+          -H "Content-Type: application/json" \
+          -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+          -d '{
+            "vector": [0.1, 0.2, 0.3, 0.4],
+            "limit": 5,
+            "filter": {
+              "should": [
+                {"key": "category", "match": {"value": "A"}},
+                {"key": "category", "match": {"value": "B"}}
+              ],
+              "must": [
+                {"key": "value", "range": {"lt": 100}}
+              ],
+              "must_not": [
+                {"key": "value", "range": {"lt": 5}}
+              ]
+            }
+          }'
+        ```
+
+        ```json
+        {
+          "usage": { "hardware": null },
+          "time": 0.004577864,
+          "status": "ok",
+          "result": [
+            { "id": 1, "version": 0, "score": 1, "payload": null, "vector": null },
+            { "id": 2, "version": 0, "score": 0.9688639640808105, "payload": null, "vector": null }
+          ]
+        }
+        ```
+      operationId: filter_examples
+      responses:
+        "200":
+          description: Documentation-only page. No request is sent.
+      x-codeSamples:
+        - lang: Python
+          label: Equality filter
+          source: |
+            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            import random
+
+            with VectorAIClient("localhost:50051") as client:
+                query_vec = [random.gauss(0, 1) for _ in range(4)]
+
+                search_filter = FilterBuilder() \
+                    .must(Field("category").eq("A")) \
+                    .build()
+
+                results = client.points.search(
+                    "my_collection",
+                    vector=query_vec,
+                    filter=search_filter,
+                    limit=5
+                )
+
+                for r in results:
+                    print(f"ID: {r.id}, Score: {r.score:.4f}")
+        - lang: Python
+          label: Range filter
+          source: |
+            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            import random
+
+            with VectorAIClient("localhost:50051") as client:
+                query_vec = [random.gauss(0, 1) for _ in range(4)]
+
+                price_filter = FilterBuilder() \
+                    .must(Field("value").gte(5)) \
+                    .must(Field("value").lte(50)) \
+                    .build()
+
+                results = client.points.search(
+                    "my_collection",
+                    vector=query_vec,
+                    filter=price_filter,
+                    limit=5
+                )
+
+                for r in results:
+                    print(f"ID: {r.id}, Score: {r.score:.4f}")
+        - lang: Python
+          label: AND + NOT filter
+          source: |
+            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            import random
+
+            with VectorAIClient("localhost:50051") as client:
+                query_vec = [random.gauss(0, 1) for _ in range(4)]
+
+                search_filter = FilterBuilder() \
+                    .must(Field("category").eq("A")) \
+                    .must_not(Field("value").range(gt=50)) \
+                    .build()
+
+                results = client.points.search(
+                    "my_collection",
+                    vector=query_vec,
+                    filter=search_filter,
+                    limit=5
+                )
+
+                for r in results:
+                    print(f"ID: {r.id}, Score: {r.score:.4f}")
+        - lang: Python
+          label: OR filter
+          source: |
+            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            import random
+
+            with VectorAIClient("localhost:50051") as client:
+                query_vec = [random.gauss(0, 1) for _ in range(4)]
+
+                category_filter = FilterBuilder() \
+                    .should(Field("category").eq("A")) \
+                    .should(Field("category").eq("B")) \
+                    .build()
+
+                results = client.points.search(
+                    "my_collection",
+                    vector=query_vec,
+                    filter=category_filter,
+                    limit=5
+                )
+
+                for r in results:
+                    print(f"ID: {r.id}, Score: {r.score:.4f}")
+        - lang: Python
+          label: ID filter
+          source: |
+            from actian_vectorai import VectorAIClient, FilterBuilder, has_id
+            import random
+
+            with VectorAIClient("localhost:50051") as client:
+                query_vec = [random.gauss(0, 1) for _ in range(4)]
+
+                id_filter = FilterBuilder() \
+                    .must(has_id([1, 2])) \
+                    .build()
+
+                results = client.points.search(
+                    "my_collection",
+                    vector=query_vec,
+                    filter=id_filter,
+                    limit=10
+                )
+
+                print(f"Found IDs: {[r.id for r in results]}")
+        - lang: Python
+          label: Count with filter
+          source: |
+            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+
+            with VectorAIClient("localhost:50051") as client:
+                total = client.points.count("my_collection")
+
+                elec_filter = FilterBuilder() \
+                    .must(Field("category").eq("A")) \
+                    .build()
+                category_a = client.points.count("my_collection", filter=elec_filter)
+
+                print(f"Total: {total}")
+                print(f"Category A: {category_a}")
+        - lang: Python
+          label: Combined boolean filter
+          source: |
+            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            import random
+
+            with VectorAIClient("localhost:50051") as client:
+                query_vec = [random.gauss(0, 1) for _ in range(4)]
+
+                combined_filter = FilterBuilder() \
+                    .should(Field("category").eq("A")) \
+                    .should(Field("category").eq("B")) \
+                    .must(Field("value").lt(100)) \
+                    .must_not(Field("value").lt(5)) \
+                    .build()
+
+                results = client.points.search(
+                    "my_collection",
+                    vector=query_vec,
+                    filter=combined_filter,
+                    limit=5
+                )
+
+                for r in results:
+                    print(f"ID: {r.id}, Score: {r.score:.4f}")
+        - lang: cURL
+          label: Equality filter
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "vector": [0.1, 0.2, 0.3, 0.4],
+                "limit": 5,
+                "filter": {
+                  "must": [
+                    {
+                      "key": "category",
+                      "match": { "value": "A" }
+                    }
+                  ]
+                }
+              }'
+
+            # Response:
+            # {
+            #   "usage": { "hardware": null },
+            #   "time": 0.001326298,
+            #   "status": "ok",
+            #   "result": [
+            #     { "id": 1, "version": 0, "score": 1, "payload": null, "vector": null }
+            #   ]
+            # }
+        - lang: cURL
+          label: Range filter
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "vector": [0.1, 0.2, 0.3, 0.4],
+                "limit": 5,
+                "filter": {
+                  "must": [
+                    {
+                      "key": "value",
+                      "range": { "gte": 5, "lte": 50 }
+                    }
+                  ]
+                }
+              }'
+
+            # Response:
+            # {
+            #   "usage": { "hardware": null },
+            #   "time": 0.001511138,
+            #   "status": "ok",
+            #   "result": [
+            #     { "id": 1, "version": 0, "score": 1, "payload": null, "vector": null },
+            #     { "id": 3, "version": 0, "score": 0.9843740463256836, "payload": null, "vector": null },
+            #     { "id": 2, "version": 0, "score": 0.9688639640808105, "payload": null, "vector": null }
+            #   ]
+            # }
+        - lang: cURL
+          label: Boolean filter
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "vector": [0.1, 0.2, 0.3, 0.4],
+                "limit": 5,
+                "filter": {
+                  "must": [
+                    {"key": "category", "match": {"value": "A"}}
+                  ],
+                  "must_not": [
+                    {"key": "value", "range": {"gt": 50}}
+                  ]
+                }
+              }'
+
+            # Response:
+            # {
+            #   "usage": { "hardware": null },
+            #   "time": 0.001301257,
+            #   "status": "ok",
+            #   "result": [
+            #     { "id": 1, "version": 0, "score": 1, "payload": null, "vector": null }
+            #   ]
+            # }
+        - lang: cURL
+          label: OR filter
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "vector": [0.1, 0.2, 0.3, 0.4],
+                "limit": 5,
+                "filter": {
+                  "should": [
+                    {"key": "category", "match": {"value": "A"}},
+                    {"key": "category", "match": {"value": "B"}}
+                  ]
+                }
+              }'
+
+            # Response:
+            # {
+            #   "usage": { "hardware": null },
+            #   "time": 0.001109878,
+            #   "status": "ok",
+            #   "result": [
+            #     { "id": 1, "version": 0, "score": 1, "payload": null, "vector": null },
+            #     { "id": 2, "version": 0, "score": 0.9688639640808105, "payload": null, "vector": null }
+            #   ]
+            # }
+        - lang: cURL
+          label: ID filter
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "vector": [0.1, 0.2, 0.3, 0.4],
+                "limit": 5,
+                "filter": {
+                  "must": [
+                    { "has_id": [1, 2] }
+                  ]
+                }
+              }'
+
+            # Response:
+            # {
+            #   "usage": { "hardware": null },
+            #   "time": 0.001272852,
+            #   "status": "ok",
+            #   "result": [
+            #     { "id": 1, "version": 0, "score": 1, "payload": null, "vector": null },
+            #     { "id": 2, "version": 0, "score": 0.9688639640808105, "payload": null, "vector": null }
+            #   ]
+            # }
+        - lang: cURL
+          label: Combined boolean filter
+          source: |
+            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "vector": [0.1, 0.2, 0.3, 0.4],
+                "limit": 5,
+                "filter": {
+                  "should": [
+                    {"key": "category", "match": {"value": "A"}},
+                    {"key": "category", "match": {"value": "B"}}
+                  ],
+                  "must": [
+                    {"key": "value", "range": {"lt": 100}}
+                  ],
+                  "must_not": [
+                    {"key": "value", "range": {"lt": 5}}
+                  ]
+                }
+              }'
+
+            # Response:
+            # {
+            #   "usage": { "hardware": null },
+            #   "time": 0.004577864,
+            #   "status": "ok",
+            #   "result": [
+            #     { "id": 1, "version": 0, "score": 1, "payload": null, "vector": null },
+            #     { "id": 2, "version": 0, "score": 0.9688639640808105, "payload": null, "vector": null }
+            #   ]
+            # }
+
+components:
+  schemas:
+    Filter:
+      type: object
+      description: A filter object containing boolean clauses that combine field conditions.
+      properties:
+        must:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/FieldCondition'
+              - $ref: '#/components/schemas/HasIdCondition'
+          description: All conditions must match for a point to be included (AND logic).
+        must_not:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/FieldCondition'
+              - $ref: '#/components/schemas/HasIdCondition'
+          description: Points matching any condition in this array are excluded.
+        should:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/FieldCondition'
+              - $ref: '#/components/schemas/HasIdCondition'
+          description: At least one condition must match for a point to be included (OR logic).
+      example:
+        must:
+          - key: "category"
+            match:
+              value: "A"
+          - key: "value"
+            range:
+              gte: 5
+              lte: 50
+
+    FieldCondition:
+      type: object
+      description: A condition that targets a payload field by key and applies a match or range operator.
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          description: Name of the payload field to filter on.
+        match:
+          type: object
+          description: Exact value match. The point is included when the field value equals the specified value.
+          properties:
+            value:
+              oneOf:
+                - type: string
+                - type: number
+                - type: boolean
+              description: Value to match against. Supports strings, numbers, and booleans.
+        range:
+          type: object
+          description: Numeric range condition. Combine multiple operators for between queries.
+          properties:
+            gt:
+              type: number
+              description: Greater than. Matches values strictly above this number.
+            gte:
+              type: number
+              description: Greater than or equal. Matches values at or above this number.
+            lt:
+              type: number
+              description: Less than. Matches values strictly below this number.
+            lte:
+              type: number
+              description: Less than or equal. Matches values at or below this number.
+
+    HasIdCondition:
+      type: object
+      description: A condition that matches points by their ID.
+      required:
+        - has_id
+      properties:
+        has_id:
+          type: array
+          items:
+            oneOf:
+              - type: integer
+              - type: string
+          description: Array of point IDs to match. Points with an ID in this array are included.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Admin JWT or access token for authenticating requests to VectorAI DB.

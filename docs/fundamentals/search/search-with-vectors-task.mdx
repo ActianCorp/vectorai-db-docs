@@ -1,0 +1,91 @@
+---
+title: "Search with vectors"
+description: "Include vector embeddings in search results."
+icon: "code"
+---
+
+By default, search excludes vector data from results. To include the actual vector embeddings, set `with_vectors=True`.
+
+Include vectors when you:
+
+- Need embeddings for additional processing.
+- Want to perform secondary similarity calculations.
+- Require raw embedding data in your app.
+
+Including vectors significantly increases response size, so only request them when necessary.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+import random
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Generate query vector
+        query_vector = [random.gauss(0, 1) for _ in range(128)]
+        
+        # Include both payload and vector data
+        results = await client.points.search(
+            "my_collection",  # Collection name
+            vector=query_vector,  # Query vector
+            limit=10,  # Number of results
+            with_payload=True,  # Include payload metadata
+            with_vectors=True  # Include vector embeddings
+        )
+        
+        # Display results
+        for result in results:
+            print(f"ID: {result.id}, Score: {result.score}")
+            print(f"Payload: {result.payload}")
+            if result.vectors:
+                print(f"Vector dimensions: {len(result.vectors)}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Generate query vector
+        const queryVector = Array.from({ length: 128 }, () => Math.random() * 2 - 1);
+
+        // Include both payload and vector data
+        const results = await client.points.search(
+            'my_collection',  // Collection name
+            queryVector,      // Query vector
+            {
+                limit: 10,          // Number of results
+                withPayload: true,  // Include payload metadata
+                withVectors: true   // Include vector embeddings
+            }
+        );
+
+        // Display results
+        for (const result of results) {
+            console.log(`ID: ${result.id}, Score: ${result.score}`);
+            console.log(`Payload: ${JSON.stringify(result.payload)}`);
+            if (result.vector) {
+                console.log(`Vector dimensions: ${result.vector.length}`);
+            }
+        }
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each result includes these fields:
+
+- `id`: The unique identifier of the matching point.
+- `score`: Similarity score based on distance metric.
+- `payload`: Full metadata dictionary for the point.
+- `vector`: The complete vector embedding array.

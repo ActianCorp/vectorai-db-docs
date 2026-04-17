@@ -1,0 +1,449 @@
+---
+title: "Basic similarity search"
+description: "Search for the most similar vectors to your query."
+icon: "code"
+---
+
+Basic search returns the most similar vectors to your query. Provide a query vector and the number of results to return. VectorAI DB uses your collection's distance metric to rank results by similarity.
+
+This is the fastest search type because it performs only vector similarity computation without additional filtering or data retrieval. Use it when you need only semantic similarity without metadata filtering.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+import random
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Generate or use your query vector
+        query_vector = [random.gauss(0, 1) for _ in range(128)]
+        
+        # Search for top 10 similar vectors
+        results = await client.points.search(
+            "my_collection",  # Collection name
+            vector=query_vector,  # Query vector
+            limit=10  # Number of results
+        )
+        
+        # Display results
+        for result in results:
+            print(f"ID: {result.id}, Score: {result.score}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Generate or use your query vector
+        const queryVector = Array.from({ length: 128 }, () => Math.random() * 2 - 1);
+
+        // Search for top 10 similar vectors
+        const results = await client.points.search(
+            'my_collection',  // Collection name
+            queryVector,      // Query vector
+            { limit: 10 }    // Number of results
+        );
+
+        // Display results
+        for (const result of results) {
+            console.log(`ID: ${result.id}, Score: ${result.score}`);
+        }
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each result includes these fields:
+
+- `id`: The unique identifier of the matching point.
+- `score`: Similarity score based on the collection's distance metric.
+- `payload`: Metadata dictionary (only if `with_payload=True`).
+- `vector`: Vector embedding (only if `with_vectors=True`).
+
+## Universal Query API
+
+The `query()` method provides a unified interface for all search operations, including vector search, payload-based ordering, and batch queries. This API simplifies complex queries and offers more flexibility than the basic `search()` method.
+
+### Basic query
+
+Use `query()` for standard vector search:
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+import random
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Generate query vector
+        query_vector = [random.gauss(0, 1) for _ in range(128)]
+        
+        # Query with vector
+        results = await client.points.query(
+            "my_collection",  # Collection name
+            query=query_vector,  # Query vector
+            limit=10  # Number of results
+        )
+        
+        # Display results
+        for result in results:
+            print(f"ID: {result.id}, Score: {result.score}")
+            print(f"Payload: {result.payload}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Generate query vector
+        const queryVector = Array.from({ length: 128 }, () => Math.random() * 2 - 1);
+
+        // Query with vector
+        const results = await client.points.query(
+            'my_collection',  // Collection name
+            {
+                query: queryVector,  // Query vector
+                limit: 10           // Number of results
+            }
+        );
+
+        // Display results
+        for (const result of results) {
+            console.log(`ID: ${result.id}, Score: ${result.score}`);
+            console.log(`Payload: ${JSON.stringify(result.payload)}`);
+        }
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each result includes these fields:
+
+- `id`: The unique identifier of the matching point.
+- `score`: Similarity score based on the collection's distance metric.
+- `payload`: Metadata dictionary containing point data.
+
+## Order by payload field
+
+Sort results by payload fields without using vectors:
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Sort by price (ascending)
+        results = await client.points.query(
+            "products",  # Collection name
+            order_by="price",  # Sort field
+            limit=10  # Number of results
+        )
+        
+        # Display cheapest products
+        print("Cheapest products:")
+        for result in results:
+            print(f"{result.payload['name']}: ${result.payload['price']}")
+        
+        # Sort by price (descending)
+        results = await client.points.query(
+            "products",  # Collection name
+            order_by="-price",  # Prefix with '-' for descending
+            limit=10  # Number of results
+        )
+        
+        # Display most expensive products
+        print("\nMost expensive products:")
+        for result in results:
+            print(f"{result.payload['name']}: ${result.payload['price']}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Sort by price (ascending)
+        const cheapest = await client.points.query(
+            'products',  // Collection name
+            {
+                orderBy: 'price',  // Sort field
+                limit: 10          // Number of results
+            }
+        );
+
+        // Display cheapest products
+        console.log('Cheapest products:');
+        for (const result of cheapest) {
+            console.log(`${result.payload.name}: $${result.payload.price}`);
+        }
+
+        // Sort by price (descending)
+        const expensive = await client.points.query(
+            'products',  // Collection name
+            {
+                orderBy: '-price',  // Prefix with '-' for descending
+                limit: 10           // Number of results
+            }
+        );
+
+        // Display most expensive products
+        console.log('\nMost expensive products:');
+        for (const result of expensive) {
+            console.log(`${result.payload.name}: $${result.payload.price}`);
+        }
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each result includes these fields:
+
+- `id`: The unique identifier of the point.
+- `payload`: Metadata dictionary containing the point data.
+- `score`: Ordering score (may be null when using order_by without vector query).
+
+Order-by queries support these scenarios:
+
+- Find highest or lowest prices.
+- Sort by date, newest or oldest.
+- Rank by rating or popularity.
+- Browse without semantic search.
+
+## Batch queries
+
+Execute multiple queries in a single request:
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient
+import random
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Create multiple query vectors
+        queries = [
+            [random.gauss(0, 1) for _ in range(128)]  # Generate query vector
+            for _ in range(5)  # Create 5 queries
+        ]
+        
+        # Batch query
+        batch_results = await client.points.query_batch(
+            "my_collection",  # Collection name
+            queries=queries,  # List of query vectors
+            limit=5  # Results per query
+        )
+        
+        # Process results for each query
+        for i, results in enumerate(batch_results):
+            print(f"\nQuery {i + 1} results:")
+            for result in results:
+                print(f"  ID: {result.id}, Score: {result.score:.4f}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Create multiple query vectors
+        const queries = Array.from({ length: 5 }, () =>
+            Array.from({ length: 128 }, () => Math.random() * 2 - 1)
+        );
+
+        // Batch search
+        const batchResults = await client.points.searchBatch(
+            'my_collection',  // Collection name
+            queries.map(vector => ({
+                vector,    // Query vector
+                limit: 5   // Results per query
+            }))
+        );
+
+        // Process results for each query
+        batchResults.forEach((results, i) => {
+            console.log(`\nQuery ${i + 1} results:`);
+            for (const result of results) {
+                console.log(`  ID: ${result.id}, Score: ${result.score.toFixed(4)}`);
+            }
+        });
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Batch queries provide these advantages:
+
+- Single network round trip for multiple queries
+- Better throughput than individual requests
+- Reduced server overhead
+- Ideal for multi-query RAG applications
+
+The method returns a list of result sets, one for each query. Each result set contains:
+
+- `id`: The unique identifier of the matching point.
+- `score`: Similarity score for the query.
+- `payload`: Metadata dictionary if requested.
+- `vector`: Vector embedding if requested.
+
+## Query with filters and ordering
+
+Combine vector search with filters and custom ordering:
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient, FilterBuilder, Field
+import random
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Generate query vector
+        query_vector = [random.gauss(0, 1) for _ in range(128)]
+        
+        # Complex query: vector search + filter + sort
+        filter = FilterBuilder()\
+            .must(Field("category").eq("electronics"))\
+            .must(Field("in_stock").eq(True))\
+            .build()
+        
+        # Search with filter and ordering
+        results = await client.points.query(
+            "products",  # Collection name
+            query=query_vector,  # Query vector
+            filter=filter,  # Apply filter
+            order_by="price",  # Sort results by price
+            limit=10  # Number of results
+        )
+        
+        # Display results
+        print("Electronics in stock, sorted by price:")
+        for result in results:
+            print(f"{result.payload['name']}: "
+                  f"${result.payload['price']} "
+                  f"(similarity: {result.score:.3f})")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient, Field, Filter } from '@actian/cortex-client';
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Generate query vector
+        const queryVector = Array.from({ length: 128 }, () => Math.random() * 2 - 1);
+
+        // Complex query: vector search + filter + sort
+        const filter = new Field('category').eq('electronics')
+            .and(new Field('in_stock').eq(true));
+
+        // Search with filter and ordering
+        const results = await client.points.query(
+            'products',  // Collection name
+            {
+                query: queryVector,   // Query vector
+                filter: filter,       // Apply filter
+                orderBy: 'price',     // Sort results by price
+                limit: 10             // Number of results
+            }
+        );
+
+        // Display results
+        console.log('Electronics in stock, sorted by price:');
+        for (const result of results) {
+            console.log(
+                `${result.payload.name}: ` +
+                `$${result.payload.price} ` +
+                `(similarity: ${result.score.toFixed(3)})`
+            );
+        }
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each result includes these fields:
+
+- `id`: The unique identifier of the matching point.
+- `score`: Relevance score based on similarity or ordering criteria.
+- `payload`: Metadata dictionary containing the point data.
+
+## Choose between query() and search()
+
+Use `query()` when:
+
+- Sorting by payload fields (order-by)
+- Running batch queries
+- You need the unified API for consistency
+- Building flexible query systems
+
+Use `search()` when:
+
+- Pure vector similarity search
+- Simpler code is preferred
+- Using established search patterns
+- No need for order-by or batching
+
+## Interpret semantic search results
+
+Each search result contains these components:
+
+### Required fields
+
+- `id`: Vector identifier as an integer.
+- `score`: Similarity measure as a float.
+
+### Optional fields
+
+- `payload`: Metadata dictionary when `with_payload=True`.
+- `vector`: Embedding array when `with_vectors=True`.

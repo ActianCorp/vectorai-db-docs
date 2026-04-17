@@ -1,0 +1,216 @@
+---
+title: "Create a collection"
+description: "Create collections with default or custom index parameters."
+icon: "code"
+---
+
+This page shows several ways to create a collection, from basic defaults to custom HNSW index parameters and idempotent initialization patterns.
+
+<Note>
+Before you begin, make sure you have a running VectorAI DB instance and the Python client library installed (`pip install actian-vectorai`).
+</Note>
+
+## Create a basic collection
+
+To create a collection, specify a name and vector dimension. VectorAI DB automatically creates a Hierarchical Navigable Small World (HNSW) index for efficient search.
+
+The default distance metric is cosine similarity, and VectorAI DB applies default HNSW parameters when none are specified.
+
+The following example creates a collection named `my_collection` that accepts 128-dimensional vectors.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Create a collection with 128-dimensional vectors
+        await client.collections.create(
+            "my_collection",  # Collection name
+            vectors_config=VectorParams(size=128, distance=Distance.Cosine)  # Vector configuration
+        )
+        print("Collection created successfully")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Create a collection with 128-dimensional vectors
+        await client.collections.create('my_collection', {
+            dimension: 128,            // Vector dimension
+            distanceMetric: 'COSINE'   // Distance metric
+        });
+        console.log('Collection created successfully');
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Create a collection with custom HNSW parameters
+
+Customize the distance metric and index configuration when creating a collection. The HNSW parameters control the speed and accuracy tradeoff:
+
+- `m`: Number of bidirectional links per node. Higher values improve recall but increase memory usage.
+- `ef_construct`: Quality of index construction. Higher values create better indexes but take longer to build.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, HnswConfigDiff
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Create collection with custom HNSW parameters
+        await client.collections.create(
+            "my_collection",  # Collection name
+            vectors_config=VectorParams(size=128, distance=Distance.Cosine),  # Vector configuration
+            hnsw_config=HnswConfigDiff(
+                m=16,              # Connections per layer
+                ef_construct=200   # Accuracy during building
+            )
+        )
+        print("Collection created with custom parameters")
+
+asyncio.run(main())
+```
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Create collection with custom HNSW parameters
+        await client.collections.create('my_collection', {
+            dimension: 128,            // Vector dimension
+            distanceMetric: 'COSINE',  // Distance metric
+            hnswConfig: {
+                m: 16,                 // Connections per layer
+                efConstruct: 200       // Accuracy during building
+            }
+        });
+        console.log('Collection created with custom parameters');
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Check collection existence
+
+Before creating a collection, verify whether it already exists to avoid errors. The `exists()` method returns `True` if the collection exists and `False` otherwise.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Check if collection already exists
+        exists = await client.collections.exists("my_collection")
+        if not exists:
+            # Create collection if it doesn't exist
+            await client.collections.create(
+                "my_collection",  # Collection name
+                vectors_config=VectorParams(size=128, distance=Distance.Cosine)  # Vector configuration
+            )
+            print("Collection created")
+        else:
+            print("Collection already exists")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Check if collection already exists
+        const exists = await client.collections.exists('my_collection');
+        if (!exists) {
+            // Create collection if it doesn't exist
+            await client.collections.create('my_collection', {
+                dimension: 128,            // Vector dimension
+                distanceMetric: 'COSINE'   // Distance metric
+            });
+            console.log('Collection created');
+        } else {
+            console.log('Collection already exists');
+        }
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Get or create collection
+
+Use `get_or_create()` to ensure a collection exists before your application starts working with it. This method returns the existing collection if one is already present, or creates a new one with the specified parameters.
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Returns existing collection or creates new one
+        await client.collections.get_or_create(
+            "my_collection",  # Collection name
+            vectors_config=VectorParams(size=128, distance=Distance.Cosine)  # Vector configuration
+        )
+        print("Collection is ready")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Returns existing collection or creates new one
+        await client.collections.getOrCreate('my_collection', {
+            dimension: 128,            // Vector dimension
+            distanceMetric: 'COSINE'   // Distance metric
+        });
+        console.log('Collection is ready');
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+<Note>
+Vector dimension and distance metric are fixed after collection creation and cannot be changed. To use different values, you must delete and recreate the collection. HNSW parameters and optimizer settings can be updated after creation.
+</Note>

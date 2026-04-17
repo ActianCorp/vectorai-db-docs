@@ -1,0 +1,77 @@
+---
+title: "Vectors overview"
+description: "Convert unstructured data into searchable numerical embeddings."
+---
+
+Vectors, also called embeddings, are numerical representations of data that enable semantic search. VectorAI DB uses vectors to convert unstructured data — images, text, audio, and video — into searchable numerical formats.
+
+Each vector is an array of floating-point numbers with fixed dimensionality. Similar vectors indicate that their source objects share semantic meaning. For example, two text paragraphs with similar content produce vectors close together in vector space. This proximity makes them easy to find through similarity search.
+
+VectorAI DB organizes vectors as components of [points](/docs/fundamentals/points/points) in [collections](/docs/fundamentals/collections/collections). [Distance metrics](/docs/fundamentals/distance-metrics/distance-metrics) measure the similarity between vectors to enable search operations.
+
+## Dense vectors
+
+Dense vectors are the most common vector type used in semantic search and AI applications. Each dense vector has a fixed number of dimensions, with each element represented as a floating-point number.
+
+Modern embedding models generate dense vectors to represent text, images, audio, and other data types. Dense vectors can have hundreds or thousands of dimensions, making them suitable for capturing complex semantic relationships.
+
+The following example shows a 384-dimensional dense vector, truncated for display.
+
+```python
+[
+    0.023, -0.891, 0.456, -0.234, 0.678, 0.123, -0.567, 0.890,
+    -0.345, 0.234, 0.789, -0.456, 0.123, 0.567, -0.890, 0.345,
+    # ... 368 more dimensions
+]
+```
+
+VectorAI DB stores dense vectors efficiently using optimized memory layouts and indexing structures. The HNSW (Hierarchical Navigable Small World) index enables fast approximate nearest neighbor search across large collections of dense vectors.
+
+## Multi-vector representations
+
+VectorAI DB supports multiple vector embeddings per data object rather than using a single embedding. Models such as ColBERT, ColPali, and ColQwen generate these multi-vector representations, allowing fine-grained semantic matching at the token or segment level.
+
+Traditional single-vector approaches compress entire documents into one embedding, losing nuanced information about individual parts. Multi-vector representations preserve this granularity by generating separate embeddings for different segments such as tokens in text or patches in images.
+
+### How multi-vector search works
+
+During search, VectorAI DB compares corresponding parts of documents rather than treating entire texts as monolithic units. This architecture improves search precision by enabling:
+
+- Token-level matching to compare individual words or phrases in text documents.
+- Patch-level comparison to match specific regions within images.
+- Segment-level analysis to evaluate relevance of sections in long-form content.
+- Fine-grained scoring to assess relevance across document parts independently.
+
+Multi-vector search delivers more accurate retrieval for complex queries where specific document sections matter more than overall similarity.
+
+### Use cases for multi-vector embeddings
+
+Multi-vector representations excel in scenarios requiring precise matching:
+
+- Document retrieval — Find specific passages that answer queries within long documents.
+- Visual search — Match detailed image regions rather than whole-image similarity.
+- Long-form content — Analyze section-level relevance in articles, reports, or books.
+- Question answering — Identify the exact context within documents that contains answers.
+
+VectorAI DB handles the complexity of storing and querying multiple vectors per object while maintaining fast search performance through optimized indexing strategies.
+
+## Distance metrics and vector similarity
+
+Different distance metrics measure vector similarity in different ways. Choose a metric that matches how your embedding model was trained. For a comparison of the available options, see [Distance metrics](/docs/fundamentals/distance-metrics/distance-metrics).
+
+The distance metric is fixed at collection creation. If you need a different metric, you must create a new collection and re-insert your vectors. See [Store vectors](/docs/fundamentals/vectors/create-vectors-task) for instructions.
+
+## Task guides
+
+The following guides cover vector operations step by step.
+
+- [Store vectors](/docs/fundamentals/vectors/create-vectors-task).
+- [Search with vectors](/docs/fundamentals/vectors/search-vectors-task).
+
+## Next steps
+
+- [Points](/docs/fundamentals/points/points) — Understand how vectors fit into the data model.
+- [Distance metrics](/docs/fundamentals/distance-metrics/distance-metrics) — Choose the right measure for vector similarity.
+- [Collections](/docs/fundamentals/collections/collections) — Organize and configure how vectors are stored.
+- [Indexing](/docs/fundamentals/indexing/indexing) — Tune HNSW parameters for vector search performance.
+- [Search operations](/docs/fundamentals/search/search) — Query vectors for semantic similarity.

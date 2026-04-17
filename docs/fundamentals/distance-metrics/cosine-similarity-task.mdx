@@ -1,0 +1,46 @@
+---
+title: "Configure cosine similarity"
+description: "Create a collection that measures angular similarity between vectors."
+icon: "code"
+---
+
+Cosine similarity measures the angular relationship between vectors, ignoring magnitude. It is well suited for text embeddings where semantic meaning matters more than vector length.
+
+<Note>
+Before you begin, make sure you have a running VectorAI DB instance.
+</Note>
+
+The following example creates a collection named `text_embeddings` configured to use cosine similarity as its distance metric.
+
+<CodeGroup>
+```python Python
+from actian_vectorai import VectorAIClient, VectorParams, Distance
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Create collection with cosine similarity
+    client.collections.create(
+        "text_embeddings",  # Collection name
+        vectors_config=VectorParams(size=128, distance=Distance.Cosine)  # Cosine metric
+    )
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+
+    // Create collection with cosine similarity
+    await client.collections.create('text_embeddings', {
+        dimension: 128,
+        distanceMetric: 'COSINE'
+    });
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+To confirm the collection was created successfully, call `client.collections.get_info("text_embeddings")` and check that the `status` field returns `Ready`.

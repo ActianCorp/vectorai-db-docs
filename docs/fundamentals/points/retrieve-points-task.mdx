@@ -1,0 +1,159 @@
+---
+title: "Retrieve points"
+description: "Fetch points from a collection by ID or through pagination."
+icon: "code"
+---
+
+Retrieve specific points from your collection by their IDs. Choose to include vector data, payload metadata, or both.
+
+## Retrieve points by ID
+
+The `retrieve()` method is an alias for `get_many()`. Control what data is returned with these options:
+
+- `with_vectors=False` — Reduces bandwidth when you only need payload metadata.
+- `with_payload=False` — Returns only vectors, useful for computation without metadata.
+
+<CodeGroup>
+```python Python
+from actian_vectorai import VectorAIClient
+
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    # Retrieve specific points by ID
+    retrieve_ids = [1, 2, 3, 5]
+    results = client.points.get(COLLECTION, ids=retrieve_ids)
+    
+    # Display results
+    for point in results:
+        print(f"ID {point.id}:")
+        if point.vectors:
+            print(f"  Vector dimensions: {len(point.vectors)}")
+        if point.payload:
+            print(f"  Payload: {point.payload}")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const COLLECTION = "products";
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        // Retrieve specific points by ID
+        const retrieveIds = [1, 2, 3, 5];
+        const results = await client.points.get(COLLECTION, retrieveIds);
+
+        // Display results
+        for (const point of results) {
+            console.log(`ID ${point.id}:`);
+            if (point.vectors) {
+                console.log(`  Vector dimensions: ${point.vectors.length}`);
+            }
+            if (point.payload) {
+                console.log(`  Payload:`, point.payload);
+            }
+        }
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+By default, both vectors and payloads are included in the response. Each point includes these fields:
+
+- `id`: The unique identifier of the point.
+- `vector`: The vector embedding (array of floats) if requested.
+- `payload`: The metadata dictionary if requested.
+
+## Scroll through points
+
+Scroll operations are ideal for processing large collections that do not fit in memory. The cursor tracks your position in the collection, allowing you to process data in manageable chunks.
+
+<CodeGroup>
+```python Python
+from actian_vectorai import VectorAIClient
+
+COLLECTION = "products"
+
+# Connect to VectorAI DB server
+with VectorAIClient("localhost:50051") as client:
+    all_points = []
+    offset = None  # Start from beginning
+    page_num = 1
+    
+    while True:
+        # Get next page of results
+        results, next_offset = client.points.scroll(
+            COLLECTION,  # Collection name
+            limit=3,  # Points per page
+            offset=offset,  # Current position
+            with_vectors=False,  # Exclude vectors
+            with_payload=True  # Include payloads
+        )
+        
+        # Break if no results
+        if not results:
+            break
+        
+        # Display page results
+        print(f"\nPage {page_num} ({len(results)} points):")
+        for point in results:
+            print(f"  ID {point.id}: {point.payload}")
+            all_points.append(point)
+        
+        # Check for more pages
+        if next_offset is None:
+            break
+        
+        # Move to next page
+        offset = next_offset
+        page_num += 1
+    
+    print(f"\nTotal points retrieved: {len(all_points)}")
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+const COLLECTION = "products";
+
+async function main() {
+    const client = new CortexClient('localhost:50051');
+
+    try {
+        const allPoints = [];
+        let pageNum = 1;
+
+        // Scroll through all points using scrollAll
+        for await (const point of client.points.scrollAll(COLLECTION, {
+            limit: 3,  // Points per page
+            withPayload: true  // Include payloads
+        })) {
+            console.log(`  ID ${point.id}:`, point.payload);
+            allPoints.push(point);
+        }
+
+        console.log(`\nTotal points retrieved: ${allPoints.length}`);
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+The method returns this data:
+
+- `results`: List of points for the current page.
+  - `id`: The unique identifier of the point.
+  - `vector`: The vector embedding if requested.
+  - `payload`: The metadata dictionary if requested.
+- `next_offset`: Cursor position for the next page (None if no more pages).

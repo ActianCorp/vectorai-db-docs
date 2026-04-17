@@ -1,0 +1,63 @@
+---
+title: "Collections overview"
+description: "Learn about collections, the primary unit of storage in VectorAI DB, including structure, distance metrics, index parameters, and lifecycle states."
+---
+
+A _collection_ is a named set of points. Each point contains vectors with associated payload metadata. VectorAI DB stores and indexes collections to enable fast similarity search. Collections work like tables in traditional databases, but are optimized for vector operations instead of row-based queries.
+
+All vectors in a collection must have the same dimensionality and use one distance metric for comparison. The distance metric you choose depends on your vector generation method, particularly how the neural network encoder was trained.
+
+VectorAI DB supports the following distance metrics:
+
+- [Dot product](/docs/fundamentals/distance-metrics/distance-metrics#dot-product): Measures the inner product between vectors. Best for embeddings trained with maximum inner product search.
+- [Cosine similarity](/docs/fundamentals/distance-metrics/distance-metrics#cosine-similarity): Measures the angle between vectors. Best for normalized embeddings where magnitude is irrelevant.
+- [Euclidean distance](/docs/fundamentals/distance-metrics/distance-metrics#euclidean-distance): Measures the straight-line distance between vectors. Best for general-purpose embeddings.
+
+You can specify custom values for index configuration, storage options, and optimization settings when creating collections.
+
+## Collection structure
+
+Each collection has the following key components:
+
+| Component | Description |
+|-----------|-------------|
+| Name | Unique identifier for the collection within your database. |
+| Dimension | Fixed size of vectors that the collection accepts. |
+| Distance metric | Method used to measure similarity between vectors. |
+| HNSW parameters | Configuration for the HNSW index. |
+
+## HNSW index parameters
+
+The HNSW parameters control the speed and accuracy tradeoff.
+
+- `hnsw_m`: Number of bidirectional links per node. Higher values improve recall but increase memory usage.
+- `hnsw_ef_construct`: Quality of index construction. Higher values create better indexes but take longer to build.
+- `hnsw_ef_search`: Search accuracy. Higher values improve recall but increase query time.
+
+## Collection states
+
+Collections exist in the following states for memory management:
+
+- **Ready.** Collection is loaded into memory and available for operations.
+- **Loading.** Collection is currently loading into memory.
+- **Closed.** Collection exists on disk but is not loaded into memory.
+- **Error.** Collection encountered an issue.
+
+This design allows you to manage memory efficiently when working with multiple collections. Opening a collection loads its index and data into RAM for fast access. Closing a collection removes it from memory but keeps it on disk.
+
+## Task guides
+
+See step-by-step guides for collection operations:
+
+- [Create a collection](/docs/fundamentals/collections/create-collection-task)
+- [Get collection info](/docs/fundamentals/collections/get-collection-info-task)
+- [Update collection parameters](/docs/fundamentals/collections/update-collection-task)
+- [Manage collection state](/docs/fundamentals/collections/manage-collection-state-task)
+- [Delete a collection](/docs/fundamentals/collections/delete-collection-task)
+
+## Next steps
+
+- [Points](/docs/fundamentals/points/points) — Manage vectors and data in collections.
+- [Vectors](/docs/fundamentals/vectors/vectors) — Understand vector embeddings.
+- [Indexing](/docs/fundamentals/indexing/indexing) — Optimize search performance.
+- [Distance metrics](/docs/fundamentals/distance-metrics/distance-metrics) — Choose the right similarity measure.

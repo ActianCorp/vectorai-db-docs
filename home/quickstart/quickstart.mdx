@@ -1,0 +1,224 @@
+---
+title: "Quickstart"
+description: "Guide to help you get started with VectorAI DB in under five minutes."
+---
+
+import Prerequisites from "/snippets/python-prerequisites.mdx";
+
+This short guide shows you how to create a collection, insert vectors, and perform similarity search using the Python SDK.
+
+<Warning>
+**VectorAI DB Required**: This quickstart requires VectorAI DB running in a Docker container. Docker deployment is the only supported version at the moment. [Setup Instructions →](/home/installation/instructions)
+</Warning>
+
+## Prerequisites
+
+<Prerequisites />
+
+## Step 1: Install the SDK
+
+Install the VectorAI DB Python SDK using pip:
+
+{/* ```bash
+pip install actian-vectorai
+``` */}
+
+<Info>
+Coming soon
+</Info>
+
+## Step 2: Run the Docker container
+
+Download and run the VectorAI DB Docker container:
+
+{/* ```bash
+docker pull actian/vectorai-server:latest
+docker run -p 50051:50051 actian/vectorai-server:latest
+``` */}
+
+
+<Info>
+Coming soon
+</Info>
+
+This command hosts the server on **localhost:50051**.
+
+## Step 3: Create a collection
+
+Connect to the VectorAI server and create a collection named **products** with dimension 128 and cosine distance metric.
+
+<Tabs>
+  <Tab title="Synchronous">
+    ```python
+    from actian_vectorai import VectorAIClient, VectorParams, Distance
+
+    with VectorAIClient("localhost:50051") as client:
+        # Check server connection
+        info = client.health_check()
+        print(f"Connected to {info['title']} v{info['version']}")
+        
+        # Create collection
+        client.collections.create(
+            "products",
+            vectors_config=VectorParams(size=128, distance=Distance.Cosine)
+        )
+        print("Collection 'products' created successfully")
+    ```
+  </Tab>
+  <Tab title="Asynchronous">
+    ```python
+    import asyncio
+    from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
+
+    async def main():
+        async with AsyncVectorAIClient("localhost:50051") as client:
+            info = await client.health_check()
+            print(f"Connected to {info['title']} v{info['version']}")
+            
+            await client.collections.create(
+                "products", 
+                vectors_config=VectorParams(size=128, distance=Distance.Cosine)
+            )
+            print("Collection 'products' created successfully")
+
+    asyncio.run(main())
+    ```
+  </Tab>
+</Tabs>
+
+## Step 4: Generate sample data
+
+Create a function to generate sample product vectors with metadata:
+
+```python
+import random
+from typing import List
+from actian_vectorai import PointStruct
+
+def generate_sample_products(
+    num_products: int = 100,
+    dimension: int = 128,
+    base_price: float = 10.0,
+    price_variance: float = 100.0,
+    seed: int = None
+) -> List[PointStruct]:
+    if seed is not None:
+        random.seed(seed)
+    
+    categories = ["electronics", "clothing", "food"]
+    points = []
+    
+    for i in range(num_products):
+        category = categories[i % 3]
+        price = float(i * base_price + random.random() * price_variance)
+        in_stock = (i % 2 == 0)
+        
+        points.append(
+            PointStruct(
+                id=i,
+                vector=[random.gauss(0, 1) for _ in range(dimension)],
+                payload={
+                    "id": i,
+                    "category": category,
+                    "price": round(price, 2),
+                    "in_stock": in_stock,
+                }
+            )
+        )
+    
+    return points
+```
+
+## Step 5: Insert vectors
+
+Generate and insert vectors into the collection:
+
+```python
+from actian_vectorai import VectorAIClient
+
+NUM_VECTORS = 100
+DIMENSION = 128
+
+with VectorAIClient("localhost:50051") as client:
+    print(f"Inserting {NUM_VECTORS} vectors...")
+    
+    # Generate sample data
+    points = generate_sample_products(
+        NUM_VECTORS, 
+        DIMENSION, 
+        seed=42
+    )
+
+    # Batch insert
+    client.points.upsert("products", points)
+    print(f"✓ Inserted {NUM_VECTORS} vectors")
+    
+    # Verify count
+    count = client.points.count("products")
+    print(f"Vector count: {count}")
+```
+
+## Step 6: Search for similar vectors
+
+Perform similarity search to find the top five most similar vectors:
+
+```python
+from actian_vectorai import VectorAIClient
+import random
+
+DIMENSION = 128
+COLLECTION = "products"
+
+with VectorAIClient("localhost:50051") as client:
+    # Search for similar vectors
+    print("Searching for similar vectors...")
+    query = [random.gauss(0, 1) for _ in range(DIMENSION)]
+    results = client.points.search(COLLECTION, vector=query, limit=5)
+    
+    print(f"Found {len(results)} results:")
+    for i, result in enumerate(results):
+        print(f"[{i+1}] ID: {result.id}, Score: {result.score:.4f}")
+    
+    # Get vector with payload
+    print("\nRetrieving vector details...")
+    retrieved = client.points.get(COLLECTION, ids=[results[0].id])
+    print(f"Top result payload: {retrieved[0].payload}")
+```
+
+Example output:
+
+```
+Searching for similar vectors...
+Found 5 results:
+[1] ID: 39, Score: 29.2119
+[2] ID: 54, Score: 27.3639
+[3] ID: 76, Score: 23.6023
+[4] ID: 31, Score: 21.2087
+[5] ID: 22, Score: 17.9858
+
+Retrieving vector details...
+Top result payload: {'price': 451.6, 'id': 39, 'in_stock': False, 'category': 'electronics'}
+```
+
+## Step 7: Delete collection
+
+When you're done, clean up by deleting the collection:
+
+```python
+from actian_vectorai import VectorAIClient
+
+with VectorAIClient("localhost:50051") as client:
+    client.collections.delete("products")
+    print("Collection 'products' deleted successfully")
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Simple RAG Pipeline" icon="graduation-cap" href="/academy/tutorials/simple-rag-pipeline">
+    Build your first Retrieval-Augmented Generation application
+  </Card>
+  <Card title="Documentation" icon="book-open" href="/docs">
+    Explore complete technical documentation
+  </Card>
+</CardGroup>

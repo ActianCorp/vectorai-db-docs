@@ -1,0 +1,143 @@
+---
+title: "REST API overview"
+description: "Complete REST API documentation for VectorAI DB operations."
+---
+
+The VectorAI DB REST API provides a complete HTTP-based interface for managing collections, inserting and querying vectors, and performing advanced operations. All endpoints accept and return JSON, making it compatible with any programming language or HTTP client.
+
+## Base URL
+
+```
+http://localhost:50052
+```
+
+For production deployments, use your VectorAI DB instance URL.
+
+Port 50051 is used for gRPC connections. The REST API runs on port 50052.
+
+## Authentication
+
+Authentication is not required for local development. For production deployments, see the [Access Tokens](/api-reference/access-tokens/create-access-token) section for details on API keys and tokens.
+
+## API endpoints overview
+
+The REST API is organized into the following categories:
+
+<CardGroup cols={2}>
+  <Card title="Collections" icon="layer-group" href="/api-reference/rest/collections/collections/list-all-collections">
+    Create, update, delete, and list vector collections.
+  </Card>
+  <Card title="Points" icon="circle-dot" href="/api-reference/rest/points/points/upsert-points">
+    Insert, update, retrieve, and delete vector points.
+  </Card>
+  <Card title="Search" icon="magnifying-glass" href="/api-reference/rest/search/search/search-vectors">
+    Perform vector similarity searches with filters and pagination.
+  </Card>
+  <Card title="Recommendations" icon="thumbs-up" href="/api-reference/rest/recommendations/recommendations/recommend-points">
+    Get point recommendations based on positive and negative examples.
+  </Card>
+  <Card title="Discovery" icon="compass" href="/api-reference/rest/recommendations/discovery/discover-points">
+    Discover points using context pairs for similarity exploration.
+  </Card>
+  <Card title="Grouped search" icon="object-group" href="/api-reference/rest/grouped-search/grouped-search/search-with-grouping">
+    Search with result grouping by payload fields.
+  </Card>
+  <Card title="Filters" icon="filter" href="/api-reference/rest/filters/filters/filter-examples">
+    Filter search results based on payload conditions.
+  </Card>
+  <Card title="Snapshots and maintenance" icon="database" href="/api-reference/rest/snapshots/snapshots/list-snapshots">
+    Create backups, restore snapshots, and optimize collections.
+  </Card>
+</CardGroup>
+
+## Request format
+
+All API requests should include the `Content-Type: application/json` header. Request bodies should be valid JSON.
+
+The following example inserts a point into a collection.
+
+```bash
+curl -X PUT http://localhost:50052/collections/my_collection/points \
+  -H "Content-Type: application/json" \
+  -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+  -d '{
+    "points": [
+      {
+        "id": 1,
+        "vector": [0.1, 0.2, 0.3, 0.4],
+        "payload": {"category": "A"}
+      }
+    ]
+  }'
+```
+
+## Response format
+
+All API responses return JSON with a consistent structure that includes the operation status and timing.
+
+### Success response
+
+A successful response includes the operation status, timing, and result data.
+
+```json
+{
+  "usage": {
+    "hardware": null
+  },
+  "time": 0.002308817,
+  "status": "ok",
+  "result": {
+    "operation_id": 0,
+    "status": "Completed"
+  }
+}
+```
+
+### Error response
+
+An error response includes a message describing the issue.
+
+```json
+{
+  "status": {
+    "error": "Collection not found: my_collection"
+  },
+  "time": 0
+}
+```
+
+## Status codes
+
+The REST API uses standard HTTP status codes to indicate the outcome of each request.
+
+- `200 OK` - Request succeeded.
+- `400 Bad Request` - Invalid request parameters.
+- `404 Not Found` - Collection or resource not found.
+- `409 Conflict` - Resource already exists.
+- `500 Internal Server Error` - Server error.
+
+## Rate limiting
+
+Rate limits depend on your VectorAI DB deployment configuration. Check response headers for rate limit information.
+
+## Python SDK
+
+For a more ergonomic development experience with type safety and automatic connection management, consider using the [Python SDK](/sdks/python/index). The SDK communicates over gRPC (port 50051) and provides the same operations available through the REST API.
+
+```python
+from actian_vectorai import VectorAIClient, VectorParams, Distance
+
+with VectorAIClient("localhost:50051") as client:
+    # Create collection
+    client.collections.create(
+        "my_collection",
+        vectors_config=VectorParams(size=128, distance=Distance.Cosine)
+    )
+```
+
+## Next steps
+
+- Explore [Collections API](/api-reference/rest/collections/collections/list-all-collections) to get started.
+- Learn about [points operations](/api-reference/rest/points/points/upsert-points) for data management.
+- Try [vector search](/api-reference/rest/search/search/search-vectors) to query your data.
+- Check [error codes](/api-reference/error-codes) for troubleshooting.

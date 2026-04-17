@@ -1,0 +1,26 @@
+---
+title: "Qdrant"
+description: "Migrate from Qdrant to VectorAI DB."
+---
+
+This guide walks you through migrating your collections and vectors from Qdrant to Actian VectorAI DB. Follow the steps below to export, transform, and import your data.
+
+<Steps>
+<Step title="Export data from Qdrant">
+Use the Qdrant REST API or Python SDK to extract your vectors, payloads, and IDs. Export to a portable format such as JSON, CSV, or NumPy arrays.
+</Step>
+<Step title="Prepare data for VectorAI DB">
+Map your exported fields to the VectorAI DB point structure: unique IDs, vector embeddings, and optional JSON metadata payloads. Ensure vector dimensions match the target collection configuration and that data types are compatible.
+</Step>
+<Step title="Install VectorAI DB">
+If you have not already set up VectorAI DB, follow the [Docker installation guide](/docs/installation/docker) to deploy it locally or on your server.
+</Step>
+<Step title="Ingest data into VectorAI DB">
+Use the [Python SDK](/sdks/python/index) to create a collection with matching dimensions and distance metric, then insert your transformed vectors and metadata. Refer to the [Python SDK quickstart](/sdks/python/quickstart) for code examples.
+</Step>
+<Step title="Validate migration">
+Confirm the migration succeeded by comparing record counts, vector dimensions, and sample search results between your Qdrant instance and VectorAI DB. Check that metadata fields are intact and that similarity queries return consistent rankings.
+</Step>
+</Steps>
+
+<Tip>For large datasets, use batch inserts and parallel processing to improve ingestion performance. Start with smaller subsets to validate your pipeline before running the full migration.</Tip>

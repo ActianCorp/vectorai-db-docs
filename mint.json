@@ -1,0 +1,38 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Actian VectorAI Database",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#0066CC",
+    "light": "#0073E6",
+    "dark": "#0052A3"
+  },
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "https://www.actian.com/support"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "/quickstart"
+  },
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "index",
+        "quickstart"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "twitter": "https://x.com/actiancorp",
+    "github": "https://github.com/actiancorp",
+    "linkedin": "https://linkedin.com/company/actian"
+  }
+}

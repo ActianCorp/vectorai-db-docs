@@ -1,0 +1,143 @@
+---
+title: "Error codes"
+description: "HTTP status codes and error responses returned by the VectorAI DB REST API."
+---
+
+The VectorAI DB REST API uses standard HTTP status codes to indicate the outcome of every request. Successful responses return a `"status": "ok"` field, while error responses return a `"status"` object containing an `"error"` string with a human-readable message.
+
+## Error response format
+
+Every error response follows this structure:
+
+```json
+{
+  "time": 0.000012,
+  "status": {
+    "error": "Collection not found: my_collection"
+  }
+}
+```
+
+The `time` field indicates server-side processing time in seconds. The `status.error` field contains a human-readable description of what went wrong.
+
+## HTTP status codes
+
+The following sections describe each status code the API can return, along with common error messages and their causes.
+
+### 400 — Bad request
+
+The request was rejected because of a client-side input problem.
+
+| Error message pattern | Description |
+|---|---|
+| `vectors_config is required` | The request body is missing the required `vectors` configuration when creating a collection. |
+| `Dimension mismatch for vector '': expected N, got M` | The vector dimension does not match the collection's configured dimension. |
+| Filter parse errors | The filter expression in a search, count, or delete request could not be parsed. |
+
+#### Common causes
+
+- Supplying a vector with the wrong number of dimensions on upsert or search.
+- Passing an invalid or malformed filter expression in a points query.
+- Omitting a required field in the request body.
+
+### 404 — Not found
+
+The referenced resource does not exist.
+
+| Error message pattern | Description |
+|---|---|
+| `Collection not found: {name}` | The collection name in the path refers to a collection that has not been created. |
+| Point not found errors | One or more point IDs supplied to a read or update operation are absent from the collection. |
+
+#### Common causes
+
+- Using a collection name that was never created or has been deleted.
+- Requesting points by ID that do not exist in the collection.
+
+### 409 — Conflict
+
+The resource you are trying to create already exists.
+
+| Error message pattern | Description |
+|---|---|
+| `Collection already exists: {name}` | A `PUT /collections/{collection_name}` request was issued but the collection already exists. |
+
+#### Common causes
+
+This error typically occurs when creating a collection without first checking whether it exists. Use `GET /collections/{collection_name}/exists` to check before creating.
+
+### 412 — Precondition failed
+
+A required system condition was not met before the request could be processed.
+
+| Error message pattern | Description |
+|---|---|
+| Engine not initialized | The VectorAI DB engine has not finished starting up. Retry after a short delay. |
+| Collection deleted | The collection exists in the registry but has been marked for deletion and is no longer operable. |
+
+<Warning>
+  The engine-not-initialized error is returned on most endpoints until the engine is ready. If you receive this error at startup, then implement an exponential backoff retry starting at 500 ms, doubling on each attempt, up to a maximum of 5 retries (500 ms, 1 s, 2 s, 4 s, 8 s). If the engine is still not ready after the final retry, then surface the error to the caller.
+</Warning>
+
+### 500 — Internal server error
+
+An unexpected server-side failure occurred. These errors are not caused by the request itself.
+
+| Error message pattern | Description |
+|---|---|
+| Upsert failed | One or more items in a batch upsert operation failed. |
+| Delete failed | One or more items in a batch delete operation failed. |
+| Search failed | The similarity search could not be completed. |
+| Payload operation failed | A payload set, overwrite, delete, or clear operation failed internally. |
+| Field index failed | Creating a payload field index failed. |
+| Index rebuild failed | An index rebuild task encountered an error. |
+| Optimization failed | A background optimization task failed. |
+| Snapshot failed | A snapshot create or restore operation failed. |
+
+<Note>
+  Batch operations such as upsert and delete may partially succeed before returning a 500. Check your data state before retrying to avoid duplicates or unintended re-deletions.
+</Note>
+
+### 501 — Not implemented
+
+The endpoint exists in the API surface but has not been implemented in this build.
+
+The following endpoint groups currently return this status:
+
+- Aliases (`GET /aliases`, `POST /aliases`, `GET /collections/{name}/aliases`)
+- Snapshots (`POST /collections/{name}/snapshots`, `GET /collections/{name}/snapshots`, `DELETE /collections/{name}/snapshots/{snap}`)
+- Snapshot recovery (`PUT /collections/{name}/snapshots/{snap}/recover`)
+- Maintenance (`POST /collections/{name}/operations/flush`, `POST /collections/{name}/operations/optimize`, `POST /collections/{name}/operations/rebuild_index`)
+- Collection status (`GET /collections/{name}/status`)
+- Grouped search (`POST /collections/{name}/points/search/groups`, `POST /collections/{name}/points/query/groups`)
+- Recommendations (`POST /collections/{name}/points/recommend`, batch, and groups variants)
+- Discovery (`POST /collections/{name}/points/discover`, batch variant)
+
+## Endpoint error reference
+
+The table below lists the implemented REST endpoints and the HTTP error codes each can return. Endpoints that are not yet implemented (listed under 501 above) are excluded.
+
+| Method | Endpoint | Possible errors |
+|---|---|---|
+| `GET` | `/` | — (health check, no application-level errors) |
+| `GET` | `/collections` | 412, 500 |
+| `GET` | `/collections/{collection_name}` | 404, 412, 500 |
+| `PUT` | `/collections/{collection_name}` | 400, 409, 412, 500 |
+| `PATCH` | `/collections/{collection_name}` | 404, 412, 500 |
+| `DELETE` | `/collections/{collection_name}` | 412, 500 |
+| `GET` | `/collections/{collection_name}/exists` | 412 |
+| `PUT` | `/collections/{collection_name}/points` | 400, 404, 412, 500 |
+| `POST` | `/collections/{collection_name}/points` | 400, 404, 412, 500 |
+| `POST` | `/collections/{collection_name}/points/delete` | 400, 404, 412, 500 |
+| `PUT` | `/collections/{collection_name}/points/vectors` | 400, 404, 412, 500 |
+| `POST` | `/collections/{collection_name}/points/payload` | 400, 404, 412, 500 |
+| `PUT` | `/collections/{collection_name}/points/payload` | 400, 404, 412, 500 |
+| `POST` | `/collections/{collection_name}/points/payload/delete` | 400, 404, 412, 500 |
+| `POST` | `/collections/{collection_name}/points/payload/clear` | 400, 404, 412, 500 |
+| `PUT` | `/collections/{collection_name}/index` | 400, 404, 412, 500 |
+| `POST` | `/collections/{collection_name}/points/count` | 400, 404, 412, 500 |
+| `POST` | `/collections/{collection_name}/points/search` | 400, 404, 412, 500 |
+| `POST` | `/collections/{collection_name}/points/search/batch` | 400, 404, 412, 500 |
+| `POST` | `/collections/{collection_name}/points/query` | 400, 404, 412, 500 |
+| `POST` | `/collections/{collection_name}/points/query/batch` | 400, 404, 412, 500 |
+| `POST` | `/collections/{collection_name}/points/scroll` | 400, 404, 412, 500 |

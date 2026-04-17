@@ -1,0 +1,374 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "VectorAI DB",
+  "colors": {
+    "primary": "#0066CC",
+    "light": "#0073E6",
+    "dark": "#0052A3"
+  },
+  "favicon": "/favicon.svg",
+  "openapi": [
+    "openapi_prepared/authentication-api.yaml"
+  ],
+  "api": {
+    "baseUrl": "http://localhost:50052",
+    "playground": {
+      "mode": "show"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Home",
+        "groups": [
+          {
+            "group": "About VectorAI",
+            "pages": [
+              "home/getting-started/overview",
+              "home/getting-started/how-it-works",
+              "home/getting-started/use-cases",
+              "home/getting-started/key-features",
+              "home/getting-started/architecture",
+              "home/support/current-release"
+            ]
+          },
+          {
+            "group": "Get started",
+            "pages": [
+              "home/installation/instructions",
+              "home/quickstart/quickstart"
+            ]
+          },
+          {
+            "group": "Migration",
+            "pages": [
+              "home/migration/milvus",
+              "home/migration/qdrant"
+            ]
+          },
+          {
+            "group": "Support",
+            "pages": [
+              "home/support/faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Docs",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "docs/index"
+            ]
+          },
+          {
+            "group": "Fundamentals",
+            "pages": [
+              "docs/fundamentals/index",
+              {
+                "group": "Collections",
+                "pages": [
+                  "docs/fundamentals/collections/collections",
+                  "docs/fundamentals/collections/create-collection-task",
+                  "docs/fundamentals/collections/get-collection-info-task",
+                  "docs/fundamentals/collections/update-collection-task",
+                  "docs/fundamentals/collections/manage-collection-state-task",
+                  "docs/fundamentals/collections/delete-collection-task",
+                  "docs/fundamentals/collections/complete-workflow"
+                ]
+              },
+              {
+                "group": "Points",
+                "pages": [
+                  "docs/fundamentals/points/points",
+                  "docs/fundamentals/points/insert-points-task",
+                  "docs/fundamentals/points/retrieve-points-task",
+                  "docs/fundamentals/points/update-points-task",
+                  "docs/fundamentals/points/delete-points-task"
+                ]
+              },
+              {
+                "group": "Vectors",
+                "pages": [
+                  "docs/fundamentals/vectors/vectors",
+                  "docs/fundamentals/vectors/create-vectors-task",
+                  "docs/fundamentals/vectors/search-vectors-task"
+                ]
+              },
+              {
+                "group": "Payload",
+                "pages": [
+                  "docs/fundamentals/payload/payload",
+                  "docs/fundamentals/payload/create-payload-task",
+                  "docs/fundamentals/payload/update-payload-task",
+                  "docs/fundamentals/payload/filter-payload-task"
+                ]
+              },
+              {
+                "group": "Search",
+                "pages": [
+                  "docs/fundamentals/search/search",
+                  "docs/fundamentals/search/basic-search-task",
+                  "docs/fundamentals/search/filtered-search-task",
+                  "docs/fundamentals/search/search-with-payload-task",
+                  "docs/fundamentals/search/search-with-vectors-task"
+                ]
+              },
+              {
+                "group": "Indexing",
+                "pages": [
+                  "docs/fundamentals/indexing/indexing",
+                  "docs/fundamentals/indexing/configure-hnsw-task"
+                ]
+              },
+              {
+                "group": "Filtering",
+                "pages": [
+                  "docs/fundamentals/filtering/filtering",
+                  "docs/fundamentals/filtering/must-filter-task",
+                  "docs/fundamentals/filtering/should-filter-task",
+                  "docs/fundamentals/filtering/must-not-filter-task",
+                  "docs/fundamentals/filtering/combined-filter-task"
+                ]
+              },
+              {
+                "group": "Semantic search",
+                "pages": [
+                  "docs/fundamentals/semantic-search/semantic-search",
+                  "docs/fundamentals/semantic-search/pure-semantic-search-task",
+                  "docs/fundamentals/semantic-search/filtered-semantic-search-task",
+                  "docs/fundamentals/semantic-search/score-threshold-search-task",
+                  "docs/fundamentals/semantic-search/multi-constraint-search-task",
+                  "docs/fundamentals/semantic-search/complete-workflow"
+                ]
+              },
+              {
+                "group": "Hybrid search",
+                "pages": [
+                  "docs/fundamentals/hybrid-search/hybrid-search",
+                  "docs/fundamentals/hybrid-search/rrf-fusion-task",
+                  "docs/fundamentals/hybrid-search/dbsf-fusion-task",
+                  "docs/fundamentals/hybrid-search/multi-model-fusion-task",
+                  "docs/fundamentals/hybrid-search/query-variation-task",
+                  "docs/fundamentals/hybrid-search/hybrid-rag-task",
+                  "docs/fundamentals/hybrid-search/performance-benchmark-task"
+                ]
+              },
+              {
+                "group": "Distance metrics",
+                "pages": [
+                  "docs/fundamentals/distance-metrics/distance-metrics",
+                  "docs/fundamentals/distance-metrics/cosine-similarity-task",
+                  "docs/fundamentals/distance-metrics/euclidean-distance-task",
+                  "docs/fundamentals/distance-metrics/dot-product-task"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "docs/guides/error-handling",
+              "docs/guides/gui-interface",
+              "docs/guides/license-and-upgrade",
+              "docs/guides/monitoring-and-logging",
+              "docs/guides/troubleshooting"
+            ]
+          },
+          {
+            "group": "Installation",
+            "pages": [
+              "docs/installation/docker"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "docs/integrations/index",
+              "docs/integrations/langchain",
+              "docs/integrations/openai-embedding-model",
+              "docs/integrations/llama-index"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Developer Tools",
+        "groups": [
+          {
+            "group": "API references",
+            "pages": [
+              "api-reference/rest",
+              {
+                "group": "Access Tokens",
+                "pages": [
+                  "api-reference/access-tokens/create-access-token",
+                  "api-reference/access-tokens/list-access-tokens",
+                  "api-reference/access-tokens/delete-access-token",
+                  "api-reference/access-tokens/rotate-access-token"
+                ]
+              },
+              {
+                "group": "Admin User",
+                "pages": [
+                  "api-reference/admin-user/create-admin-user",
+                  "api-reference/admin-user/reset-admin-password",
+                  "api-reference/admin-user/admin-login",
+                  "api-reference/admin-user/check-admin-exists",
+                  "api-reference/admin-user/set-auth-enabled"
+                ]
+              },
+              {
+                "group": "Collections",
+                "pages": [
+                  "api-reference/rest/collections/collections/create-collection",
+                  "api-reference/rest/collections/collections/list-all-collections",
+                  "api-reference/rest/collections/collections/get-collection-info",
+                  "api-reference/rest/collections/collections/check-if-collection-exists",
+                  "api-reference/rest/collections/collections/update-collection",
+                  "api-reference/rest/collections/collections/delete-collection"
+                ]
+              },
+              {
+                "group": "Points",
+                "pages": [
+                  "api-reference/rest/points/points/upsert-points",
+                  "api-reference/rest/points/points/get-single-point",
+                  "api-reference/rest/points/points/get-points-by-ids",
+                  "api-reference/rest/points/points/update-vectors",
+                  "api-reference/rest/points/points/overwrite-payload",
+                  "api-reference/rest/points/points/set-payload",
+                  "api-reference/rest/points/points/delete-payload-keys",
+                  "api-reference/rest/points/points/clear-payload",
+                  "api-reference/rest/points/points/delete-points"
+                ]
+              },
+              {
+                "group": "Search",
+                "pages": [
+                  "api-reference/rest/search/search/search-vectors",
+                  "api-reference/rest/search/search/batch-search",
+                  "api-reference/rest/search/scroll/scroll-points",
+                  "api-reference/rest/search/count/count-points"
+                ]
+              },
+              {
+                "group": "Filters",
+                "pages": [
+                  "api-reference/rest/filters/filters/filter-examples"
+                ]
+              },
+              "api-reference/error-codes"
+            ]
+          },
+          {
+            "group": "gRPC API",
+            "pages": [
+              "api-reference/grpc/index"
+            ]
+          },
+          {
+            "group": "SDKs",
+            "pages": [
+              {
+                "group": "JavaScript",
+                "pages": [
+                  "sdks/javascript/installation",
+                  "sdks/javascript/quickstart"
+                ]
+              },
+              {
+                "group": "Python",
+                "pages": [
+                  "sdks/python/installation",
+                  "sdks/python/quickstart"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Academy",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "academy/index"
+            ]
+          },
+          {
+            "group": "Tutorials",
+            "pages": [
+              "academy/tutorials/index",
+              "academy/tutorials/first-application",
+              "academy/tutorials/predicate-filters",
+              "academy/tutorials/re-ranking",
+              "academy/tutorials/adaptive-rag",
+              "academy/tutorials/multimodel-system",
+              "academy/tutorials/retrieval-quality",
+              "academy/tutorials/similarity-search",
+              "academy/tutorials/leverage-open-source-embedding-models",
+              "academy/tutorials/python-first-collection"
+            ]
+          },
+          {
+            "group": "Articles",
+            "pages": [
+              "academy/articles/index",
+              "academy/articles/AI-Clinical-Trial-Patient-Matching-Agent",
+              "academy/articles/building-a-scalable-agent-memory-with-Actian-vector-AI-database",
+              "academy/articles/Multivector-Document-Intelligence-with-Visual-RAG",
+              "academy/articles/AI-recipe-recommendation-agent",
+              "academy/articles/facial-recognition",
+              "academy/articles/Next-Gen-Product-Discovery-with-Multimodal-AI",
+              "academy/articles/Avatar-based-assistant-for-customer-support",
+              "academy/articles/financial-document-analysis",
+              "academy/articles/supply-chain-inventory-management-agent"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://www.actian.com"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "https://www.actian.com/support"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "/home/quickstart/quickstart"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/actiancorp",
+      "github": "https://github.com/actiancorp",
+      "linkedin": "https://linkedin.com/company/actian"
+    }
+  }
+}

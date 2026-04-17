@@ -1,0 +1,122 @@
+---
+title: "Installation"
+description: "Install the Python SDK with pip install actian-vectorai."
+---
+
+import Prerequisites from "/snippets/python-prerequisites.mdx";
+
+The Python SDK provides both synchronous and asynchronous clients for interacting with VectorAI DB. This guide walks you through installing the SDK and verifying your setup.
+
+## Prerequisites
+
+<Prerequisites />
+
+## Install the SDK
+
+Install the VectorAI DB Python SDK using pip.
+
+{/* ```bash
+pip install actian-vectorai
+``` */}
+
+<Info>Coming soon</Info>
+
+### Install with optional dependencies
+
+To install the SDK with additional dependencies for specific use cases, include the relevant extras.
+
+{/* ```bash
+# Install with NumPy support
+pip install actian-vectorai[numpy]
+``` */}
+
+<Info>Coming soon</Info>
+
+### Install from source
+
+You can also install the SDK directly from the repository.
+
+{/* ```bash
+pip install git+https://github.com/actian/actian-vectorai-python.git
+``` */}
+
+<Info>Coming soon</Info>
+
+## Verify installation
+
+<Warning>
+**VectorAI DB Required**: To verify your installation, you need a running VectorAI DB instance. Follow the [local installation guide](/home/installation/instructions) to set one up.
+</Warning>
+
+Test that the SDK is installed correctly by connecting to the server over gRPC on `localhost:50051` and running a health check.
+
+```python
+from actian_vectorai import VectorAIClient
+
+with VectorAIClient("localhost:50051") as client:
+    info = client.health_check()
+    print(f"Server version: {info['version']}, Uptime: {info['uptime']}")
+```
+
+If the connection is successful, the output displays the server version and uptime.
+
+```
+Server version: 0.1.0, Uptime: 120s
+```
+
+## Virtual environments
+
+We recommend installing the SDK inside a virtual environment to avoid dependency conflicts.
+
+<Tabs>
+  <Tab title="venv">
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate  # macOS/Linux
+    .venv\Scripts\activate     # Windows
+    ```
+  </Tab>
+  <Tab title="conda">
+    ```bash
+    conda create -n vectorai python=3.10
+    conda activate vectorai
+    ```
+  </Tab>
+</Tabs>
+
+Then install the SDK inside the activated environment.
+
+{/* ```bash
+pip install actian-vectorai
+``` */}
+
+<Info>Coming soon</Info>
+
+## Troubleshooting
+
+### Common issues
+
+The following table lists common installation issues and their solutions.
+
+| Issue                          | Solution                                                                 |
+|--------------------------------|--------------------------------------------------------------------------|
+| `ModuleNotFoundError`          | Verify the SDK is installed in the correct Python environment.           |
+| `grpc` connection errors       | Confirm that VectorAI DB is running and accessible on the expected port. |
+| Python version mismatch        | Check your version with `python --version`. The SDK requires Python 3.10 or later. |
+| Permission errors during install | Use `pip install --user actian-vectorai` or install inside a virtual environment. |
+
+## Next steps
+
+Now that the SDK is installed, explore these resources to start building.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/sdks/python/quickstart">
+    Build your first application with the Python SDK
+  </Card>
+  <Card title="Core Concepts" icon="book-open" href="/docs/fundamentals/index">
+    Learn about collections, vectors, and payloads
+  </Card>
+  <Card title="Tutorials" icon="graduation-cap" href="/academy/tutorials/simple-rag-pipeline">
+    Follow step-by-step tutorials
+  </Card>
+</CardGroup>

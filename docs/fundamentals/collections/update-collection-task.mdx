@@ -1,0 +1,63 @@
+---
+title: "Update collection parameters"
+description: "Modify collection configuration after creation."
+icon: "code"
+---
+
+After creating a collection, you may need to adjust its configuration as requirements change. You can modify the following parameters after creation.
+
+- `optimizers_config`: Controls indexing threshold and optimizer behavior.
+- `hnsw_config`: Controls HNSW index parameters such as `m` and `ef_construct`.
+- `wal_config`: Controls write-ahead log settings.
+
+Vector dimension and distance metric cannot be changed after creation. To use different values, delete and recreate the collection.
+
+The following example updates the indexing threshold so that VectorAI DB delays building the index until the collection reaches 50,000 points:
+
+<CodeGroup>
+```python Python
+import asyncio
+from actian_vectorai import AsyncVectorAIClient, OptimizersConfigDiff
+
+async def main():
+    # Connect to VectorAI DB server
+    async with AsyncVectorAIClient("localhost:50051") as client:
+        # Update collection configuration
+        await client.collections.update(
+            "my_collection",  # Collection name
+            optimizers_config=OptimizersConfigDiff(
+                indexing_threshold=50000  # Points before indexing
+            )
+        )
+        print("Collection parameters updated")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { CortexClient } from '@actian/cortex-client';
+
+async function main() {
+    // Connect to VectorAI DB server
+    const client = new CortexClient('localhost:50051');
+    try {
+        // Update collection configuration
+        await client.collections.update('my_collection', {
+            hnswConfig: {
+                m: 32,
+                efConstruct: 200
+            }
+        });
+        console.log('Collection parameters updated');
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+<Note>
+To use a different vector dimension or distance metric, you must delete and recreate the collection. See [Delete a collection](/docs/fundamentals/collections/delete-collection-task) for instructions.
+</Note>

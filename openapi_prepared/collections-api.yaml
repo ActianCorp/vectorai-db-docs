@@ -1,0 +1,1056 @@
+openapi: 3.0.3
+info:
+  title: Actian VectorAI DB - Collections API
+  description: Collection management API for Actian VectorAI DB.
+  version: 1.0.0
+  contact:
+    name: Actian Corporation
+    url: https://www.actian.com
+
+servers:
+  - url: http://localhost:50052
+    description: Local development server (REST API)
+  - url: https://api.vectorai.actian.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Collections
+    description: Collection lifecycle management operations
+  # - name: Aliases
+  #   description: Collection alias operations for zero-downtime deployments
+
+paths:
+  /collections:
+    get:
+      tags:
+        - Collections
+      summary: List all collections
+      description: Get a list of all existing collection names in the database. Use `GET /collections/{collection_name}` to get detailed information about a specific collection.
+      operationId: list_collections
+      responses:
+        "200":
+          description: List of collection names
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.000150269
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status.
+                  result:
+                    type: object
+                    properties:
+                      collections:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: "my_collection"
+                              description: The name of the collection.
+              examples:
+                success:
+                  value:
+                    usage:
+                      hardware: null
+                    time: 0.000150269
+                    status: ok
+                    result:
+                      collections:
+                        - name: my_hnsw_collection
+                        - name: my_collection
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: object
+                    properties:
+                      error:
+                        type: string
+                  time:
+                    type: number
+                    format: double
+                    description: Time spent to process this request, in seconds.
+      x-codeSamples:
+        - lang: Python
+          label: List collections
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # List all collections
+                collections = client.collections.list()
+                
+                print(f"Found {len(collections)} collections:")
+                for name in collections:
+                    print(f"  • {name}")
+        - lang: JavaScript
+          label: List collections
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            const collections = await client.collections.list();
+            console.log(`Found ${collections.length} collections:`, collections);
+
+            client.close();
+        - lang: cURL
+          label: List collections
+          source: |
+            curl -X GET "http://localhost:50052/collections" \
+              -H "Accept: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>'
+
+  /collections/{collection_name}:
+    get:
+      tags:
+        - Collections
+      summary: Get collection info
+      description: Get detailed information about a specific collection, including vector configuration, index type and parameters, point count, and collection status.
+      operationId: get_collection_info
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          description: The name of the collection to retrieve information for.
+          schema:
+            type: string
+            example: my_collection
+      responses:
+        "200":
+          description: Collection information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 5.4e-06
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status.
+                  result:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: "Green"
+                        description: The health status of the collection. Possible values are `Green`, `Yellow`, and `Red`.
+                      optimizer_status:
+                        type: object
+                        description: Status of the collection optimizer.
+                        properties:
+                          ok:
+                            type: boolean
+                            example: true
+                            description: Whether the optimizer is functioning normally.
+                          error:
+                            type: string
+                            nullable: true
+                            example: null
+                            description: Error message if the optimizer has encountered a problem, or null if healthy.
+                      warnings:
+                        type: array
+                        example: []
+                        description: Any warnings about the collection state.
+                        items:
+                          type: string
+                      indexed_vectors_count:
+                        type: integer
+                        nullable: true
+                        example: null
+                        description: Number of vectors that have been indexed, or null if indexing has not started.
+                      points_count:
+                        type: integer
+                        example: 0
+                        description: Total number of points stored in the collection.
+                      segments_count:
+                        type: integer
+                        example: 1
+                        description: Number of storage segments in the collection.
+                      config:
+                        type: object
+                        description: The collection configuration.
+                        properties:
+                          params:
+                            type: object
+                            description: Core collection parameters.
+                            properties:
+                              vectors:
+                                type: object
+                                nullable: true
+                                example: null
+                                description: Named vector configurations, or null if using default unnamed vectors.
+                              shard_number:
+                                type: integer
+                                example: 0
+                                description: Number of shards for the collection.
+                              replication_factor:
+                                type: integer
+                                nullable: true
+                                example: null
+                                description: Number of replicas for each shard, or null if not configured.
+                              write_consistency_factor:
+                                type: integer
+                                nullable: true
+                                example: null
+                                description: Minimum number of replicas that must confirm a write, or null if not configured.
+                              on_disk_payload:
+                                type: boolean
+                                example: false
+                                description: Whether payload data is stored on disk rather than in memory.
+                          hnsw_config:
+                            type: object
+                            description: HNSW index configuration.
+                            properties:
+                              m:
+                                type: integer
+                                nullable: true
+                                example: null
+                                description: Number of bidirectional links per element in the HNSW graph, or null for default.
+                              ef_construct:
+                                type: integer
+                                nullable: true
+                                example: null
+                                description: Size of the dynamic candidate list during index construction, or null for default.
+                              full_scan_threshold:
+                                type: integer
+                                nullable: true
+                                example: null
+                                description: Minimum collection size before HNSW indexing is used instead of full scan, or null for default.
+                              max_indexing_threads:
+                                type: integer
+                                nullable: true
+                                example: null
+                                description: Maximum number of threads used for indexing, or null for default.
+                              on_disk:
+                                type: boolean
+                                nullable: true
+                                example: null
+                                description: Whether the HNSW index is stored on disk, or null for default.
+                              payload_m:
+                                type: integer
+                                nullable: true
+                                example: null
+                                description: Number of bidirectional links for payload index, or null for default.
+                          optimizer_config:
+                            type: object
+                            description: Optimizer configuration for indexing and vacuum behavior.
+                          wal_config:
+                            type: object
+                            description: Write-ahead log configuration.
+                      payload_schema:
+                        type: object
+                        example: {}
+                        description: Schema of indexed payload fields.
+                      name_ext:
+                        type: string
+                        example: "my_collection"
+                        description: The collection name.
+                      health_status_ext:
+                        type: string
+                        example: "HEALTH_GREEN"
+                        description: Extended health status string.
+                      vectors_count:
+                        type: integer
+                        example: 0
+                        description: Total number of vectors in the collection.
+                      index_type_ext:
+                        type: string
+                        example: "INDEX_TYPE_HNSW"
+                        description: The index type used by the collection.
+              examples:
+                success:
+                  value:
+                    usage:
+                      hardware: null
+                    time: 5.4e-06
+                    status: ok
+                    result:
+                      status: Green
+                      optimizer_status:
+                        ok: true
+                        error: null
+                      warnings: []
+                      indexed_vectors_count: null
+                      points_count: 0
+                      segments_count: 1
+                      config:
+                        params:
+                          vectors: null
+                          shard_number: 0
+                          replication_factor: null
+                          write_consistency_factor: null
+                          on_disk_payload: false
+                        hnsw_config:
+                          m: null
+                          ef_construct: null
+                          full_scan_threshold: null
+                          max_indexing_threads: null
+                          on_disk: null
+                          payload_m: null
+                        optimizer_config:
+                          deleted_threshold: null
+                          vacuum_min_vector_number: null
+                          default_segment_number: null
+                          max_segment_size: null
+                          memmap_threshold: null
+                          indexing_threshold: null
+                          flush_interval_sec: null
+                          max_optimization_threads: null
+                        wal_config:
+                          wal_capacity_mb: null
+                          wal_segments_ahead: null
+                      payload_schema: {}
+                      name_ext: my_collection
+                      health_status_ext: HEALTH_GREEN
+                      vectors_count: 0
+                      index_type_ext: INDEX_TYPE_HNSW
+      x-codeSamples:
+        - lang: Python
+          label: Get collection info
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Get collection information
+                info = client.collections.get_info("my_collection")
+                
+                print(f"Collection: {info.config.params.collection_name if info.config else 'my_collection'}")
+                print(f"Status: {info.status}")
+                print(f"Points: {info.points_count}")
+                print(f"Vectors config: {info.config.params.vectors if info.config else 'N/A'}")
+        - lang: JavaScript
+          label: Get collection info
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            const info = await client.collections.getInfo('my_collection');
+            console.log(`Vectors: ${info.vectorsCount}, Points: ${info.pointsCount}, Segments: ${info.segmentsCount}`);
+
+            client.close();
+        - lang: cURL
+          label: Get collection info
+          source: |
+            curl -X GET "http://localhost:50052/collections/my_collection" \
+              -H "Accept: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>'
+
+    put:
+      tags:
+        - Collections
+      summary: Create collection
+      description: Create a new collection with a specified vector configuration. You must provide the vector dimension and distance metric. Supported distance metrics are `Cosine`, `Euclid`, `Dot`, and `Manhattan`.
+      operationId: create_collection
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          description: The name of the new collection.
+          schema:
+            type: string
+            example: my_collection
+        - name: timeout
+          in: query
+          required: false
+          description: The maximum time to wait for the operation to complete, in seconds.
+          schema:
+            type: integer
+            example: 30
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - vectors
+              properties:
+                vectors:
+                  type: object
+                  required:
+                    - size
+                    - distance
+                  properties:
+                    size:
+                      type: integer
+                      description: The number of dimensions for vectors in this collection.
+                      example: 128
+                    distance:
+                      type: string
+                      enum: [Cosine, Euclid, Dot, Manhattan]
+                      example: Cosine
+                hnsw_config:
+                  type: object
+                  properties:
+                    m:
+                      type: integer
+                      description: The number of bidirectional links per element in the HNSW graph.
+                      example: 16
+                    ef_construct:
+                      type: integer
+                      description: The size of the dynamic candidate list during index construction. Higher values improve index quality at the cost of slower builds.
+                      example: 200
+                    ef_search:
+                      type: integer
+                      description: The size of the dynamic candidate list during search. Higher values improve recall at the cost of latency.
+                      example: 50
+            examples:
+              basic:
+                summary: Basic collection
+                value:
+                  vectors:
+                    size: 128
+                    distance: Cosine
+              with_hnsw:
+                summary: With HNSW config
+                value:
+                  vectors:
+                    size: 256
+                    distance: Euclid
+                  hnsw_config:
+                    m: 32
+                    ef_construct: 200
+                    ef_search: 100
+      responses:
+        "200":
+          description: Collection created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.06091602
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status.
+                  result:
+                    type: boolean
+                    example: true
+                    description: Whether the operation completed successfully.
+              examples:
+                success:
+                  value:
+                    usage:
+                      hardware: null
+                    time: 0.06091602
+                    status: ok
+                    result: true
+      x-codeSamples:
+        - lang: Python
+          label: Create basic collection
+          source: |
+            from actian_vectorai import VectorAIClient, VectorParams, Distance
+
+            with VectorAIClient("localhost:50051") as client:
+                # Create a basic collection
+                client.collections.create(
+                    "my_collection",
+                    vectors_config=VectorParams(size=128, distance=Distance.Cosine)
+                )
+                print("✓ Collection created")
+        - lang: Python
+          label: Create with HNSW config
+          source: |
+            from actian_vectorai import (
+                VectorAIClient,
+                VectorParams,
+                Distance,
+                HnswConfigDiff
+            )
+
+            with VectorAIClient("localhost:50051") as client:
+                # Create collection with custom HNSW parameters
+                client.collections.create(
+                    "my_collection",
+                    vectors_config=VectorParams(size=256, distance=Distance.Euclid),
+                    hnsw_config=HnswConfigDiff(m=32, ef_construct=200)
+                )
+                print("✓ Collection created with custom HNSW config")
+        - lang: JavaScript
+          label: Create basic collection
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            await client.collections.create('my_collection', {
+                dimension: 4,
+                distanceMetric: 'COSINE',
+            });
+            console.log('Created collection');
+
+            client.close();
+        - lang: JavaScript
+          label: Create with HNSW config
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            await client.collections.create('my_collection', {
+                dimension: 4,
+                distanceMetric: 'COSINE',
+                hnswConfig: { m: 32, efConstruct: 200 },
+            });
+            console.log('Created collection with custom HNSW');
+
+            client.close();
+        - lang: cURL
+          label: Create collection
+          source: |
+            curl -X PUT "http://localhost:50052/collections/my_collection" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "vectors": {
+                  "size": 128,
+                  "distance": "Cosine"
+                }
+              }'
+        - lang: cURL
+          label: Create with HNSW config
+          source: |
+            curl -X PUT "http://localhost:50052/collections/my_hnsw_collection" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "vectors": {
+                  "size": 256,
+                  "distance": "Euclid"
+                },
+                "hnsw_config": {
+                  "m": 32,
+                  "ef_construct": 200,
+                  "ef_search": 100
+                }
+              }'
+
+    patch:
+      tags:
+        - Collections
+      summary: Update collection
+      description: Update parameters of an existing collection, such as optimizer configuration and HNSW search settings. Vector dimension and distance metric cannot be changed after creation.
+      operationId: update_collection
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          description: The name of the collection to update.
+          schema:
+            type: string
+            example: my_collection
+        - name: timeout
+          in: query
+          required: false
+          description: The maximum time to wait for the operation to complete, in seconds.
+          schema:
+            type: integer
+            example: 30
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                optimizers_config:
+                  type: object
+                  description: Optimizer settings for indexing thresholds and vacuum behavior.
+                  properties:
+                    indexing_threshold:
+                      type: integer
+                      description: The minimum number of vectors before indexing is triggered.
+                      example: 20000
+                hnsw_config:
+                  type: object
+                  description: HNSW index parameters that can be updated after creation.
+                  properties:
+                    ef_search:
+                      type: integer
+                      description: The size of the dynamic candidate list during search.
+                      example: 100
+            examples:
+              update_optimizers:
+                summary: Update optimizer settings
+                value:
+                  optimizers_config:
+                    indexing_threshold: 50000
+      responses:
+        "200":
+          description: Collection updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.000588548
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status.
+                  result:
+                    type: boolean
+                    example: true
+                    description: Whether the operation completed successfully.
+              examples:
+                success:
+                  value:
+                    usage:
+                      hardware: null
+                    time: 0.000588548
+                    status: ok
+                    result: true
+      x-codeSamples:
+        - lang: Python
+          label: Update collection
+          source: |
+            from actian_vectorai import VectorAIClient, OptimizersConfigDiff
+
+            with VectorAIClient("localhost:50051") as client:
+                # Update optimizer configuration
+                client.collections.update(
+                    "my_collection",
+                    optimizers_config=OptimizersConfigDiff(
+                        indexing_threshold=50_000
+                    )
+                )
+                print("✓ Collection updated")
+        - lang: JavaScript
+          label: Update collection
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            await client.collections.update('my_collection', {
+                hnswConfig: { m: 32, efConstruct: 200 },
+            });
+            console.log('Updated HNSW config');
+
+            client.close();
+        - lang: cURL
+          label: Update collection
+          source: |
+            curl -X PATCH "http://localhost:50052/collections/my_collection" \
+              -H "Content-Type: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
+              -d '{
+                "optimizers_config": {
+                  "indexing_threshold": 50000
+                }
+              }'
+
+    delete:
+      tags:
+        - Collections
+      summary: Delete collection
+      description: Delete a collection and all its data permanently. This operation is irreversible. All vectors, payloads, and indexes will be permanently removed.
+      operationId: delete_collection
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          description: The name of the collection to delete.
+          schema:
+            type: string
+            example: my_collection
+        - name: timeout
+          in: query
+          required: false
+          description: The maximum time to wait for the operation to complete, in seconds.
+          schema:
+            type: integer
+            example: 30
+      responses:
+        "200":
+          description: Collection deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 0.006704791
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status.
+                  result:
+                    type: boolean
+                    example: true
+                    description: Whether the operation completed successfully.
+              examples:
+                success:
+                  value:
+                    usage:
+                      hardware: null
+                    time: 0.006704791
+                    status: ok
+                    result: true
+      x-codeSamples:
+        - lang: Python
+          label: Delete collection
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Delete collection
+                if client.collections.exists("my_collection"):
+                    client.collections.delete("my_collection")
+                    print("✓ Collection deleted")
+                else:
+                    print("Collection does not exist")
+        - lang: JavaScript
+          label: Delete collection
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            await client.collections.delete('my_collection');
+            console.log('Deleted collection');
+
+            client.close();
+        - lang: cURL
+          label: Delete collection
+          source: |
+            curl -X DELETE "http://localhost:50052/collections/my_collection" \
+              -H "Accept: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>'
+
+  /collections/{collection_name}/exists:
+    get:
+      tags:
+        - Collections
+      summary: Check if collection exists
+      description: Check whether a collection with the given name exists in the database.
+      operationId: collection_exists
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          description: The name of the collection to check.
+          schema:
+            type: string
+            example: my_collection
+      responses:
+        "200":
+          description: Collection existence status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage:
+                    type: object
+                    properties:
+                      hardware:
+                        type: object
+                        nullable: true
+                        description: Hardware resource counters for the operation, including CPU, payload I/O, payload index I/O, and vector I/O metrics.
+                  time:
+                    type: number
+                    format: double
+                    example: 2.404e-06
+                    description: Time spent to process this request, in seconds.
+                  status:
+                    type: string
+                    example: "ok"
+                    description: Operation status.
+                  result:
+                    type: object
+                    properties:
+                      exists:
+                        type: boolean
+                        example: true
+                        description: Whether the collection exists.
+              examples:
+                success:
+                  value:
+                    usage:
+                      hardware: null
+                    time: 2.404e-06
+                    status: ok
+                    result:
+                      exists: true
+      x-codeSamples:
+        - lang: Python
+          label: Check collection exists
+          source: |
+            from actian_vectorai import VectorAIClient
+
+            with VectorAIClient("localhost:50051") as client:
+                # Check if collection exists
+                exists = client.collections.exists("my_collection")
+                print(f"Collection exists: {exists}")
+        - lang: JavaScript
+          label: Check collection exists
+          source: |
+            import { CortexClient } from '@actian/cortex-client';
+
+            const client = new CortexClient('localhost:50051');
+
+            const exists = await client.collections.exists('my_collection');
+            console.log(`Collection exists: ${exists}`);
+
+            client.close();
+        - lang: cURL
+          label: Check exists
+          source: |
+            curl -X GET "http://localhost:50052/collections/my_collection/exists" \
+              -H "Accept: application/json" \
+              -H 'Authorization: Bearer <admin-jwt-or-access-token>'
+
+  # NOTE: Alias endpoints are not yet implemented in the current server version.
+  # /collections/aliases:
+  #   post:
+  #     tags:
+  #       - Aliases
+  #     summary: Update collection aliases
+  #     description: |
+  #       Create, rename, or delete collection aliases.
+  #
+  #       Aliases allow zero-downtime deployments by pointing a logical name
+  #       to different physical collections.
+  #
+  #       **Operations:**
+  #       - `create`: Create a new alias pointing to a collection
+  #       - `delete`: Remove an existing alias
+  #       - `rename`: Atomically delete and create (for swapping)
+  #     operationId: update_aliases
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             type: object
+  #             properties:
+  #               actions:
+  #                 type: array
+  #                 items:
+  #                   type: object
+  #                   oneOf:
+  #                     - properties:
+  #                         create:
+  #                           type: object
+  #                           properties:
+  #                             collection_name:
+  #                               type: string
+  #                             alias_name:
+  #                               type: string
+  #                     - properties:
+  #                         delete:
+  #                           type: object
+  #                           properties:
+  #                             alias_name:
+  #                               type: string
+  #           examples:
+  #             create_alias:
+  #               summary: Create alias
+  #               value:
+  #                 actions:
+  #                   - create:
+  #                       collection_name: products_v1
+  #                       alias_name: production
+  #             swap_alias:
+  #               summary: Zero-downtime swap
+  #               value:
+  #                 actions:
+  #                   - delete:
+  #                       alias_name: production
+  #                   - create:
+  #                       collection_name: products_v2
+  #                       alias_name: production
+  #     responses:
+  #       "200":
+  #         description: Aliases updated
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 status:
+  #                   type: string
+  #                 time:
+  #                   type: number
+  #                 result:
+  #                   type: boolean
+  #     x-codeSamples:
+  #       - lang: Python
+  #         label: Create Alias
+  #         source: |
+  #           from actian_vectorai import VectorAIClient
+  #
+  #           with VectorAIClient("localhost:50051") as client:
+  #               # Create an alias
+  #               client.collections.update_aliases([
+  #                   {
+  #                       "create": {
+  #                           "collection_name": "products_v1",
+  #                           "alias_name": "production"
+  #                       }
+  #                   }
+  #               ])
+  #               print("✓ Alias 'production' → 'products_v1' created")
+  #       - lang: Python
+  #         label: Zero-Downtime Swap
+  #         source: |
+  #           from actian_vectorai import VectorAIClient
+  #
+  #           with VectorAIClient("localhost:50051") as client:
+  #               # Atomically swap alias to new collection
+  #               client.collections.update_aliases([
+  #                   {"delete": {"alias_name": "production"}},
+  #                   {"create": {"collection_name": "products_v2", "alias_name": "production"}}
+  #               ])
+  #               print("✓ Production swapped to products_v2")
+  #       - lang: cURL
+  #         label: Create Alias
+  #         source: |
+  #           curl -X POST "http://localhost:50052/collections/aliases" \
+  #             -H "Content-Type: application/json" \
+  #             -d '{
+  #               "actions": [
+  #                 {
+  #                   "create": {
+  #                     "collection_name": "products_v1",
+  #                     "alias_name": "production"
+  #                   }
+  #                 }
+  #               ]
+  #             }'
+  #
+  #   get:
+  #     tags:
+  #       - Aliases
+  #     summary: List all aliases
+  #     description: Get a list of all collection aliases
+  #     operationId: list_aliases
+  #     responses:
+  #       "200":
+  #         description: List of aliases
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 result:
+  #                   type: object
+  #                   properties:
+  #                     aliases:
+  #                       type: array
+  #                       items:
+  #                         type: object
+  #                         properties:
+  #                           alias_name:
+  #                             type: string
+  #                           collection_name:
+  #                             type: string
+  #     x-codeSamples:
+  #       - lang: Python
+  #         label: List All Aliases
+  #         source: |
+  #           from actian_vectorai import VectorAIClient
+  #
+  #           with VectorAIClient("localhost:50051") as client:
+  #               # List all aliases
+  #               aliases = client.collections.list_aliases()
+  #
+  #               for alias in aliases:
+  #                   print(f"  {alias.alias_name} → {alias.collection_name}")
+  #       - lang: cURL
+  #         label: List Aliases
+  #         source: |
+  #           curl -X GET "http://localhost:50052/collections/aliases" \
+  #             -H "Accept: application/json"
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: object
+          properties:
+            error:
+              type: string
+        time:
+          type: number
+          format: double
+          description: Time spent to process this request, in seconds.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Admin JWT or access token for authenticating requests to VectorAI DB.
