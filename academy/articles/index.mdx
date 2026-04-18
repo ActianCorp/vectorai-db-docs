@@ -17,10 +17,6 @@ flowchart TD
     Q --> |Multimodal & RAG| Multi[Multimodal & retrieval]
     Q --> |Industry solutions| Industry[Industry applications]
 
-    Agents --> Legal[Legal contract intelligence]
-    Agents --> Clinical[Multi-agent systems]
-    Agents --> Insurance[Insurance split liability]
-    Agents --> Threat[Network threat hunting]
     Agents --> Memory[Scalable agent memory]
     Agents --> Recipe[Recipe recommendation]
 
@@ -38,22 +34,10 @@ flowchart TD
 These articles show how to build intelligent agents that combine semantic retrieval with domain-specific reasoning.
 
 <CardGroup cols={2}>
-  <Card title="AI legal contract intelligence agent" href="/academy/articles/ai-legal-contract-intelligence-agent">
-    Build an AI-powered legal contract analysis system with cross-collection lookup, retrieval sorted with OrderBy, connection pooling, and quantization-aware search.
-  </Card>
-  <Card title="AI clinical trial patient matching agent" href="/academy/articles/building-a-reliable-multi-agent-system">
-    Build a clinical trial patient matching system using Euclidean and Manhattan distance metrics, scalar quantization, IVF indexing, server-side fusion, and UUID payload indexes.
-  </Card>
-  <Card title="AI insurance split liability agent" href="/academy/articles/insurance-split-liability-agent">
-    Build an insurance split liability workflow with named vectors, multi-stage prefetch queries, batch search, datetime filters, geo-radius filtering, and payload mutation.
-  </Card>
-  <Card title="AI network threat hunting agent" href="/academy/articles/ai-network-threat-hunting-agent-with-vector-databases">
-    Build a network anomaly detection system with SmartBatcher streaming ingestion, full-text search, query batching, nested filters, condition operators, and collection lifecycle management.
-  </Card>
-  <Card title="Scalable agent memory" href="/academy/articles/building-a-scalable-agent-memory-with-actian-vector-ai-database">
+  <Card title="Scalable agent memory" href="/academy/articles/building-a-scalable-agent-memory-with-Actian-vector-AI-database">
     Build a scalable agent memory system with cross-collection lookup, retrieval sorted with OrderBy, WAL and optimizer tuning, and strict deletion.
   </Card>
-  <Card title="AI recipe recommendation agent" href="/academy/articles/ai-recipe-recommendation-agent">
+  <Card title="AI recipe recommendation agent" href="/academy/articles/AI-recipe-recommendation-agent">
     Build a recipe recommendation agent that matches cravings through semantic search, filters by dietary restrictions and ingredients, and learns preferences over time.
   </Card>
 </CardGroup>
@@ -63,10 +47,10 @@ These articles show how to build intelligent agents that combine semantic retrie
 These articles cover how to combine text, image, and document embeddings for rich retrieval experiences.
 
 <CardGroup cols={2}>
-  <Card title="Multivector document intelligence with Visual RAG" href="/academy/articles/multivector-document-intelligence-with-visual-rag">
+  <Card title="Multivector document intelligence with Visual RAG" href="/academy/articles/Multivector-Document-Intelligence-with-Visual-RAG">
     Build a multimodal document intelligence system that embeds PDF pages as images with CLIP and generates answers using GPT-4o vision.
   </Card>
-  <Card title="Next-Gen product discovery with multimodal AI" href="/academy/articles/next-gen-product-discovery-with-multimodal-ai">
+  <Card title="Next-Gen product discovery with multimodal AI" href="/academy/articles/Next-Gen-Product-Discovery-with-Multimodal-AI">
     Build a multimodal hybrid search system combining CLIP dense embeddings and BM25 sparse scoring for semantic and keyword product retrieval.
   </Card>
 </CardGroup>
@@ -85,7 +69,7 @@ These articles apply vector search to solve real-world problems across specific 
   <Card title="Facial recognition with vector embeddings" href="/academy/articles/facial-recognition">
     Implement facial recognition using face embeddings and VectorAI DB for identity verification and search.
   </Card>
-  <Card title="Avatar-Based assistant for customer support" href="/academy/articles/avatar-based-assistant-for-customer-support">
+  <Card title="Avatar-Based assistant for customer support" href="/academy/articles/Avatar-based-assistant-for-customer-support">
     Build an intelligent avatar assistant that retrieves knowledge and provides personalized customer support.
   </Card>
 </CardGroup>
@@ -96,18 +80,14 @@ The table below lists every article alongside its domain and the specific Vector
 
 | Article | Domain | Key VectorAI DB features |
 |---------|--------|--------------------------|
-| [Legal contract intelligence](/academy/articles/ai-legal-contract-intelligence-agent) | Legal | Cross-collection lookup, retrieval sorted with OrderBy, connection pooling, quantization |
-| [Multi-agent systems](/academy/articles/building-a-reliable-multi-agent-system) | Healthcare | Euclidean/Manhattan distance, scalar quantization, IVF, fusion |
-| [Insurance split liability](/academy/articles/insurance-split-liability-agent) | Insurance | Named vectors, prefetch, batch search, geo-radius, datetime filters |
-| [Network threat hunting](/academy/articles/ai-network-threat-hunting-agent-with-vector-databases) | Cybersecurity | SmartBatcher, full-text search, query batching, nested filters, condition operators |
-| [Scalable agent memory](/academy/articles/building-a-scalable-agent-memory-with-actian-vector-ai-database) | Infrastructure | Cross-collection, WAL tuning, optimizer config, strict deletion |
-| [Recipe recommendation](/academy/articles/ai-recipe-recommendation-agent) | Consumer | Semantic search, payload filters, preference learning |
-| [Visual RAG](/academy/articles/multivector-document-intelligence-with-visual-rag) | Document AI | CLIP embeddings, multimodal retrieval, GPT-4o vision |
-| [Multimodal product discovery](/academy/articles/next-gen-product-discovery-with-multimodal-ai) | E-commerce | CLIP + BM25 hybrid search, sparse/dense fusion |
+| [Scalable agent memory](/academy/articles/building-a-scalable-agent-memory-with-Actian-vector-AI-database) | Infrastructure | Cross-collection, WAL tuning, optimizer config, strict deletion |
+| [Recipe recommendation](/academy/articles/AI-recipe-recommendation-agent) | Consumer | Semantic search, payload filters, preference learning |
+| [Visual RAG](/academy/articles/Multivector-Document-Intelligence-with-Visual-RAG) | Document AI | CLIP embeddings, multimodal retrieval, GPT-4o vision |
+| [Multimodal product discovery](/academy/articles/Next-Gen-Product-Discovery-with-Multimodal-AI) | E-commerce | CLIP + BM25 hybrid search, sparse/dense fusion |
 | [Supply chain risk](/academy/articles/supply-chain-inventory-management-agent) | Logistics | Semantic retrieval, payload filters, risk reasoning |
 | [Financial document analysis](/academy/articles/financial-document-analysis) | Finance | Semantic search, structured metadata filtering |
 | [Facial recognition](/academy/articles/facial-recognition) | Security | Face embeddings, identity verification, similarity search |
-| [Customer support avatar](/academy/articles/avatar-based-assistant-for-customer-support) | Customer service | Knowledge retrieval, personalized responses |
+| [Customer support avatar](/academy/articles/Avatar-based-assistant-for-customer-support) | Customer service | Knowledge retrieval, personalized responses |
 
 <Tip>
 Each article is self-contained — pick the one that matches your use case and follow along. If you are new to VectorAI DB, then start with the [tutorials](/academy/tutorials/index) first to build foundational skills.

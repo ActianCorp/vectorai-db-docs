@@ -375,7 +375,6 @@ All fields are optional. Omitting `SearchParams` entirely uses the collection's 
 | `exact` | `False` | `True` disables HNSW and performs a brute-force scan (100% recall). |
 | `indexed_only` | `False` | `True` skips unindexed segments (useful during bulk ingestion). |
 | `quantization` | None | Controls quantized vector search behavior (see below). |
-| `ivf_nprobe` | Collection default | For IVF indexes: number of partitions to search. |
 
 #### Quantization-aware search
 
@@ -956,7 +955,7 @@ All search methods accept the following parameters to control retrieval behaviou
 | `vector` | `list[float]` | Query embedding |
 | `limit` | `int` | Maximum results |
 | `filter` | `Filter` | Payload filter conditions |
-| `params` | `SearchParams` | HNSW ef, exact mode, quantization, IVF nprobe |
+| `params` | `SearchParams` | HNSW ef, exact mode, quantization |
 | `score_threshold` | `float` | Minimum score cutoff |
 | `offset` | `int` | Skip first N results (pagination) |
 | `using` | `str` | Named vector to search |
@@ -982,13 +981,13 @@ Now that you can embed, store, search, and tune vector queries, explore the foll
   <Card title="Predicate filters" href="/academy/tutorials/predicate-filters">
     Combine similarity search with structured payload constraints
   </Card>
-  <Card title="Hybrid search patterns" href="/academy/tutorials/hybrid-search">
-    Mix dense and sparse retrieval with fusion
+  <Card title="Re-ranking search results" href="/academy/tutorials/re-ranking">
+    Improve relevance with cross-encoder and reciprocal rank fusion re-ranking
   </Card>
-  <Card title="Filtering with boolean logic" href="/academy/tutorials/filtering-boolean-logic">
-    Add must, should, and must_not conditions
+  <Card title="Retrieval quality" href="/academy/tutorials/retrieval-quality">
+    Measure and optimize search accuracy using precision, recall, and MRR
   </Card>
-  <Card title="Geospatial search" href="/academy/tutorials/geospatial-search">
-    Make retrieval location-aware
+  <Card title="Open-source embedding models" href="/academy/tutorials/leverage-open-source-embedding-models">
+    Integrate open-source models like Sentence Transformers and BGE
   </Card>
 </CardGroup>
