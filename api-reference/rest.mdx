@@ -33,20 +33,17 @@ The REST API is organized into the following categories:
   <Card title="Search" icon="magnifying-glass" href="/api-reference/rest/search/search/search-vectors">
     Perform vector similarity searches with filters and pagination.
   </Card>
-  <Card title="Recommendations" icon="thumbs-up" href="/api-reference/rest/recommendations/recommendations/recommend-points">
-    Get point recommendations based on positive and negative examples.
-  </Card>
-  <Card title="Discovery" icon="compass" href="/api-reference/rest/recommendations/discovery/discover-points">
-    Discover points using context pairs for similarity exploration.
-  </Card>
-  <Card title="Grouped search" icon="object-group" href="/api-reference/rest/grouped-search/grouped-search/search-with-grouping">
-    Search with result grouping by payload fields.
-  </Card>
   <Card title="Filters" icon="filter" href="/api-reference/rest/filters/filters/filter-examples">
     Filter search results based on payload conditions.
   </Card>
-  <Card title="Snapshots and maintenance" icon="database" href="/api-reference/rest/snapshots/snapshots/list-snapshots">
-    Create backups, restore snapshots, and optimize collections.
+  <Card title="Error codes" icon="exclamation-triangle" href="/api-reference/error-codes">
+    Error codes and exception types returned by the REST API.
+  </Card>
+  <Card title="Admin User" icon="user-shield" href="/api-reference/admin-user/create-admin-user">
+    Create, reset password, and manage the admin user.
+  </Card>
+  <Card title="Access Tokens" icon="key" href="/api-reference/access-tokens/create-access-token">
+    Create, list, rotate, and delete access tokens.
   </Card>
 </CardGroup>
 
@@ -122,7 +119,7 @@ Rate limits depend on your VectorAI DB deployment configuration. Check response 
 
 ## Python SDK
 
-For a more ergonomic development experience with type safety and automatic connection management, consider using the [Python SDK](/sdks/python/index). The SDK communicates over gRPC (port 50051) and provides the same operations available through the REST API.
+For a more ergonomic development experience with type safety and automatic connection management, consider using the [Python SDK](/sdks/python/installation). The SDK communicates over gRPC (port 50051) and provides the same operations available through the REST API.
 
 ```python
 from actian_vectorai import VectorAIClient, VectorParams, Distance

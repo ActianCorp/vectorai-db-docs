@@ -5,43 +5,63 @@
 ```
 Actian VectorAI/
 │
-├── docs.json                         # Mintlify navigation configuration
+├── docs.json                         # Mintlify navigation configuration (root)
 ├── favicon.svg                       # Actian favicon
 ├── index.mdx                         # Landing page with hero section
-├── quickstart.mdx                    # -minute quickstart guide
-├── development.mdx                   # Development environment setup
 │
 ├── logo/
 │   ├── dark.svg                      # Actian logo for dark mode
 │   └── light.svg                     # Actian logo for light mode
 │
 ├── images/
-│   ├── architecture/                 # Architecture diagrams
+│   ├── arch.png
 │   ├── checks-passed.png
 │   ├── hero-dark.png
-│   └── hero-light.png
+│   ├── hero-light.png
+│   ├── concepts/
+│   │   ├── distance-metrics/
+│   │   │   ├── cosine_similarity_metric.png
+│   │   │   ├── dot_product_metric.png
+│   │   │   ├── dot_product_metric_2.png
+│   │   │   └── euclidean_distance_metric.png
+│   │   ├── indexing/
+│   │   │   ├── flat-indexing.png
+│   │   │   └── hnsw.png
+│   │   └── vector-embeddings/
+│   │       ├── distance-metrics.png
+│   │       └── fruits-vector-space.png
+│   ├── fundamentals/
+│   │   ├── distance-metrics/
+│   │   │   ├── cosine_similarity_metric.png
+│   │   │   ├── dot_product_metric.png
+│   │   │   ├── dot_product_metric_2.png
+│   │   │   └── euclidean_distance_metric.png
+│   │   ├── indexing/
+│   │   │   ├── flat-indexing.png
+│   │   │   └── hnsw.png
+│   │   └── vector-embeddings/
+│   │       ├── distance-metrics.png
+│   │       └── fruits-vector-space.png
+│   ├── guides/
+│   │   └── gui/
+│   │       └── dashboard.png
+│   ├── home/
+│   │   └── overview-architecture-diagram.png
+│   └── tutorials/
+│       └── RAG-overview.png
 │
-├── snippets/                         # Reusable code snippets
-│   ├── snippet-intro.mdx
-│   ├── python-connect.mdx
-│   ├── python-insert.mdx
-│   ├── python-search.mdx
-│   ├── js-connect.mdx
-│   ├── java-connect.mdx
-│   └── go-connect.mdx
+├── snippets/
+│   ├── python-prerequisites.mdx
+│   ├── quickstart-content.mdx
+│   └── what-is-vectorai-db.mdx
 │
-├── essentials/                       # Mintlify essentials
-│   ├── code.mdx
-│   ├── images.mdx
-│   ├── markdown.mdx
-│   ├── navigation.mdx
-│   ├── reusable-snippets.mdx
-│   └── settings.mdx
-│
-├── ai-tools/                         # AI coding tools integration
-│   ├── cursor.mdx
-│   ├── claude-code.mdx
-│   └── windsurf.mdx
+├── openapi_prepared/
+│   ├── authentication-api.yaml
+│   ├── collections-api.yaml
+│   ├── filters-api.yaml
+│   ├── grouped-search-api.yaml
+│   ├── points-api.yaml
+│   └── search-api.yaml
 │
 │
 │ ══════════════════════════════════════════════════════════════
@@ -49,37 +69,26 @@ Actian VectorAI/
 │ ══════════════════════════════════════════════════════════════
 │
 ├── home/
-│   ├── index.mdx
-│   ├── release-notes.mdx             # Release Notes 
+│   ├── getting-started/
+│   │   ├── architecture.mdx
+│   │   ├── how-it-works.mdx
+│   │   ├── key-features.mdx
+│   │   ├── overview.mdx
+│   │   └── use-cases.mdx
 │   │
-│   ├── getting-started/		-Feb
-│   │   ├── index.mdx
-│   │   ├── introduction.mdx
-│   │   ├── key-differentiators.mdx
+│   ├── installation/
+│   │   └── instructions.mdx
+│   │
+│   ├── migration/
+│   │   ├── instructions.mdx
+│   │   ├── milvus.mdx
+│   │   └── qdrant.mdx
+│   │
+│   ├── quickstart/
 │   │   └── quickstart.mdx
 │   │
-│   ├── installation/                 # User Guides 	-Feb
-│   │   ├── index.mdx
-│   │   ├── docker.mdx
-│   │   ├── kubernetes.mdx
-│   │   ├── cloud-managed.mdx
-│   │   └── on-premise.mdx
-│   │	
-│   ├── hello-world/			-Feb
-│   │   ├── index.mdx
-│   │   ├── python.mdx
-│   │   ├── javascript.mdx
-│   │   ├── java.mdx
-│   │   └── go.mdx
-│   │
-│   └── migration/
-│       ├── index.mdx
-│       ├── pgvector.mdx
-│       ├── pinecone.mdx
-│       ├── weaviate.mdx
-│       ├── milvus.mdx
-│       ├── qdrant.mdx
-│       └── chroma.mdx
+│   └── support/
+│       └── faq.mdx
 │
 │
 │ ══════════════════════════════════════════════════════════════
@@ -88,277 +97,203 @@ Actian VectorAI/
 │
 ├── docs/
 │   ├── index.mdx
-│   ├── faq.mdx
-│   ├── glossary.mdx                  # Glossary of Terms 
 │   │
-│   ├── concepts/			-Feb
+│   ├── fundamentals/
 │   │   ├── index.mdx
-│   │   │
-│   │   ├── architecture/             # Architecture Diagrams  
-│   │   │   ├── index.mdx
-│   │   │   ├── x-engine.mdx
-│   │   │   ├── storage-hierarchy.mdx
-│   │   │   ├── memory-management.mdx
-│   │   │   └── data-flow.mdx
-│   │   │
-│   │   ├── vectors/
-│   │   │   ├── index.mdx
-│   │   │   ├── embeddings.mdx
-│   │   │   ├── dimensions.mdx
-│   │   │   └── normalization.mdx
-│   │   │
-│   │   ├── distance-metrics/
-│   │   │   ├── index.mdx
-│   │   │   ├── euclidean.mdx
-│   │   │   ├── cosine.mdx
-│   │   │   └── dot-product.mdx
-│   │   │
-│   │   ├── indexing/
-│   │   │   ├── index.mdx
-│   │   │   ├── hnsw.mdx
-│   │   │   ├── ivf.mdx
-│   │   │   └── tuning.mdx
-│   │   │
-│   │   └── hybrid-search/
-│   │       ├── index.mdx
-│   │       ├── sql-vector.mdx
-│   │       ├── rrf.mdx
-│   │       └── filtering.mdx
-│   │
-│   ├── guides/				-Mar
-│   │   ├── index.mdx
-│   │   ├── best-practices.mdx        # Best Practices  (NEW)
-│   │   │
-│   │   ├── connecting/
-│   │   │   ├── index.mdx
-│   │   │   ├── connection-strings.mdx
-│   │   │   ├── pooling.mdx
-│   │   │   └── async-patterns.mdx
-│   │   │
-│   │   ├── schema-design/
-│   │   │   ├── index.mdx
+│   │   ├── collections/
 │   │   │   ├── collections.mdx
-│   │   │   ├── metadata.mdx
-│   │   │   ├── constraints.mdx
-│   │   │   └── multi-tenancy.mdx
-│   │   │
-│   │   ├── data-operations/
-│   │   │   ├── index.mdx
-│   │   │   ├── inserting.mdx
-│   │   │   ├── batch-ingestion.mdx
-│   │   │   ├── updating.mdx
-│   │   │   ├── deleting.mdx
-│   │   │   └── importing.mdx
-│   │   │
-│   │   └── querying/
-│   │       ├── index.mdx
-│   │       ├── basic-search.mdx
-│   │       ├── filtered-search.mdx
-│   │       ├── hybrid-queries.mdx
-│   │       └── pagination.mdx
+│   │   │   ├── complete-workflow.mdx
+│   │   │   ├── create-collection-task.mdx
+│   │   │   ├── delete-collection-task.mdx
+│   │   │   ├── get-collection-info-task.mdx
+│   │   │   ├── manage-collection-state-task.mdx
+│   │   │   └── update-collection-task.mdx
+│   │   ├── distance-metrics/
+│   │   │   ├── cosine-similarity-task.mdx
+│   │   │   ├── distance-metrics.mdx
+│   │   │   ├── dot-product-task.mdx
+│   │   │   └── euclidean-distance-task.mdx
+│   │   ├── filtering/
+│   │   │   ├── combined-filter-task.mdx
+│   │   │   ├── filtering.mdx
+│   │   │   ├── must-filter-task.mdx
+│   │   │   ├── must-not-filter-task.mdx
+│   │   │   └── should-filter-task.mdx
+│   │   ├── hybrid-search/
+│   │   │   ├── dbsf-fusion-task.mdx
+│   │   │   ├── hybrid-rag-task.mdx
+│   │   │   ├── hybrid-search.mdx
+│   │   │   ├── multi-model-fusion-task.mdx
+│   │   │   ├── performance-benchmark-task.mdx
+│   │   │   ├── query-variation-task.mdx
+│   │   │   └── rrf-fusion-task.mdx
+│   │   ├── indexing/
+│   │   │   ├── configure-hnsw-task.mdx
+│   │   │   └── indexing.mdx
+│   │   ├── payload/
+│   │   │   ├── create-payload-task.mdx
+│   │   │   ├── filter-payload-task.mdx
+│   │   │   ├── payload.mdx
+│   │   │   └── update-payload-task.mdx
+│   │   ├── points/
+│   │   │   ├── delete-points-task.mdx
+│   │   │   ├── insert-points-task.mdx
+│   │   │   ├── points.mdx
+│   │   │   ├── retrieve-points-task.mdx
+│   │   │   └── update-points-task.mdx
+│   │   ├── search/
+│   │   │   ├── basic-search-task.mdx
+│   │   │   ├── filtered-search-task.mdx
+│   │   │   ├── search.mdx
+│   │   │   ├── search-with-payload-task.mdx
+│   │   │   └── search-with-vectors-task.mdx
+│   │   ├── semantic-search/
+│   │   │   ├── complete-workflow.mdx
+│   │   │   ├── filtered-semantic-search-task.mdx
+│   │   │   ├── multi-constraint-search-task.mdx
+│   │   │   ├── pure-semantic-search-task.mdx
+│   │   │   ├── score-threshold-search-task.mdx
+│   │   │   └── semantic-search.mdx
+│   │   └── vectors/
+│   │       ├── create-vectors-task.mdx
+│   │       ├── search-vectors-task.mdx
+│   │       └── vectors.mdx
 │   │
-│   ├── integrations/                 # Integrations 	-Mar
-│   │   ├── index.mdx
-│   │   ├── ecosystem.mdx             # Ecosystem  (NEW)
-│   │   ├── langchain.mdx
-│   │   ├── llamaindex.mdx
-│   │   ├── haystack.mdx
-│   │   ├── semantic-kernel.mdx
-│   │   ├── openai.mdx
-│   │   ├── cohere.mdx
-│   │   ├── huggingface.mdx
-│   │   ├── aws-bedrock.mdx
-│   │   └── azure-openai.mdx
+│   ├── guides/
+│   │   ├── error-handling.mdx
+│   │   ├── gui-interface.mdx
+│   │   ├── license-and-upgrade.mdx
+│   │   ├── monitoring-and-logging.mdx
+│   │   └── troubleshooting.mdx
 │   │
-│   └── ai-tools/
+│   ├── installation/
+│   │   └── docker.mdx
+│   │
+│   └── integrations/
 │       ├── index.mdx
-│       ├── cursor.mdx
-│       ├── claude-code.mdx
-│       └── windsurf.mdx
+│       ├── langchain.mdx
+│       ├── llama-index.mdx
+│       └── openai-embedding-model.mdx
 │
 │
 │ ══════════════════════════════════════════════════════════════
-│ TAB: API & SDKs			-Mar
+│ TAB: DEVELOPER TOOLS
 │ ══════════════════════════════════════════════════════════════
 │
 ├── api-reference/
+│   ├── docs.json                     # Mintlify navigation configuration
 │   ├── index.mdx
-│   ├── authentication.mdx
-│   ├── error-codes.mdx               # Error Handling 
-│   ├── troubleshooting.mdx           # Troubleshooting 
-│   ├── openapi.json
+│   ├── rest.mdx
+│   ├── error-codes.mdx
 │   │
-│   ├── control-plane/
-│   │   ├── index.mdx
-│   │   ├── clusters.mdx
-│   │   ├── databases.mdx
-│   │   └── users.mdx
+│   ├── access-tokens/
+│   │   ├── create-access-token.mdx
+│   │   ├── delete-access-token.mdx
+│   │   ├── list-access-tokens.mdx
+│   │   └── rotate-access-token.mdx
 │   │
-│   ├── data-plane/
-│   │   ├── index.mdx
-│   │   ├── collections.mdx
-│   │   ├── vectors.mdx
-│   │   └── search.mdx
-│   │
-│   ├── sql-reference/
-│   │   ├── index.mdx
-│   │   ├── syntax.mdx
-│   │   ├── vector-functions.mdx
-│   │   ├── system-variables.mdx
-│   │   └── data-types.mdx
+│   ├── admin-user/
+│   │   ├── admin-login.mdx
+│   │   ├── check-admin-exists.mdx
+│   │   ├── create-admin-user.mdx
+│   │   ├── reset-admin-password.mdx
+│   │   └── set-auth-enabled.mdx
 │   │
 │   ├── grpc/
-│   │   ├── index.mdx
-│   │   └── proto-reference.mdx
+│   │   └── index.mdx
 │   │
-│   └── sdks/
-│       ├── index.mdx
-│       ├── python/
-│       │   ├── index.mdx
-│       │   ├── installation.mdx
-│       │   ├── quickstart.mdx
-│       │   └── api.mdx
-│       ├── javascript/
-│       │   ├── index.mdx
-│       │   ├── installation.mdx
-│       │   ├── quickstart.mdx
-│       │   └── api.mdx
-│       ├── java/
-│       │   ├── index.mdx
-│       │   ├── installation.mdx
-│       │   ├── quickstart.mdx
-│       │   └── api.mdx
-│       ├── go/
-│       │   ├── index.mdx
-│       │   ├── installation.mdx
-│       │   ├── quickstart.mdx
-│       │   └── api.mdx
-│       ├── dotnet/
-│       │   ├── index.mdx
-│       │   ├── installation.mdx
-│       │   ├── quickstart.mdx
-│       │   └── api.mdx
-│       └── rust/
-│           ├── index.mdx
-│           ├── installation.mdx
-│           ├── quickstart.mdx
-│           └── api.mdx
+│   └── rest/
+│       ├── collections/
+│       │   ├── aliases/
+│       │   │   ├── list-all-aliases.mdx
+│       │   │   └── update-collection-aliases.mdx
+│       │   ├── check-if-collection-exists.mdx
+│       │   ├── collections/
+│       │   │   ├── check-if-collection-exists.mdx
+│       │   │   ├── create-collection.mdx
+│       │   │   ├── delete-collection.mdx
+│       │   │   ├── get-collection-info.mdx
+│       │   │   ├── list-all-collections.mdx
+│       │   │   └── update-collection.mdx
+│       │   ├── create-collection.mdx
+│       │   ├── delete-collection.mdx
+│       │   ├── get-collection-info.mdx
+│       │   ├── list-all-collections.mdx
+│       │   └── update-collection.mdx
+│       ├── filters/
+│       │   ├── filter-examples.mdx
+│       │   └── filters/
+│       │       └── filter-examples.mdx
+│       ├── points/
+│       │   ├── clear-payload.mdx
+│       │   ├── create-field-index.mdx
+│       │   ├── delete-payload-keys.mdx
+│       │   ├── delete-points.mdx
+│       │   ├── get-points-by-ids.mdx
+│       │   ├── get-single-point.mdx
+│       │   ├── overwrite-payload.mdx
+│       │   ├── points/
+│       │   │   ├── clear-payload.mdx
+│       │   │   ├── create-field-index.mdx
+│       │   │   ├── delete-payload-keys.mdx
+│       │   │   ├── delete-points.mdx
+│       │   │   ├── get-points-by-ids.mdx
+│       │   │   ├── get-single-point.mdx
+│       │   │   ├── overwrite-payload.mdx
+│       │   │   ├── set-payload.mdx
+│       │   │   ├── update-vectors.mdx
+│       │   │   └── upsert-points.mdx
+│       │   ├── set-payload.mdx
+│       │   ├── update-vectors.mdx
+│       │   └── upsert-points.mdx
+│       └── search/
+│           ├── batch-search.mdx
+│           ├── count/
+│           │   └── count-points.mdx
+│           ├── scroll/
+│           │   └── scroll-points.mdx
+│           ├── search/
+│           │   ├── batch-search.mdx
+│           │   └── search-vectors.mdx
+│           └── search-vectors.mdx
+│
+├── sdks/
+│   ├── javascript/
+│   │   ├── installation.mdx
+│   │   └── quickstart.mdx
+│   └── python/
+│       ├── installation.mdx
+│       └── quickstart.mdx
 │
 │
 │ ══════════════════════════════════════════════════════════════
-│ TAB: CLOUD			-Mar
-│ ══════════════════════════════════════════════════════════════
-│
-├── cloud/
-│   ├── index.mdx
-│   │
-│   ├── deployment/
-│   │   ├── index.mdx
-│   │   ├── hybrid-architecture.mdx
-│   │   ├── multi-cloud.mdx
-│   │   ├── kubernetes-operator.mdx
-│   │   └── ha-configuration.mdx
-│   │
-│   ├── cloud-platforms/              # Cloud Platforms (How-to) 
-│   │   ├── index.mdx
-│   │   ├── aws-ec-eks.mdx
-│   │   ├── azure-aks.mdx
-│   │   ├── gcp-gke.mdx
-│   │   └── cost-optimization.mdx
-│   │
-│   ├── security/
-│   │   ├── index.mdx
-│   │   ├── authentication/
-│   │   │   ├── index.mdx
-│   │   │   ├── api-keys.mdx
-│   │   │   ├── oidc.mdx
-│   │   │   └── saml.mdx
-│   │   ├── authorization/
-│   │   │   ├── index.mdx
-│   │   │   ├── rbac.mdx
-│   │   │   ├── custom-roles.mdx
-│   │   │   └── row-level.mdx
-│   │   ├── network/
-│   │   │   ├── index.mdx
-│   │   │   ├── privatelink-aws.mdx
-│   │   │   ├── privatelink-azure.mdx
-│   │   │   ├── vpc-peering.mdx
-│   │   │   └── ip-allowlists.mdx
-│   │   └── encryption/
-│   │       ├── index.mdx
-│   │       ├── at-rest.mdx
-│   │       ├── in-transit.mdx
-│   │       └── byok.mdx
-│   │
-│   ├── observability/
-│   │   ├── index.mdx
-│   │   ├── metrics.mdx
-│   │   ├── logging.mdx
-│   │   ├── tracing.mdx
-│   │   └── dashboards.mdx
-│   │
-│   ├── production/
-│   │   ├── index.mdx
-│   │   ├── go-live-checklist.mdx
-│   │   ├── capacity-planning.mdx
-│   │   ├── backup-restore.mdx
-│   │   └── disaster-recovery.mdx
-│   │
-│   └── support/                      # Support 
-│       ├── index.mdx
-│       ├── contact-sla.mdx
-│       ├── escalation.mdx
-│       └── trust-center.mdx
-│
-│
-│ ══════════════════════════════════════════════════════════════
-│ TAB: ACADEMY				-Mar
+│ TAB: ACADEMY
 │ ══════════════════════════════════════════════════════════════
 │
 └── academy/
     ├── index.mdx
     │
-    ├── tutorials/                    # Developer Tutorials 
+    ├── articles/
     │   ├── index.mdx
-    │   ├── python-first-collection.mdx
-    │   ├── java-client-setup.mdx
-    │   ├── nodejs-ingestion.mdx
-    │   └── go-search.mdx
+    │   ├── AI-Clinical-Trial-Patient-Matching-Agent.mdx
+    │   ├── AI-recipe-recommendation-agent.mdx
+    │   ├── Avatar-based-assistant-for-customer-support.mdx
+    │   ├── building-a-scalable-agent-memory-with-Actian-vector-AI-database.mdx
+    │   ├── facial-recognition.mdx
+    │   ├── financial-document-analysis.mdx
+    │   ├── Multivector-Document-Intelligence-with-Visual-RAG.mdx
+    │   ├── Next-Gen-Product-Discovery-with-Multimodal-AI.mdx
+    │   └── supply-chain-inventory-management-agent.mdx
     │
-    ├── cookbooks/                    # Use Cases (End-to-End) 
-    │   ├── index.mdx
-    │   ├── rag-pipeline.mdx
-    │   ├── semantic-search.mdx
-    │   ├── recommendation-system.mdx
-    │   ├── image-search.mdx
-    │   ├── chatbot-memory.mdx
-    │   ├── document-qa.mdx
-    │   ├── ecommerce-search.mdx
-    │   ├── enterprise-kb.mdx
-    │   └── multi-modal.mdx
-    │
-    ├── use-cases/                    # Use Cases (Industry) 
-    │   ├── index.mdx
-    │   ├── healthcare.mdx
-    │   ├── financial.mdx
-    │   ├── retail.mdx
-    │   └── legal.mdx
-    │
-    ├── advanced/
-    │   ├── index.mdx
-    │   ├── custom-embeddings.mdx
-    │   ├── reranking.mdx
-    │   ├── fine-tuning.mdx
-    │   └── performance-tuning.mdx
-    │
-    ├── examples/
-    │   ├── index.mdx
-    │   ├── notebooks.mdx
-    │   └── sample-apps.mdx
-    │
-    └── community/
+    └── tutorials/
         ├── index.mdx
-        ├── github.mdx
-        ├── discord.mdx
-        └── contributing.mdx
+        ├── adaptive-rag.mdx
+        ├── first-application.mdx
+        ├── leverage-open-source-embedding-models.mdx
+        ├── multimodel-system.mdx
+        ├── predicate-filters.mdx
+        ├── python-first-collection.mdx
+        ├── re-ranking.mdx
+        ├── retrieval-quality.mdx
+        └── similarity-search.mdx
 ```

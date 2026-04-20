@@ -29,8 +29,7 @@
               "home/getting-started/how-it-works",
               "home/getting-started/use-cases",
               "home/getting-started/key-features",
-              "home/getting-started/architecture",
-              "home/support/current-release"
+              "home/getting-started/architecture"
             ]
           },
           {
@@ -319,7 +318,6 @@
             "group": "Articles",
             "pages": [
               "academy/articles/index",
-              "academy/articles/AI-Clinical-Trial-Patient-Matching-Agent",
               "academy/articles/building-a-scalable-agent-memory-with-Actian-vector-AI-database",
               "academy/articles/Multivector-Document-Intelligence-with-Visual-RAG",
               "academy/articles/AI-recipe-recommendation-agent",

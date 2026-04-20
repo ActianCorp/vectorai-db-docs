@@ -116,7 +116,7 @@ from actian_vectorai.models.vde import (
 )
 from actian_vectorai.models.enums import (
     RebuildDataSourceType,   # enum: current index, storage, snapshot
-    RebuildTargetIndexType,  # enum: HNSW, IVF, flat
+    RebuildTargetIndexType,  # enum: HNSW, flat, auto
 )
 from sentence_transformers import SentenceTransformer
 
@@ -931,7 +931,7 @@ The `trigger_rebuild` parameters and monitoring methods are as follows:
 | Parameter | Type | Purpose |
 |-----------|------|---------|
 | `source` | `RebuildDataSourceConfig` | Where to read vectors from (current index, storage, snapshot). |
-| `target` | `RebuildTargetConfig` | What index type to build (HNSW, IVF, flat). |
+| `target` | `RebuildTargetConfig` | What index type to build (HNSW, flat, auto). |
 | `run_config` | `RebuildRunConfig` | Batch size, catchup rounds, and other runtime settings. |
 | `wait` | `bool` | Block until rebuild completes. |
 | `priority` | `int` | Higher priority tasks execute first. |

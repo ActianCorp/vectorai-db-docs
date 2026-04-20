@@ -16,7 +16,7 @@ Map your exported fields to the VectorAI DB point structure: unique IDs, vector 
 If you have not already set up VectorAI DB, follow the [Docker installation guide](/docs/installation/docker) to deploy it locally or on your server.
 </Step>
 <Step title="Ingest data into VectorAI DB">
-Use the [Python SDK](/sdks/python/index) to create a collection with matching dimensions and distance metric, then insert your transformed vectors and metadata. Refer to the [Python SDK quickstart](/sdks/python/quickstart) for code examples.
+Use the [Python SDK](/sdks/python/installation) to create a collection with matching dimensions and distance metric, then insert your transformed vectors and metadata. Refer to the [Python SDK quickstart](/sdks/python/quickstart) for code examples.
 </Step>
 <Step title="Verify migration">
 Confirm the migration succeeded by comparing record counts, vector dimensions, and sample search results between your Milvus instance and VectorAI DB. Check that metadata fields are intact and that similarity queries return consistent rankings.
