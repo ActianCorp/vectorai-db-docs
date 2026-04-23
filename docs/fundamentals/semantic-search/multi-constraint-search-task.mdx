@@ -1,12 +1,12 @@
 ---
-title: "Multi-constraint search"
+title: "Multiconstraint search"
 description: "Combine multiple metadata conditions with vector similarity."
 icon: "code"
 ---
 
-Multi-constraint search combines vector similarity with multiple metadata conditions. All conditions must be satisfied for a document to appear in results.
+Multiconstraint search combines vector similarity with multiple metadata conditions. All conditions must be satisfied for a document to appear in results.
 
-Use multi-constraint search when a single filter is not specific enough. Chain multiple `.must()` conditions to narrow results by both category and range, or any combination of metadata fields.
+Use multiconstraint search when a single filter is not specific enough. Chain multiple `.must()` conditions to narrow results by both category and range, or any combination of metadata fields.
 
 Before running this example, make sure you have a VectorAI DB instance running at `localhost:50051` and the relevant SDK installed. For setup instructions, see [Docker installation](/docs/installation/docker).
 
@@ -102,8 +102,8 @@ def main() -> None:
         client.points.upsert(COLLECTION, points)
         print(f"✓ Indexed {len(DOCUMENTS)} documents")
 
-        # ── Combined: multi-constraint ──────────────────────
-        print(fmt.format("Multi-constraint: ml + year>=2024"))
+        # ── Combined: multiconstraint ──────────────────────
+        print(fmt.format("Multiconstraint: ml + year>=2024"))
         query_vec = fake_embed("how do vector databases work?")
         f = FilterBuilder().must(Field("topic").eq("ml")).must(Field("year").gte(2024)).build()
         results = client.points.search(
@@ -183,8 +183,8 @@ async function main() {
     await client.points.upsert(COLLECTION, points, { wait: true });
     console.log(`Indexed ${DOCUMENTS.length} documents`);
 
-    // -- Combined: multi-constraint --
-    console.log('\n=== Multi-constraint: ml + year>=2024 ===');
+    // -- Combined: multiconstraint --
+    console.log('\n=== Multiconstraint: ml + year>=2024 ===');
     const queryVec = fakeEmbed('how do vector databases work?');
     const filter = new Field('topic').eq('ml').and(new Field('year').gte(2024));
     const results = await client.points.search(COLLECTION, queryVec, {

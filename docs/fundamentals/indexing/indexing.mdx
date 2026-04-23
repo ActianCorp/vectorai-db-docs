@@ -13,7 +13,7 @@ Without indexing, searching requires comparing each vector to the query vector t
 
 HNSW is a graph-based indexing algorithm designed to efficiently index vectors in high-dimensional space. The algorithm combines navigable small world graphs with a skip-list-style layered structure.
 
-This combination creates a multi-layer graph where each layer provides different levels of granularity for navigation. Upper layers enable long-range jumps across the graph for rapid exploration, while lower layers provide fine-grained connections for precise neighbor discovery.
+This combination creates a multilayer graph where each layer provides different levels of granularity for navigation. Upper layers enable long-range jumps across the graph for rapid exploration, while lower layers provide fine-grained connections for precise neighbor discovery.
 
 ![Multi-layer HNSW graph showing upper layers with sparse long-range connections and lower layers with dense local connections](/images/fundamentals/indexing/hnsw.png)
 

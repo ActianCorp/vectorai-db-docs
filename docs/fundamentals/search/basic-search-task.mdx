@@ -71,7 +71,7 @@ Each result includes these fields:
 - `payload`: Metadata dictionary (only if `with_payload=True`).
 - `vector`: Vector embedding (only if `with_vectors=True`).
 
-## Universal Query API
+## Universal query API
 
 The `query()` method provides a unified interface for all search operations, including vector search, payload-based ordering, and batch queries. This API simplifies complex queries and offers more flexibility than the basic `search()` method.
 
@@ -319,7 +319,7 @@ Batch queries provide these advantages:
 - Single network round trip for multiple queries
 - Better throughput than individual requests
 - Reduced server overhead
-- Ideal for multi-query RAG applications
+- Ideal for multiquery RAG applications
 
 The method returns a list of result sets, one for each query. Each result set contains:
 

@@ -1,9 +1,9 @@
 ---
 title: "Use open-source embedding models"
-description: "Learn how to choose, configure, and integrate open-source embedding models with Actian VectorAI DB—covering model selection, dimensionality trade-offs, distance metrics, batch ingestion, quantization for large models, named vectors for multi-model search, and re-embedding workflows."
+description: "Learn how to choose, configure, and integrate open-source embedding models with Actian VectorAI DB—covering model selection, dimensionality trade-offs, distance metrics, batch ingestion, quantization for large models, named vectors for multimodel search, and re-embedding workflows."
 ---
 
-This is a hands-on tutorial. You will run Python against a local Actian VectorAI DB instance and step through choosing models, ingesting embeddings, and comparing search behavior. By the end, you will have a working multi-model search pipeline that lets you compare retrieval quality across different embedding architectures side by side.
+This is a hands-on tutorial. You will run Python against a local Actian VectorAI DB instance and step through choosing models, ingesting embeddings, and comparing search behavior. By the end, you will have a working multimodel search pipeline that lets you compare retrieval quality across different embedding architectures side by side.
 
 Embedding models convert text (or images, audio, code) into dense numerical vectors that capture semantic meaning. Actian VectorAI DB stores these vectors and retrieves similar ones at scale — but the quality of your search depends entirely on the quality of your embeddings.
 
@@ -510,7 +510,7 @@ async def quantized_vs_exact(query: str, top_k: int = 5):
     vec = m.encode(query).tolist()
 
     async with AsyncVectorAIClient(url=SERVER) as client:
-        # Quantized search: fast but approximate, no full-precision re-rank
+        # Quantized search: fast but approximate, no full-precision rerank
         t0 = time.time()
         quantized_results = await client.points.search(
             "embeddings-e5-large",
@@ -526,7 +526,7 @@ async def quantized_vs_exact(query: str, top_k: int = 5):
         ) or []
         quantized_time = time.time() - t0
 
-        # Quantized with rescoring: fast initial pass, then exact re-rank on the shortlist
+        # Quantized with rescoring: fast initial pass, then exact rerank on the shortlist
         t1 = time.time()
         rescored_results = await client.points.search(
             "embeddings-e5-large",
@@ -650,7 +650,7 @@ async def create_multi_model_collection():
     async with AsyncVectorAIClient(url=SERVER) as client:
         # Two named vector spaces in a single collection — one per model
         await client.collections.get_or_create(
-            name="embeddings-multi-model",
+            name="embeddings-multimodel",
             vectors_config={
                 "minilm": VectorParams(
                     size=384,
@@ -686,9 +686,9 @@ async def create_multi_model_collection():
                 },
             ))
 
-        await client.upload_points("embeddings-multi-model", points=points)
-        await client.vde.flush("embeddings-multi-model")
-        count = await client.vde.get_vector_count("embeddings-multi-model")
+        await client.upload_points("embeddings-multimodel", points=points)
+        await client.vde.flush("embeddings-multimodel")
+        count = await client.vde.get_vector_count("embeddings-multimodel")
 
     print(f"Multi-model collection ready: {count} documents, 2 vector spaces")
 
@@ -697,7 +697,7 @@ asyncio.run(create_multi_model_collection())
 
 ### Expected output
 
-This block creates a single collection named `embeddings-multi-model` with two named vector spaces — `"minilm"` (384-dim, Cosine, float32) and `"mpnet"` (768-dim, Cosine, float16) — then encodes all 20 shared documents with both models in parallel. Each document is stored as a single `PointStruct` carrying both embedding vectors alongside its text, topic, and difficulty metadata. After uploading and flushing, it reads the confirmed vector count and prints a summary showing the number of documents stored and the number of named vector spaces active in the collection.
+This block creates a single collection named `embeddings-multimodel` with two named vector spaces — `"minilm"` (384-dim, Cosine, float32) and `"mpnet"` (768-dim, Cosine, float16) — then encodes all 20 shared documents with both models in parallel. Each document is stored as a single `PointStruct` carrying both embedding vectors alongside its text, topic, and difficulty metadata. After uploading and flushing, it reads the confirmed vector count and prints a summary showing the number of documents stored and the number of named vector spaces active in the collection.
 
 ```text
 Multi-model collection ready: 20 documents, 2 vector spaces
@@ -721,7 +721,7 @@ async def multi_model_search(query: str, top_k: int = 5):
     async with AsyncVectorAIClient(url=SERVER) as client:
         # Search only the MiniLM vector space
         minilm_results = await client.points.search(
-            "embeddings-multi-model",
+            "embeddings-multimodel",
             vector=minilm_vec,
             using="minilm",
             limit=top_k,
@@ -730,7 +730,7 @@ async def multi_model_search(query: str, top_k: int = 5):
 
         # Search only the MPNet vector space
         mpnet_results = await client.points.search(
-            "embeddings-multi-model",
+            "embeddings-multimodel",
             vector=mpnet_vec,
             using="mpnet",
             limit=top_k,
@@ -739,7 +739,7 @@ async def multi_model_search(query: str, top_k: int = 5):
 
         # Merge both candidate lists with server-side reciprocal rank fusion
         fused_results = await client.points.query(
-            "embeddings-multi-model",
+            "embeddings-multimodel",
             query={"fusion": Fusion.RRF},
             prefetch=[
                 PrefetchQuery(query=minilm_vec, using="minilm", limit=10),
@@ -766,7 +766,7 @@ async def multi_model_search(query: str, top_k: int = 5):
 asyncio.run(multi_model_search("How does approximate search indexing work?"))
 ```
 
-### Why multi-model fusion improves results
+### Why multimodel fusion improves results
 
 Different models capture different aspects of meaning. MiniLM is strong at lexical similarity, where "search" closely matches "search." MPNet better captures paraphrases, where "ANN search" matches "approximate nearest-neighbour." Documents that rank highly in both models are almost certainly relevant, and RRF fusion naturally promotes those consensus results.
 
@@ -787,7 +787,7 @@ async def reembed_minilm_space():
     async with AsyncVectorAIClient(url=SERVER) as client:
         # Retrieve all existing points to access their stored text payloads
         all_points = await client.points.get(
-            "embeddings-multi-model",
+            "embeddings-multimodel",
             ids=list(range(len(documents))),
             with_payload=WithPayloadSelector(include=["text"]),
             with_vectors=False,
@@ -804,11 +804,11 @@ async def reembed_minilm_space():
             ))
 
         await client.points.update_vectors(
-            "embeddings-multi-model",
+            "embeddings-multimodel",
             points=updated,
         )
 
-        await client.vde.flush("embeddings-multi-model")
+        await client.vde.flush("embeddings-multimodel")
 
     print(f"Re-embedded {len(updated)} points in 'minilm' space with L12 model.")
     print("MPNet vectors are unchanged.")
@@ -987,7 +987,7 @@ async def cleanup():
         "embeddings-mpnet",
         "embeddings-e5-large",
         "embeddings-mpnet-f16",
-        "embeddings-multi-model",
+        "embeddings-multimodel",
     ]
 
     async with AsyncVectorAIClient(url=SERVER) as client:
@@ -1059,13 +1059,13 @@ The table below lists every SDK feature and API used in this tutorial alongside 
 Explore the tutorials below to apply open-source embedding models alongside other Actian VectorAI DB capabilities.
 
 <CardGroup cols={2}>
- <Card title="Building multi-modal systems" href="/academy/tutorials/multimodel-system">
+ <Card title="Building multimodal systems" href="/academy/tutorials/multimodel-system">
  Add image embeddings with CLIP alongside text models
  </Card>
  <Card title="Optimizing retrieval quality" href="/academy/tutorials/retrieval-quality">
  Tune HNSW parameters, quantization, and search settings
  </Card>
- <Card title="Re-ranking search results" href="/academy/tutorials/re-ranking">
+ <Card title="Reranking search results" href="/academy/tutorials/re-ranking">
  Improve result relevance with cross-encoders and fusion
  </Card>
  <Card title="Similarity search fundamentals" href="/academy/tutorials/similarity-search">

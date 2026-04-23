@@ -77,7 +77,7 @@ from actian_vectorai import (
 )
 # HNSW graph configuration for tuning the approximate nearest-neighbor index
 from actian_vectorai.models.collections import HnswConfigDiff
-# Fusion strategy (RRF) for multi-signal ranking and word-tokenizer type for text indexes
+# Fusion strategy (RRF) for multisignal ranking and word-tokenizer type for text indexes
 from actian_vectorai.models.enums import Fusion, TokenizerType
 
 # Server address and collection name used throughout this guide
@@ -125,7 +125,7 @@ async def create_collection():
             hnsw_config=HnswConfigDiff(m=16, ef_construct=128),
         )
 
-        # Keyword indexes support exact-match and multi-value filters on string fields
+        # Keyword indexes support exact-match and multivalue filters on string fields
         await client.points.create_field_index(
             COLLECTION, field_name="cuisine",
             field_type=FieldType.FieldTypeKeyword,
@@ -974,7 +974,7 @@ The table below summarizes every filter pattern used in the recommendation agent
 | Pattern | API | Example |
 |---------|-----|---------|
 | Exact match | `Field("cuisine").eq("thai")` | Match one cuisine. |
-| Multi-value match | `Field("cuisine").any_of(["thai", "indian"])` | Match any of several cuisines. |
+| Multivalue match | `Field("cuisine").any_of(["thai", "indian"])` | Match any of several cuisines. |
 | Exclusion | `Field("difficulty").except_of(["hard"])` | Exclude hard recipes. |
 | Full-text ingredient search | `Field("ingredients_text").text("garlic")` | Keyword search in ingredient list. |
 | Numeric range | `Field("cook_time_min").lte(30)` | Maximum cook time. |
@@ -994,9 +994,9 @@ The table below maps each Actian VectorAI feature to the API method and its role
 | Collection creation | `collections.get_or_create(hnsw_config=...)` | Recipe vector space. |
 | Point upsert | `points.upsert()` | Store recipe embeddings with metadata. |
 | Semantic search | `points.search(filter=..., params=...)` | Craving-to-recipe matching. |
-| Search batch | `points.search_batch(searches=[...])` | Multi-meal planning in one call. |
+| Search batch | `points.search_batch(searches=[...])` | Multimeal planning in one call. |
 | Server-side fusion | `query(query={"fusion": Fusion.RRF}, prefetch=[...])` | Personalized preference fusion. |
-| Prefetch | `PrefetchQuery(query=..., limit=...)` | Multi-signal candidate retrieval. |
+| Prefetch | `PrefetchQuery(query=..., limit=...)` | Multisignal candidate retrieval. |
 | Point retrieval | `points.get(with_vectors=True)` | Load liked recipe vectors. |
 | Payload merge | `points.set_payload(payload=...)` | Record user ratings. |
 | Keyword index | `FieldType.FieldTypeKeyword` | Cuisine, diet tags, meal type, difficulty. |
@@ -1004,7 +1004,7 @@ The table below maps each Actian VectorAI feature to the API method and its role
 | Bool index | `BoolIndexParams()` | Vegetarian flag. |
 | Integer index (range) | `IntegerIndexParams(range=True, is_principal=True)` | Cook time range queries. |
 | Float index (principal) | `FloatIndexParams(is_principal=True)` | Rating threshold and ordering. |
-| `any_of` filter | `Field("diet_tags").any_of([...])` | Multi-value dietary matching. |
+| `any_of` filter | `Field("diet_tags").any_of([...])` | Multivalue dietary matching. |
 | `except_of` filter | `Field("difficulty").except_of([...])` | Difficulty exclusion. |
 | `text` filter | `Field("ingredients_text").text("garlic")` | Ingredient keyword search. |
 | `should` / `min_should` | `FilterBuilder().should(...).min_should(2)` | Soft ingredient preferences. |
@@ -1019,7 +1019,7 @@ Recipe recommendation is a microcosm of every real-world search problem: semanti
 
 - `text()` filters with the word tokenizer turn ingredient lists into searchable keyword fields without a separate text search engine.
 - `should()` and `min_should()` express "at least 2 of these ingredients should match" — exactly the pantry-matching behavior expected from a recommendation system.
-- `any_of()` and `except_of()` handle multi-value fields like dietary tags and difficulty levels naturally.
+- `any_of()` and `except_of()` handle multivalue fields like dietary tags and difficulty levels naturally.
 - `search_batch()` makes meal planning practical by eliminating per-query network overhead.
 - Server-side RRF fusion with `prefetch` blends current cravings with historical preferences without client-side ranking logic.
 - `set_payload()` enables incremental preference learning without re-ingesting the entire recipe dataset.
@@ -1032,10 +1032,10 @@ The result is a recommendation system where the vector database handles not just
  <Card title="Predicate filters deep dive" href="/academy/tutorials/predicate-filters">
  Master the full Filter DSL with all field types.
  </Card>
- <Card title="Re-ranking search results" href="/academy/tutorials/re-ranking">
- Improve relevance with multi-stage pipelines.
+ <Card title="Reranking search results" href="/academy/tutorials/re-ranking">
+ Improve relevance with multistage pipelines.
  </Card>
- <Card title="Building multi-modal systems" href="/academy/tutorials/multimodel-system">
+ <Card title="Building multimodal systems" href="/academy/tutorials/multimodel-system">
  Add recipe image search with named vectors.
  </Card>
  <Card title="Scalable agent memory" href="/academy/articles/building-a-scalable-agent-memory-with-Actian-vector-AI-database">

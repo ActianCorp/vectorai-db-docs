@@ -15,7 +15,7 @@ The VectorAI DB architecture consists of multiple layers that work together to p
 Client libraries (such as Python) communicate with the Cortex Server via gRPC to create collections, insert vectors, and run similarity searches. The SDK abstracts the complexity of gRPC communication and provides an intuitive API for developers.
 </Step>
 
-<Step title="Vector data engine (VDE) API layer">
+<Step title="Vector Data Engine (VDE) API layer">
 Receives gRPC requests from SDKs, validates and processes them, then routes them to the appropriate internal components in the VDE core. This layer serves as the gateway between client applications and the vector processing engine.
 </Step>
 

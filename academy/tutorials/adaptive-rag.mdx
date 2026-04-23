@@ -1,12 +1,12 @@
 ---
 title: "Adaptive RAG systems"
-description: "Learn how to build a Retrieval-Augmented Generation system that adapts its retrieval strategy at runtime based on query type, confidence signals, and user feedback—using Actian VectorAI DB's multi-stage prefetch, fusion, score thresholds, payload-driven routing, and feedback loops."
+description: "Learn how to build a Retrieval-Augmented Generation system that adapts its retrieval strategy at runtime based on query type, confidence signals, and user feedback—using Actian VectorAI DB's multistage prefetch, fusion, score thresholds, payload-driven routing, and feedback loops."
 ---
 
 Standard RAG is a fixed pipeline: embed the query, search the vector database, stuff the top-K results into a prompt, and call the LLM. This works for simple factual questions but fails in practice because:
 
 - Not all queries need retrieval. "What is 2 + 2?" should skip the vector database entirely. Sending it through retrieval wastes latency and may inject irrelevant context.
-- Different queries need different retrieval strategies. A factual lookup ("What is the capital of France?") needs high-precision single-pass search. An exploratory question ("How does authentication work in the system?") needs broad multi-stage retrieval across multiple document types.
+- Different queries need different retrieval strategies. A factual lookup ("What is the capital of France?") needs high-precision single-pass search. An exploratory question ("How does authentication work in the system?") needs broad multistage retrieval across multiple document types.
 - Retrieval confidence varies. If the top result has a score of 0.92, the LLM probably has enough context. If the best score is 0.35, the system should either try a different search strategy or tell the user it does not know.
 - User feedback should improve future retrieval. When a user marks a response as unhelpful, the system should learn which documents were not relevant.
 
@@ -16,7 +16,7 @@ This tutorial builds a complete adaptive RAG pipeline on Actian VectorAI DB. By 
 
 - A knowledge base collection with payload indexes for routing, feedback, and analytics.
 - A keyword-signal query classifier that maps queries to four retrieval strategies.
-- Three retrieval strategies (precise, broad multi-stage, and nested troubleshooting prefetch) plus an automatic fallback.
+- Three retrieval strategies (precise, broad multistage, and nested troubleshooting prefetch) plus an automatic fallback.
 - A confidence evaluator that decides whether results are good enough or a fallback is needed.
 - A user feedback loop that updates per-document usefulness scores over time.
 - A feedback-aware retrieval function that boosts historically helpful documents.
@@ -200,7 +200,7 @@ documents = [
     # API reference
     {"text": "The create_collection method accepts vectors_config, hnsw_config, wal_config, and quantization_config parameters to initialize a new collection.", "doc_type": "api_reference", "source": "sdk_docs", "section": "collections"},
     {"text": "points.search performs approximate nearest-neighbour search. It accepts vector, limit, filter, params, score_threshold, and offset parameters.", "doc_type": "api_reference", "source": "sdk_docs", "section": "search"},
-    {"text": "points.query is the universal endpoint supporting vector search, fusion, order_by, and multi-stage prefetch queries.", "doc_type": "api_reference", "source": "sdk_docs", "section": "search"},
+    {"text": "points.query is the universal endpoint supporting vector search, fusion, order_by, and multistage prefetch queries.", "doc_type": "api_reference", "source": "sdk_docs", "section": "search"},
     {"text": "FilterBuilder supports must, should, must_not, and min_should for combining conditions. Field provides eq, any_of, except_of, gt, gte, lt, lte, between, and text methods.", "doc_type": "api_reference", "source": "sdk_docs", "section": "filters"},
     {"text": "SearchParams allows setting hnsw_ef for accuracy tuning, exact for brute-force search, and quantization for compressed vector search.", "doc_type": "api_reference", "source": "sdk_docs", "section": "search"},
 
@@ -208,7 +208,7 @@ documents = [
     {"text": "To build a RAG pipeline, first create a collection, embed your documents with a sentence transformer, upsert the vectors with payload metadata, and search at query time.", "doc_type": "tutorial", "source": "academy", "section": "getting_started"},
     {"text": "Hybrid search combines dense vector similarity with sparse keyword matching. Use reciprocal_rank_fusion or distribution_based_score_fusion to merge results.", "doc_type": "tutorial", "source": "academy", "section": "hybrid_search"},
     {"text": "Named vectors allow storing multiple embedding spaces per collection. Use vectors_config as a dictionary to define each space with its own dimensionality and distance metric.", "doc_type": "tutorial", "source": "academy", "section": "multimodal"},
-    {"text": "Prefetch queries retrieve candidates from multiple vector spaces or filter conditions, then a fusion stage merges and re-ranks the results.", "doc_type": "tutorial", "source": "academy", "section": "prefetch"},
+    {"text": "Prefetch queries retrieve candidates from multiple vector spaces or filter conditions, then a fusion stage merges and reranks the results.", "doc_type": "tutorial", "source": "academy", "section": "prefetch"},
     {"text": "Score thresholds discard low-confidence results. Set score_threshold on search or query to filter out results below a minimum similarity.", "doc_type": "tutorial", "source": "academy", "section": "search_tuning"},
 
     # Conceptual guides
@@ -403,7 +403,7 @@ With these settings the search either returns a small number of highly confident
 
 ---
 
-## Step 6: Strategy 2—Broad multi-stage retrieval for exploratory queries
+## Step 6: Strategy 2—Broad multistage retrieval for exploratory queries
 
 Exploratory queries need breadth across multiple document types. The following block defines `broad_retrieval`, which creates one prefetch stream per document type plus an unfiltered catch-all stream, then merges all candidates with RRF fusion. Running the test query prints each result's score, document type, and a text preview:
 
@@ -459,7 +459,7 @@ Prefetch 2: concept docs       → 10 candidates (theory/explanation)
 Prefetch 3: api_reference docs → 10 candidates (exact API details)
 Prefetch 4: unfiltered         → 15 candidates (catch-all)
 
-RRF fusion: merge all by rank  → top 5 (diverse, multi-perspective results)
+RRF fusion: merge all by rank  → top 5 (diverse, multiperspective results)
 ```
 
 Documents that appear across multiple prefetch streams rank higher, giving the LLM a well-rounded context. The lower `hnsw_ef=128` per stream is a deliberate trade-off: the four parallel streams compensate for any individual miss, so per-stream precision matters less than overall breadth.
@@ -468,7 +468,7 @@ Documents that appear across multiple prefetch streams rank higher, giving the L
 
 ## Step 7: Strategy 3—Troubleshooting retrieval with nested prefetch
 
-Troubleshooting queries benefit from a wide net across both FAQ-style documents and changelogs, which often contain relevant fixes. The following block defines `troubleshooting_retrieval`, which uses a nested prefetch pipeline: inner prefetch stages gather candidates from troubleshooting docs and changelogs, DBSF fusion merges them, and a final re-rank pass uses the query vector to surface the most relevant results. Running the test query prints each result's score, document type, and a text preview:
+Troubleshooting queries benefit from a wide net across both FAQ-style documents and changelogs, which often contain relevant fixes. The following block defines `troubleshooting_retrieval`, which uses a nested prefetch pipeline: inner prefetch stages gather candidates from troubleshooting docs and changelogs, DBSF fusion merges them, and a final rerank pass uses the query vector to surface the most relevant results. Running the test query prints each result's score, document type, and a text preview:
 
 ```python
 async def troubleshooting_retrieval(query: str, top_k: int = 5) -> list[ScoredPoint]:
@@ -487,7 +487,7 @@ async def troubleshooting_retrieval(query: str, top_k: int = 5) -> list[ScoredPo
     async with AsyncVectorAIClient(url=SERVER) as client:
         results = await client.points.query(
             COLLECTION,
-            query=vec,                  # Final re-rank by query vector
+            query=vec,                  # Final rerank by query vector
             prefetch=[
                 PrefetchQuery(
                     query={"fusion": Fusion.DBSF},  # Normalize scores across inner streams before merging
@@ -514,16 +514,16 @@ for r in results:
     print(f"  score={r.score:.4f}  [{p['doc_type']:>17}]  {p['text'][:65]}...")
 ```
 
-The troubleshooting strategy uses three stages to progressively narrow candidates before the final re-rank:
+The troubleshooting strategy uses three stages to progressively narrow candidates before the final rerank:
 
 ```text
 Inner prefetch 1: troubleshooting + api_reference  → 10 candidates
 Inner prefetch 2: changelog                         →  5 candidates
 Middle stage:     DBSF fusion                       → 12 candidates
-Outer query:      re-rank by query vector           →  top 5
+Outer query:      rerank by query vector           →  top 5
 ```
 
-DBSF normalizes the scores from both inner streams before merging, giving a fair comparison between troubleshooting tips and changelog notes. The final re-rank with the query vector ensures the most relevant results surface at the top.
+DBSF normalizes the scores from both inner streams before merging, giving a fair comparison between troubleshooting tips and changelog notes. The final rerank with the query vector ensures the most relevant results surface at the top.
 
 ---
 
@@ -1064,8 +1064,8 @@ The following table summarizes the retrieval strategy, search configuration, and
 | Query type | Strategy | Search config | Prefetch | Fusion | Threshold |
 |-----------|----------|--------------|----------|--------|-----------|
 | Factual. | Precise. | `hnsw_ef=256` | None. | None. | 0.5 |
-| Exploratory. | Broad multi-stage. | `hnsw_ef=128` | 4 streams (per doc_type + unfiltered). | `Fusion.RRF` | None. |
-| Troubleshooting. | Nested prefetch. | Default. | 2 inner (FAQ + changelog) → DBSF → re-rank. | `Fusion.DBSF` inner. | None. |
+| Exploratory. | Broad multistage. | `hnsw_ef=128` | 4 streams (per doc_type + unfiltered). | `Fusion.RRF` | None. |
+| Troubleshooting. | Nested prefetch. | Default. | 2 inner (FAQ + changelog) → DBSF → rerank. | `Fusion.DBSF` inner. | None. |
 | Low confidence. | Fallback. | `hnsw_ef=256` | None (unfiltered) + `Sample.Random`. | Client-side RRF. | None. |
 | Feedback-aware. | Boosted fusion. | Default. | 2 streams (all + useful). | `Fusion.RRF` | usefulness >= 0.4 |
 
@@ -1104,10 +1104,10 @@ The following table lists every VectorAI DB API and feature demonstrated across 
 ## Next steps
 
 <CardGroup cols={2}>
- <Card title="Re-ranking search results" href="/academy/tutorials/re-ranking">
- Improve relevance with multi-stage re-ranking
+ <Card title="Reranking search results" href="/academy/tutorials/re-ranking">
+ Improve relevance with multistage reranking
  </Card>
- <Card title="Building multi-modal systems" href="/academy/tutorials/multimodel-system">
+ <Card title="Building multimodal systems" href="/academy/tutorials/multimodel-system">
  Add image search to your RAG pipeline
  </Card>
  <Card title="Optimizing retrieval quality" href="/academy/tutorials/retrieval-quality">

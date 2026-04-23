@@ -1,6 +1,6 @@
 ---
 title: "Optimizing retrieval quality"
-description: "Learn how to measure and improve similarity search accuracy in Actian VectorAI DB by tuning HNSW parameters, choosing the right distance metric, configuring quantization, using multi-stage prefetch, adjusting score thresholds, and leveraging payload indexes."
+description: "Learn how to measure and improve similarity search accuracy in Actian VectorAI DB by tuning HNSW parameters, choosing the right distance metric, configuring quantization, using multistage prefetch, adjusting score thresholds, and leveraging payload indexes."
 ---
 
 This tutorial covers every configuration lever in Actian VectorAI DB that affects how accurately similarity search returns relevant results. Getting search to work is straightforward. Getting it to return the right results consistently under real query load requires understanding the trade-offs between recall, precision, speed, and memory — and knowing which knobs to turn for each.
@@ -19,7 +19,7 @@ By the end of this tutorial, you will know how to:
 - Choose distance — Pick the right metric for your embeddings.
 - Configure quantization — Compress vectors without destroying accuracy.
 - Adjust search-time parameters — Use `hnsw_ef`, `rescore`, and `oversampling`.
-- Use multi-stage prefetch — Widen the candidate pool then re-rank.
+- Use multistage prefetch — Widen the candidate pool then rerankrank.
 - Apply payload indexes — Accelerate filtered search.
 - Set score thresholds — Cut noise at the right level.
 - Rebuild and compact — Keep index quality fresh after updates.
@@ -445,7 +445,7 @@ Most pretrained embedding models produce unit-normalized vectors, where cosine s
 
 ## Step 5: Configure quantization without losing accuracy
 
-Scalar quantization compresses 32-bit float vectors to 8-bit integers, reducing memory by 4x. The compression introduces scoring noise that lowers recall. The `rescore` and `oversampling` parameters recover that accuracy by fetching a larger candidate pool using quantized scores and then re-ranking it with the original full-precision vectors. The following block creates a quantized collection and runs three search modes against it — no rescoring, rescoring with 2x oversampling, and quantization disabled — then prints the recall each mode achieves so the trade-off is directly visible.
+Scalar quantization compresses 32-bit float vectors to 8-bit integers, reducing memory by 4x. The compression introduces scoring noise that lowers recall. The `rescore` and `oversampling` parameters recover that accuracy by fetching a larger candidate pool using quantized scores and then rerankranking it with the original full-precision vectors. The following block creates a quantized collection and runs three search modes against it — no rescoring, rescoring with 2x oversampling, and quantization disabled — then prints the recall each mode achieves so the trade-off is directly visible.
 
 ```python
 # Test three quantization search modes and measure the recall each delivers
@@ -489,7 +489,7 @@ async def quantization_quality_test(query: str, top_k: int = 10):
             with_payload=True,
         ) or []
 
-        # Mode 2: quantized candidate fetch followed by full-precision re-ranking
+        # Mode 2: quantized candidate fetch followed by full-precision rerankranking
         quant_rescore = await client.points.search(
             coll_quant, vector=vec, limit=top_k,
             params=SearchParams(
@@ -522,7 +522,7 @@ asyncio.run(quantization_quality_test("How do transformers process sequences?"))
 
 ### Expected Output
 
-This block queries "How do transformers process sequences?" against a collection configured with scalar quantization at the 99th-percentile quantile and `always_ram=True`. It runs three search modes in sequence — quantized scores only (`rescore=False`), quantized candidate fetch with full-precision re-ranking (`rescore=True, oversampling=2.0`), and full-precision scoring with quantization bypassed (`ignore=True`) — then computes `recall@10` for each mode against an exact baseline from the same collection. The results show how rescoring with oversampling recovers the accuracy lost by compression while retaining most of its speed and memory benefit.
+This block queries "How do transformers process sequences?" against a collection configured with scalar quantization at the 99th-percentile quantile and `always_ram=True`. It runs three search modes in sequence — quantized scores only (`rescore=False`), quantized candidate fetch with full-precision rerankranking (`rescore=True, oversampling=2.0`), and full-precision scoring with quantization bypassed (`ignore=True`) — then computes `recall@10` for each mode against an exact baseline from the same collection. The results show how rescoring with oversampling recovers the accuracy lost by compression while retaining most of its speed and memory benefit.
 
 ```text
 Quantized (no rescore):          recall@10 = 90.00%
@@ -538,9 +538,9 @@ The following table summarizes each mode's speed, accuracy, and memory character
 | `ignore=False, rescore=True, oversampling=2.0` | Fast | High | Quantized + originals for rescore. |
 | `ignore=True` | Slower | Perfect | Full precision. |
 
-## Step 6: Use multi-stage prefetch to widen the candidate pool
+## Step 6: Use multistage prefetch to widen the candidate pool
 
-A single HNSW traversal only explores one path through the graph. If the most relevant documents sit in a different region of the vector space — for example, in a specific category — that path may never reach them. Multi-stage prefetch runs several candidate-gathering passes in parallel, then re-ranks the combined pool. The following block runs a standard single-pass search and a three-stage prefetch side-by-side and prints the ranked results of each so you can compare which approach surfaces more relevant documents.
+A single HNSW traversal only explores one path through the graph. If the most relevant documents sit in a different region of the vector space — for example, in a specific category — that path may never reach them. Multi-stage prefetch runs several candidate-gathering passes in parallel, then rerankranks the combined pool. The following block runs a standard single-pass search and a three-stage prefetch side-by-side and prints the ranked results of each so you can compare which approach surfaces more relevant documents.
 
 ```python
 # Compare single-pass search against a three-stage prefetch that covers broad and category-filtered candidates
@@ -558,7 +558,7 @@ async def prefetch_quality_test(query: str, top_k: int = 5):
         db_filter = FilterBuilder().must(Field("category").eq("databases")).build()
 
         # Three-stage prefetch: one unfiltered pass plus two category-specific passes,
-        # all merged and re-ranked to produce the final top-K
+        # all merged and rerankranked to produce the final top-K
         prefetch_results = await client.points.query(
             COLLECTION,
             query=vec,
@@ -575,7 +575,7 @@ async def prefetch_quality_test(query: str, top_k: int = 5):
     for r in single:
         print(f"  id={r.id}  score={r.score:.4f}  cat={r.payload.get('category')}  {r.payload.get('text', '')[:50]}...")
 
-    print("\n=== Multi-stage prefetch + re-rank ===")
+    print("\n=== Multi-stage prefetch + rerankrank ===")
     for r in prefetch_results:
         print(f"  id={r.id}  score={r.score:.4f}  cat={r.payload.get('category')}  {r.payload.get('text', '')[:50]}...")
 
@@ -587,11 +587,11 @@ The following table compares prefetch strategies by the size and composition of 
 | Approach | Candidate pool | Trade-off |
 |----------|---------------|-----------|
 | Single search | Top-K from one pass. | May miss results outside the HNSW traversal path. |
-| Prefetch (unfiltered) | Broader initial pool, then re-rank. | Catches near-misses from the same vector region. |
-| Prefetch (multi-filter) | Candidates from different payload categories. | Ensures diversity across category boundaries. |
-| Prefetch (multi-vector) | Candidates from different embedding spaces. | Enables cross-perspective matching. |
+| Prefetch (unfiltered) | Broader initial pool, then rerankrank. | Catches near-misses from the same vector region. |
+| Prefetch (multifilter) | Candidates from different payload categories. | Ensures diversity across category boundaries. |
+| Prefetch (multivector) | Candidates from different embedding spaces. | Enables cross-perspective matching. |
 
-The final `limit=5` re-ranks from the union of all prefetched candidates. Even if one prefetch path misses a relevant result, another path may find it.
+The final `limit=5` rerankranks from the union of all prefetched candidates. Even if one prefetch path misses a relevant result, another path may find it.
 
 ## Step 7: Accelerate filtered search with payload indexes
 
@@ -761,7 +761,7 @@ asyncio.run(maintenance_for_quality())
 
 ### Expected Output
 
-This block records the collection's vector count, state, and segment count before any maintenance, then sequentially calls `rebuild_index` to regenerate the HNSW graph from live vectors, `optimize` to merge fragmented segments, and `compact_collection` with `wait=True` to purge deleted-vector tombstones and reclaim memory. After each operation it prints a confirmation message, then flushes to disk and reads the collection state again to confirm the post-maintenance snapshot matches the pre-maintenance vector count with a clean, compacted structure.
+This block records the collection's vector count, state, and segment count before any maintenance, then sequentially calls `rebuild_index` to regenerate the HNSW graph from live vectors, `optimize` to merge fragmented segments, and `compact_collection` with `wait=True` to purge deleted-vector tombstones and reclaim memory. After each operation it prints a confirmation message, then flushes to disk and reads the collection state again to confirm the post-maintenance snapshot matches the prerankmaintenance vector count with a clean, compacted structure.
 
 ```text
 Before maintenance:
@@ -786,7 +786,7 @@ The following table provides a schedule for each maintenance operation based on 
 
 ## Step 10: Update HNSW config without rebuilding data
 
-`collections.update` lets you change HNSW parameters on an existing collection without re-ingesting any data. This is useful when you start a project with conservative settings for fast iteration and want to raise quality before going to production. The following block reads the current configuration, applies higher `m` and `ef_construct` values, and then triggers an explicit rebuild so the new settings take effect on the existing index immediately.
+`collections.update` lets you change HNSW parameters on an existing collection without rerankingesting any data. This is useful when you start a project with conservative settings for fast iteration and want to raise quality before going to production. The following block reads the current configuration, applies higher `m` and `ef_construct` values, and then triggers an explicit rebuild so the new settings take effect on the existing index immediately.
 
 ```python
 # Update HNSW parameters on the existing collection and trigger a rebuild to apply them
@@ -863,8 +863,8 @@ With retrieval quality optimized, explore these related tutorials to continue bu
   <Card title="Predicate filters" href="/academy/tutorials/predicate-filters">
     Combine vector search with structured payload constraints.
   </Card>
-  <Card title="Re-ranking search results" href="/academy/tutorials/re-ranking">
-    Improve relevance with cross-encoder and reciprocal rank fusion re-ranking.
+  <Card title="Rerankranking search results" href="/academy/tutorials/re-ranking">
+    Improve relevance with cross-encoder and reciprocal rank fusion rerankranking.
   </Card>
   <Card title="Open-source embedding models" href="/academy/tutorials/leverage-open-source-embedding-models">
     Integrate open-source models like Sentence Transformers and BGE.

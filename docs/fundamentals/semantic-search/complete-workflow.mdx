@@ -4,7 +4,7 @@ description: "End-to-end semantic search pipeline with embedding, indexing, and 
 icon: "code"
 ---
 
-This complete workflow demonstrates an end-to-end semantic search pipeline. It covers collection setup, document embedding, field indexing, and all major search strategies: pure semantic search, filtered search, range-filtered search, score threshold search, and multi-constraint search.
+This complete workflow demonstrates an end-to-end semantic search pipeline. It covers collection setup, document embedding, field indexing, and all major search strategies: pure semantic search, filtered search, range-filtered search, score threshold search, and multiconstraint search.
 
 This mirrors a real-world RAG (Retrieval-Augmented Generation) pipeline where you encode a query, search for similar documents, and filter by metadata.
 
@@ -153,8 +153,8 @@ def main() -> None:
         for r in results:
             print(f"  score={r.score:.4f} | {r.payload['text']}")
 
-        # ── Combined: multi-constraint ──────────────────────
-        print(fmt.format("Multi-constraint: ml + year>=2024"))
+        # ── Combined: multiconstraint ──────────────────────
+        print(fmt.format("Multiconstraint: ml + year>=2024"))
         f = FilterBuilder().must(Field("topic").eq("ml")).must(Field("year").gte(2024)).build()
         results = client.points.search(
             COLLECTION,
@@ -278,8 +278,8 @@ async function main() {
       console.log(`  score=${r.score.toFixed(4)} | ${r.payload.text}`);
     }
 
-    // -- Combined: multi-constraint --
-    console.log('\n=== Multi-constraint: ml + year>=2024 ===');
+    // -- Combined: multiconstraint --
+    console.log('\n=== Multiconstraint: ml + year>=2024 ===');
     const filter = new Field('topic').eq('ml').and(new Field('year').gte(2024));
     results = await client.points.search(COLLECTION, queryVec, {
       filter,
@@ -308,7 +308,7 @@ This workflow covers five search strategies:
 2. **Keyword-filtered search** — Restricts results to documents with `topic="ml"` while ranking by vector similarity.
 3. **Range-filtered search** — Restricts results to documents with `year >= 2023` while ranking by vector similarity.
 4. **Score threshold search** — Returns only results with a cosine similarity score of 0.5 or higher. The result count may be less than `limit`.
-5. **Multi-constraint search** — Combines a keyword filter (`topic="ml"`) with a range filter (`year >= 2024`). Both conditions must be true.
+5. **multiconstraint search** — Combines a keyword filter (`topic="ml"`) with a range filter (`year >= 2024`). Both conditions must be true.
 
 ## Key patterns
 

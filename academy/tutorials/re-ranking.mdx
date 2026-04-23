@@ -1,43 +1,43 @@
 ---
-title: "Re-ranking search results"
-description: "Learn how to improve search relevance in Actian VectorAI DB by re-ranking initial retrieval results using multi-stage prefetch pipelines, cross-encoder scoring, payload-based boosting, fusion re-ranking, and score thresholds."
+title: "Reranking search results"
+description: "Learn how to improve search relevance in Actian VectorAI DB by reranking initial retrieval results using multistage prefetch pipelines, cross-encoder scoring, payload-based boosting, fusion reranking, and score thresholds."
 ---
 
-This tutorial walks through re-ranking strategies in Actian VectorAI DB that improve search relevance beyond a single-pass vector search. A single-pass search returns results ranked by embedding similarity, which is a good starting point but often not good enough. The initial ranking can miss nuance because:
+This tutorial walks through reranking strategies in Actian VectorAI DB that improve search relevance beyond a single-pass vector search. A single-pass search returns results ranked by embedding similarity, which is a good starting point but often not good enough. The initial ranking can miss nuance because:
 
 - Embedding models are general-purpose. A 384-dim model captures broad semantics but may not distinguish subtle relevance differences in your domain.
 - ANN search is approximate. HNSW may miss some true nearest neighbours, especially with conservative `hnsw_ef`.
-- Relevance is multi-dimensional. A product search cares about semantic match, recency, popularity, and price—not just vector distance.
+- Relevance is multidimensional. A product search cares about semantic match, recency, popularity, and price—not just vector distance.
 
-Re-ranking fixes this by adding a second (or third) stage that rescores a broad initial candidate set using a more precise signal. The pattern is always the same:
+Reranking fixes this by adding a second (or third) stage that rescores a broad initial candidate set using a more precise signal. The pattern is always the same:
 
 ```text
 Stage 1: Retrieve a wide candidate pool (cheap, approximate)
-Stage 2: Re-score candidates with a better signal (expensive, precise)
-Stage 3: Return the top-K from the re-scored list
+Stage 2: Rescore candidates with a better signal (expensive, precise)
+Stage 3: Return the top-K from the rerankscored list
 ```
 
-This tutorial demonstrates the following re-ranking strategies in Actian VectorAI DB:
+This tutorial demonstrates the following reranking strategies in Actian VectorAI DB:
 
-- Server-side re-ranking with `prefetch` + `query` — Retrieve broadly, then re-score with a different vector or metric.
+- Server-side reranking with `prefetch` + `query` — Retrieve broadly, then rerankscore with a different vector or metric.
 - Quantization rescore — Search quantized vectors fast, then rescore from originals.
-- Cross-encoder re-ranking — Use a dedicated cross-encoder model client-side.
-- Payload-based re-ranking — Boost scores using structured metadata.
-- Fusion re-ranking — Combine multiple retrieval signals and fuse.
-- Cascaded multi-stage pipelines — Chain multiple re-ranking stages.
-- Score threshold pruning — Cut low-confidence results after re-ranking.
+- Cross-encoder reranking — Use a dedicated cross-encoder model client-side.
+- Payload-based reranking — Boost scores using structured metadata.
+- Fusion reranking — Combine multiple retrieval signals and fuse.
+- Cascaded multistage pipelines — Chain multiple reranking stages.
+- Score threshold pruning — Cut low-confidence results after reranking.
 
 ---
 
 ## Architecture overview
 
-The following diagram shows how a query flows through a multi-stage re-ranking pipeline.
+The following diagram shows how a query flows through a multistage reranking pipeline.
 
 ```mermaid
 flowchart LR
     Query[User Query] --> Embed[Embedding Model]
     Embed --> Stage1[Stage 1: Broad Retrieval - prefetch limit=50]
-    Stage1 --> Stage2[Stage 2: Re-Rank - vector rescore / cross-encoder / payload boost]
+    Stage1 --> Stage2[Stage 2: Rerank - vector rescore / cross-encoder / payload boost]
     Stage2 --> Threshold[Score Threshold Pruning]
     Threshold --> Results[Top-K Results]
 ```
@@ -56,7 +56,7 @@ pip install actian-vectorai sentence-transformers
 
 ## Step 1: Create a test collection and ingest data
 
-This step uses a corpus of 25 technical documents across several topics to demonstrate how re-ranking improves result ordering.
+This step uses a corpus of 25 technical documents across several topics to demonstrate how reranking improves result ordering.
 
 ```python
 import asyncio
@@ -87,7 +87,7 @@ SERVER = "localhost:50051"
 COLLECTION = "Rerank-Tutorial"
 EMBED_DIM = 384
 
-# Bi-encoder for first-stage retrieval, cross-encoder for precision re-ranking
+# Bi-encoder for first-stage retrieval, cross-encoder for precision reranking
 bi_encoder = SentenceTransformer("all-MiniLM-L6-v2")
 cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
@@ -114,7 +114,7 @@ corpus = [
     {"text": "TypeScript extends JavaScript with static types, improving maintainability in large projects.", "topic": "programming", "popularity": 85, "year": 2024},
     {"text": "Supervised learning trains models on labeled examples to predict outcomes on unseen data.", "topic": "ml", "popularity": 88, "year": 2024},
     {"text": "Deep neural networks stack multiple nonlinear layers to learn hierarchical data representations.", "topic": "ml", "popularity": 90, "year": 2024},
-    {"text": "Transformer models use multi-head self-attention to process sequences in parallel, enabling LLMs.", "topic": "ml", "popularity": 97, "year": 2025},
+    {"text": "Transformer models use multihead self-attention to process sequences in parallel, enabling LLMs.", "topic": "ml", "popularity": 97, "year": 2025},
     {"text": "Gradient boosted trees combine many weak learners into a strong ensemble for tabular prediction.", "topic": "ml", "popularity": 82, "year": 2023},
     {"text": "Reinforcement learning agents learn optimal behavior by maximizing cumulative reward signals.", "topic": "ml", "popularity": 76, "year": 2023},
     {"text": "Convolutional networks detect spatial hierarchies in images through learned convolutional filters.", "topic": "ml", "popularity": 84, "year": 2023},
@@ -171,7 +171,7 @@ Collection ready with 25 vectors.
 
 ## Step 2: Baseline single-pass search
 
-Before adding any re-ranking, establish what a single-pass vector search returns.
+Before adding any reranking, establish what a single-pass vector search returns.
 
 ```python
 async def single_pass_search(query: str, top_k: int = 10):
@@ -198,7 +198,7 @@ The single-pass search ranks all 10 results by cosine similarity alone.
 Query: How do large language models work?
 
 === Baseline (single-pass) ===
-  1. id=7   score=0.7234  Transformer models use multi-head self-attention to process sequences i...
+  1. id=7   score=0.7234  Transformer models use multihead self-attention to process sequences i...
   2. id=6   score=0.6512  Deep neural networks stack multiple nonlinear layers to learn hierarchi...
   3. id=5   score=0.5890  Supervised learning trains models on labeled examples to predict outcom...
   4. id=11  score=0.5678  Transfer learning fine-tunes large pretrained models on small domain-sp...
@@ -214,16 +214,16 @@ The baseline puts "Transformer models" first, which is correct. But notice that 
 
 ---
 
-## Step 3: Server-side re-ranking with prefetch
+## Step 3: Server-side reranking with prefetch
 
-The most powerful re-ranking pattern in Actian VectorAI DB uses the `query` endpoint with `prefetch`. The server retrieves a broad candidate pool first, then re-scores it.
+The most powerful reranking pattern in Actian VectorAI DB uses the `query` endpoint with `prefetch`. The server retrieves a broad candidate pool first, then rerankscores it.
 
 ```python
 async def server_rerank(query: str, prefetch_limit: int = 50, top_k: int = 5):
     vec = embed_text(query)
 
     async with AsyncVectorAIClient(url=SERVER) as client:
-        # Prefetch retrieves a broad candidate pool; the outer query re-scores them
+        # Prefetch retrieves a broad candidate pool; the outer query rerankscores them
         results = await client.points.query(
             COLLECTION,
             query=vec,
@@ -242,30 +242,30 @@ query = "How do large language models work?"
 reranked = asyncio.run(server_rerank(query, prefetch_limit=25, top_k=5))
 
 print(f"Query: {query}\n")
-print("=== Server-Side Re-Ranked ===")
+print("=== Server-Side Reranked ===")
 for i, r in enumerate(reranked):
     print(f"  {i+1}. id={r.id}  score={r.score:.4f}  {r.payload.get('text', '')[:70]}...")
 ```
 
-#### How prefetch re-ranking works
+#### How prefetch reranking works
 
-The two-stage flow fetches a broad set of candidates and then re-scores them in the final query.
+The two-stage flow fetches a broad set of candidates and then rerankscores them in the final query.
 
 ```text
 Prefetch stage:
   Search with hnsw_ef=default, limit=50  →  50 candidates
 
 Final query stage:
-  Re-score the 50 candidates with the same vector  →  top 5
+  Rescore the 50 candidates with the same vector  →  top 5
 ```
 
-This may seem redundant when using the same vector, but the key insight is that the prefetch uses the configured HNSW `ef` while the final stage re-scores all prefetched candidates. To guarantee exact (brute-force) cosine similarity instead of another HNSW pass, set `params=SearchParams(exact=True)` on the outer `query()` call—demonstrated in Step 4.
+This may seem redundant when using the same vector, but the key insight is that the prefetch uses the configured HNSW `ef` while the final stage rerankscores all prefetched candidates. To guarantee exact (brute-force) cosine similarity instead of another HNSW pass, set `params=SearchParams(exact=True)` on the outer `query()` call—demonstrated in Step 4.
 
 The pattern becomes much more powerful when the prefetch and final query use different signals — explored in the next section.
 
 ---
 
-## Step 4: Re-rank with higher accuracy (exact rescore)
+## Step 4: Rerank with higher accuracy (exact rescore)
 
 Retrieve candidates with fast approximate search, then rescore them with `exact` (brute-force) computation.
 
@@ -306,7 +306,7 @@ The prefetch retrieves 25 candidates using the HNSW index (fast, approximate). T
 
 ## Step 5: Quantization rescore
 
-When using scalar quantization for memory savings, the compressed vectors introduce scoring noise. The `rescore` parameter re-scores candidates using the original full-precision vectors.
+When using scalar quantization for memory savings, the compressed vectors introduce scoring noise. The `rescore` parameter rerankscores candidates using the original full-precision vectors.
 
 ```python
 async def quantization_rescore_demo(query: str, top_k: int = 5):
@@ -366,12 +366,12 @@ asyncio.run(quantization_rescore_demo("How do large language models work?"))
 
 #### How quantization rescore works
 
-The three parameters below control whether and how the server re-scores candidates after a quantized search.
+The three parameters below control whether and how the server rerankscores candidates after a quantized search.
 
 | Parameter | Effect |
 |-----------|--------|
 | `rescore=False` | Rank by quantized (int8) scores only—fast but noisy |
-| `rescore=True` | Re-compute scores from original float32 vectors—accurate |
+| `rescore=True` | Recompute scores from original float32 vectors—accurate |
 | `oversampling=2.0` | Retrieve 2x more candidates from quantized index before rescoring |
 
 The pipeline:
@@ -384,14 +384,14 @@ The output compares rankings with and without rescoring.
 
 ```text
 === Quantized (no rescore) ===
-  1. id=7   score=0.7198  Transformer models use multi-head self-attention to pro...
+  1. id=7   score=0.7198  Transformer models use multihead self-attention to pro...
   2. id=6   score=0.6478  Deep neural networks stack multiple nonlinear layers to...
   3. id=5   score=0.5834  Supervised learning trains models on labeled examples to...
   4. id=8   score=0.5267  Gradient boosted trees combine many weak learners into a...
   5. id=11  score=0.5189  Transfer learning fine-tunes large pretrained models on ...
 
 === Quantized + Rescore (2x oversampling) ===
-  1. id=7   score=0.7234  Transformer models use multi-head self-attention to pro...
+  1. id=7   score=0.7234  Transformer models use multihead self-attention to pro...
   2. id=6   score=0.6512  Deep neural networks stack multiple nonlinear layers to...
   3. id=5   score=0.5890  Supervised learning trains models on labeled examples to...
   4. id=11  score=0.5678  Transfer learning fine-tunes large pretrained models on ...
@@ -402,9 +402,9 @@ Notice the rescore version places "Transfer learning" (id=11) above "Gradient bo
 
 ---
 
-## Step 6: Cross-encoder re-ranking (client-side)
+## Step 6: Cross-encoder reranking (client-side)
 
-A cross-encoder processes the query and each candidate *together* as a pair, producing a more precise relevance score than independent embeddings. This is the gold standard for re-ranking quality, but is too slow for first-pass retrieval.
+A cross-encoder processes the query and each candidate *together* as a pair, producing a more precise relevance score than independent embeddings. This is the gold standard for reranking quality, but is too slow for first-pass retrieval.
 
 ```python
 async def cross_encoder_rerank(query: str, first_stage_k: int = 15, final_k: int = 5):
@@ -418,7 +418,7 @@ async def cross_encoder_rerank(query: str, first_stage_k: int = 15, final_k: int
     if not candidates:
         return []
 
-    # Stage 2: Re-score with cross-encoder
+    # Stage 2: Rescore with cross-encoder
     pairs = [(query, c.payload.get("text", "")) for c in candidates]
     ce_scores = cross_encoder.predict(pairs)
 
@@ -463,7 +463,7 @@ Query: How do large language models work?
 
 Rank  CE Score  Bi Score  Text
 ------------------------------------------------------------------------------------------
-   1    8.9234    0.7234  Transformer models use multi-head self-attention to ...
+   1    8.9234    0.7234  Transformer models use multihead self-attention to ...
    2    7.1456    0.5678  Transfer learning fine-tunes large pretrained models...
    3    5.8901    0.6512  Deep neural networks stack multiple nonlinear layers...
    4    3.2345    0.5890  Supervised learning trains models on labeled example...
@@ -474,7 +474,7 @@ Notice the cross-encoder promotes "Transfer learning fine-tunes large pretrained
 
 ---
 
-## Step 7: Payload-based re-ranking (score boosting)
+## Step 7: Payload-based reranking (score boosting)
 
 Combine vector similarity with structured metadata to create a composite relevance score.
 
@@ -563,7 +563,7 @@ Query: modern machine learning techniques
 
 Rank  Composite  VecScore   Pop   Year  Text
 ----------------------------------------------------------------------------------------------------
-   1      0.8456    0.7234    97   2025  Transformer models use multi-head self-attenti...
+   1      0.8456    0.7234    97   2025  Transformer models use multihead self-attenti...
    2      0.7890    0.6512    91   2025  Transfer learning fine-tunes large pretrained m...
    3      0.7123    0.6890    90   2024  Deep neural networks stack multiple nonlinear l...
    4      0.6345    0.5890    88   2024  Supervised learning trains models on labeled ex...
@@ -572,7 +572,7 @@ Rank  Composite  VecScore   Pop   Year  Text
 
 ---
 
-## Step 8: Fusion re-ranking
+## Step 8: Fusion reranking
 
 Run two different searches (for example, with different filters or different query formulations) and fuse the results.
 
@@ -604,12 +604,12 @@ query = "intelligent systems that learn from data and store information"
 results = asyncio.run(fusion_rerank(query))
 
 print(f"Query: {query}\n")
-print("=== Fusion Re-Ranked (RRF, 3 prefetch streams) ===")
+print("=== Fusion Reranked (RRF, 3 prefetch streams) ===")
 for i, r in enumerate(results):
     print(f"  {i+1}. id={r.id}  score={r.score:.4f}  topic={r.payload.get('topic')}  {r.payload.get('text', '')[:50]}...")
 ```
 
-#### How multi-stream fusion works
+#### How multistream fusion works
 
 The server runs three independent retrieval streams and then fuses their rankings with RRF.
 
@@ -625,7 +625,7 @@ Results that appear in multiple streams rank higher after fusion. A document ret
 
 ---
 
-## Step 9: Client-side fusion with weighted re-ranking
+## Step 9: Client-side fusion with weighted reranking
 
 For full control over how different signals are blended, use client-side fusion with weights.
 
@@ -675,7 +675,7 @@ for i, r in enumerate(dbsf):
     print(f"  {i+1}. id={r.id}  score={r.score:.4f}  {r.payload.get('text', '')[:55]}...")
 ```
 
-#### RRF vs DBSF for re-ranking
+#### RRF vs DBSF for reranking
 
 The two fusion methods differ in how they normalise scores before combining them.
 
@@ -688,9 +688,9 @@ The `weights` parameter in RRF controls how much each list influences the final 
 
 ---
 
-## Step 10: Cascaded multi-stage pipeline
+## Step 10: Cascaded multistage pipeline
 
-Chain multiple re-ranking stages using nested prefetch. Each stage narrows and refines the candidate pool.
+Chain multiple reranking stages using nested prefetch. Each stage narrows and refines the candidate pool.
 
 ```python
 async def cascaded_rerank(query: str, top_k: int = 5):
@@ -698,7 +698,7 @@ async def cascaded_rerank(query: str, top_k: int = 5):
 
     async with AsyncVectorAIClient(url=SERVER) as client:
         # Stage 1 (innermost): broad retrieval with low ef
-        # Stage 2 (outer prefetch): tighter re-score with higher ef
+        # Stage 2 (outer prefetch): tighter rerankscore with higher ef
         # Stage 3 (final query): exact brute-force over the survivors
         results = await client.points.query(
             COLLECTION,
@@ -726,7 +726,7 @@ async def cascaded_rerank(query: str, top_k: int = 5):
 query = "How do large language models work?"
 cascaded = asyncio.run(cascaded_rerank(query))
 
-print("=== Cascaded 3-Stage Re-Ranking ===")
+print("=== Cascaded 3-Stage Reranking ===")
 for i, r in enumerate(cascaded):
     print(f"  {i+1}. id={r.id}  score={r.score:.4f}  {r.payload.get('text', '')[:70]}...")
 ```
@@ -740,26 +740,26 @@ Stage 1 (innermost prefetch):
   hnsw_ef=64  →  25 candidates (fast, broad)
 
 Stage 2 (outer prefetch):
-  hnsw_ef=256  →  re-score 25, keep 15 (more accurate)
+  hnsw_ef=256  →  rerankscore 25, keep 15 (more accurate)
 
 Stage 3 (final query):
-  exact=True  →  re-score 15, keep 5 (exact, most accurate)
+  exact=True  →  rerankscore 15, keep 5 (exact, most accurate)
 ```
 
 Each stage increases accuracy at the cost of speed, but only over a shrinking candidate set. The final `exact` rescore operates on just 15 candidates—fast enough to be imperceptible.
 
 ---
 
-## Step 11: Re-rank with score threshold pruning
+## Step 11: Rerank with score threshold pruning
 
-After re-ranking, apply a score threshold to remove low-confidence results.
+After reranking, apply a score threshold to remove low-confidence results.
 
 ```python
 async def rerank_with_threshold(query: str, threshold: float = 0.5, top_k: int = 10):
     vec = embed_text(query)
 
     async with AsyncVectorAIClient(url=SERVER) as client:
-        # score_threshold on the outer query prunes results after re-ranking
+        # score_threshold on the outer query prunes results after reranking
         results = await client.points.query(
             COLLECTION,
             query=vec,
@@ -780,16 +780,16 @@ for threshold in [0.3, 0.5, 0.6, 0.7]:
     print(f"  threshold={threshold:.1f}  returned={len(results)}  top_score={top_score}")
 ```
 
-#### Threshold placement: before vs after re-ranking
+#### Threshold placement: before vs after reranking
 
 Where you place the threshold determines which scores it evaluates.
 
 | Approach | Behavior |
 |----------|----------|
-| `score_threshold` on the outer `query()` | Applied *after* the final rescore—recommended |
-| `score_threshold` on a `PrefetchQuery` | Applied within that prefetch stage—use to pre-filter noisy candidates |
+| `score_threshold` on the outer `query()` | Applied *after* the final rescore, recommended |
+| `score_threshold` on a `PrefetchQuery` | Applied within that prefetch stage, use to prefilter noisy candidates |
 
-Setting the threshold on the outer query ensures it applies to the final re-ranked scores, not the initial approximate scores.
+Setting the threshold on the outer query ensures it applies to the final reranked scores, not the initial approximate scores.
 
 Higher thresholds progressively trim lower-confidence results from the output.
 
@@ -802,9 +802,9 @@ Higher thresholds progressively trim lower-confidence results from the output.
 
 ---
 
-## Step 12: Full re-ranking pipeline
+## Step 12: Full reranking pipeline
 
-Bring everything together: server-side prefetch for broad retrieval, cross-encoder for precision re-ranking, and payload boosting for business signals.
+Bring everything together: server-side prefetch for broad retrieval, cross-encoder for precision reranking, and payload boosting for business signals.
 
 ```python
 async def full_rerank_pipeline(
@@ -833,7 +833,7 @@ async def full_rerank_pipeline(
     if not candidates:
         return []
 
-    # Stage 2: Cross-encoder re-scoring
+    # Stage 2: Cross-encoder rerankscoring
     pairs = [(query, c.payload.get("text", "")) for c in candidates]
     ce_scores = cross_encoder.predict(pairs)
 
@@ -888,8 +888,8 @@ The four stages below show how each layer refines the candidate set before the f
 Stage 1 — Prefetch (server-side):
   HNSW search → 20 candidates
 
-Stage 2 — Re-score (server-side):
-  Vector re-score via query() → top 10
+Stage 2 — Rescore (server-side):
+  Vector rerankscore via query() → top 10
 
 Stage 3 — Cross-encoder (client-side):
   Score each (query, document) pair → 10 CE scores
@@ -906,7 +906,7 @@ Query: How do large language models work?
 
 Rank  Composite  VecScore  CE Score   Pop  Text
 ---------------------------------------------------------------------------------------------------------
-   1      0.9123    0.7234    8.9234    97  Transformer models use multi-head self-att...
+   1      0.9123    0.7234    8.9234    97  Transformer models use multihead self-att...
    2      0.8456    0.5678    7.1456    91  Transfer learning fine-tunes large pretrai...
    3      0.7345    0.6512    5.8901    90  Deep neural networks stack multiple nonlin...
    4      0.5678    0.5890    3.2345    88  Supervised learning trains models on label...
@@ -937,7 +937,7 @@ asyncio.run(cleanup())
 
 ---
 
-## Re-ranking strategies compared
+## reranking strategies compared
 
 The table below summarises each strategy's trade-offs to help you decide which to apply.
 
@@ -954,7 +954,7 @@ The table below summarises each strategy's trade-offs to help you decide which t
 
 ---
 
-## Choosing your re-ranking strategy
+## Choosing your reranking strategy
 
 Start with the simplest option and layer on additional stages as your relevance requirements grow.
 
@@ -1010,12 +1010,12 @@ results = await client.points.query(
 
 ## Actian VectorAI features used
 
-The table below summarises every Actian VectorAI DB API surface covered in this tutorial and its role in a re-ranking pipeline.
+The table below summarises every Actian VectorAI DB API surface covered in this tutorial and its role in a reranking pipeline.
 
 | Feature | API | Purpose |
 |---------|-----|---------|
-| Prefetch + re-rank | `PrefetchQuery(query=..., limit=...)` | Broad retrieval before re-scoring |
-| Exact rescore | `SearchParams(exact=True)` on outer `query()` | Brute-force re-ranking of candidates |
+| Prefetch + rerank | `PrefetchQuery(query=..., limit=...)` | Broad retrieval before rescoring |
+| Exact rescore | `SearchParams(exact=True)` on outer `query()` | Brute-force reranking of candidates |
 | Quantization rescore | `QuantizationSearchParams(rescore=True, oversampling=2.0)` | Recover accuracy after quantized search |
 | Cascaded prefetch | Nested `PrefetchQuery(prefetch=[...])` | Multi-stage progressive refinement |
 | Server-side RRF | `query={"fusion": Fusion.RRF}` | Rank-based fusion of prefetch streams |
@@ -1026,7 +1026,7 @@ The table below summarises every Actian VectorAI DB API surface covered in this 
 | Per-stage params | `params=SearchParams(hnsw_ef=256)` in `PrefetchQuery` | Different accuracy per stage |
 | Payload filtering | `FilterBuilder().must(Field(...).eq(...))` | Topic-specific retrieval streams |
 | Similarity search | `points.search(limit=...)` | First-stage candidate retrieval |
-| Universal query | `points.query(query=..., prefetch=...)` | Multi-stage re-ranking pipelines |
+| Universal query | `points.query(query=..., prefetch=...)` | Multistage reranking pipelines |
 | Scalar quantization | `QuantizationConfig(scalar=ScalarQuantization(...))` | Memory-efficient vector storage |
 | Collection admin | `vde.flush()`, `vde.get_vector_count()` | Persistence and monitoring |
 
@@ -1034,10 +1034,10 @@ The table below summarises every Actian VectorAI DB API surface covered in this 
 
 ## Next steps
 
-Explore the tutorials below to put re-ranking into practice alongside other Actian VectorAI DB capabilities.
+Explore the tutorials below to put reranking into practice alongside other Actian VectorAI DB capabilities.
 
 <CardGroup cols={2}>
- <Card title="Building multi-modal systems" href="/academy/tutorials/multimodel-system">
+ <Card title="Building multimodal systems" href="/academy/tutorials/multimodel-system">
  Combine text, image, and metadata embeddings with named vectors
  </Card>
  <Card title="Optimizing retrieval quality" href="/academy/tutorials/retrieval-quality">

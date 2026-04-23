@@ -1,9 +1,9 @@
 ---
-title: "Building a multi-model system"
+title: "Building a multimodel system"
 description: "Work with multiple embedding models in one system"
 ---
 
-This tutorial builds a multi-model search system that stores text and image embeddings in a single Actian VectorAI DB collection, searches each vector space independently, and fuses the results using server-side Reciprocal Rank Fusion (RRF) and Distribution-Based Score Fusion (DBSF). The example uses a product catalog with two embedding models: `all-MiniLM-L6-v2` for text (384-dim) and `clip-ViT-B-32` for images (512-dim).
+This tutorial builds a multimodel search system that stores text and image embeddings in a single Actian VectorAI DB collection, searches each vector space independently, and fuses the results using server-side Reciprocal Rank Fusion (RRF) and Distribution-Based Score Fusion (DBSF). The example uses a product catalog with two embedding models: `all-MiniLM-L6-v2` for text (384-dim) and `clip-ViT-B-32` for images (512-dim).
 
 ## Architecture overview
 
@@ -194,7 +194,7 @@ Collection 'multimodal-products' ready with named vectors: text (384-dim), image
 
 ---
 
-## Step 4: Prepare multi-model product data
+## Step 4: Prepare multimodel product data
 
 Each product entry has a text description and a visual description. In production, the image vector would come from actual product photos through `embed_image_from_bytes()`. This example uses CLIP text embeddings of visual descriptions as stand-ins so you can run the tutorial without downloading image files. Running this block defines the `products` list and prints the count.
 
@@ -439,13 +439,13 @@ Query: warm jacket for cold weather
 
 ---
 
-## Step 7: Multi-stage prefetch with server-side fusion
+## Step 7: Multistage prefetch with server-side fusion
 
-This is the core multi-model search pattern. The function below prefetches 20 candidates from each vector space, then passes both lists to the server for RRF fusion, returning a single merged ranking.
+This is the core multimodel search pattern. The function below prefetches 20 candidates from each vector space, then passes both lists to the server for RRF fusion, returning a single merged ranking.
 
 ```python
 async def multimodal_search_rrf(query: str, top_k: int = 5):
-    """Multi-model search: prefetch from text and image spaces, fuse with RRF."""
+    """Multimodel search: prefetch from text and image spaces, fuse with RRF."""
     text_vec = embed_text(query)       # Semantic embedding (384-dim)
     clip_vec = embed_text_clip(query)  # Visual embedding   (512-dim)
 
@@ -474,7 +474,7 @@ query = "warm jacket for cold weather"
 results = asyncio.run(multimodal_search_rrf(query))
 
 print(f"Query: {query}")
-print(f"\n=== Multi-model results (RRF fusion) ===")
+print(f"\n=== Multimodel results (RRF fusion) ===")
 for r in results:
     print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('name')}  [{r.payload.get('category')}]")
 ```
@@ -494,7 +494,7 @@ The function embeds the query `"warm jacket for cold weather"` into both the 384
 ```text
 Query: warm jacket for cold weather
 
-=== Multi-model results (RRF fusion) ===
+=== Multimodel results (RRF fusion) ===
   id=0  score=0.0323  Classic Leather Jacket  [apparel]
   id=2  score=0.0312  Vintage Denim Jacket  [apparel]
   id=5  score=0.0298  Waterproof Hiking Boots  [footwear]
@@ -587,9 +587,9 @@ Query: lightweight shoes for running
 
 ---
 
-## Step 9: Add payload filters to multi-model search
+## Step 9: Add payload filters to multimodel search
 
-The function below combines multi-model RRF fusion with structured payload filters. It builds a filter from optional `category` and `max_price` arguments and passes it to the outer `query()` call so it applies after the two prefetch stages have been fused.
+The function below combines multimodel RRF fusion with structured payload filters. It builds a filter from optional `category` and `max_price` arguments and passes it to the outer `query()` call so it applies after the two prefetch stages have been fused.
 
 ```python
 async def filtered_multimodal_search(query: str, category: str = None, max_price: float = None, top_k: int = 5):
@@ -624,7 +624,7 @@ results = asyncio.run(filtered_multimodal_search(
     max_price=200.0,
 ))
 
-print("=== Filtered multi-model search ===")
+print("=== Filtered multimodel search ===")
 print("Filters: category=apparel, price<=200\n")
 for r in results:
     print(f"  id={r.id}  score={r.score:.4f}  ${r.payload.get('price')}  {r.payload.get('name')}")
@@ -653,7 +653,7 @@ PrefetchQuery(
 The function queries the collection with `"stylish casual outerwear"`, applying `category=apparel` and `max_price=200.0` as post-fusion constraints. Both prefetch stages retrieve 20 candidates each from the text and image spaces without filtering; the server then fuses those candidates with RRF and removes any product whose category is not `apparel` or whose price exceeds `$200`. Only the products that satisfy both constraints appear in the final ranked list, each showing its fused RRF score and price.
 
 ```text
-=== Filtered multi-model search ===
+=== Filtered multimodel search ===
 Filters: category=apparel, price<=200
 
   id=2  score=0.0323  $89.99  Vintage Denim Jacket
@@ -669,7 +669,7 @@ Server-side fusion treats both vector spaces equally. When you need to weight on
 ```python
 async def client_side_fusion_search(query: str, alpha: float = 0.7, top_k: int = 5):
     """
-    Multi-model search with client-side fusion.
+    Multimodel search with client-side fusion.
     alpha controls the weight balance:
         1.0 = 100% text
         0.0 = 100% image
@@ -786,7 +786,7 @@ for i, (q, results) in enumerate(zip(queries, all_results)):
         print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('name')}")
 ```
 
-Each individual search requires a network round-trip. `search_batch` sends all queries in a single gRPC call, reducing total latency—especially important when searching multiple vector spaces for comparison or multi-query interfaces.
+Each individual search requires a network round-trip. `search_batch` sends all queries in a single gRPC call, reducing total latency—especially important when searching multiple vector spaces for comparison or multiquery interfaces.
 
 ### Expected output
 
@@ -867,7 +867,7 @@ The table below summarizes the selector options you can pass to control which ve
 
 ## Step 13: Update a single named vector
 
-In a multi-model system, different modalities change at different rates—product images may be re-shot while descriptions stay the same. The function below re-embeds and updates only the `"image"` vector for a given point without touching the `"text"` vector or any payload fields.
+In a multimodel system, different modalities change at different rates—product images may be re-shot while descriptions stay the same. The function below re-embeds and updates only the `"image"` vector for a given point without touching the `"text"` vector or any payload fields.
 
 ```python
 async def update_image_vector(point_id: int, new_visual_desc: str):
@@ -901,7 +901,7 @@ Pass a dictionary containing only the named vectors to change. The server update
 
 ## Step 14: Nested prefetch—three-stage pipeline
 
-When simple fusion is not enough, you can nest prefetch stages to build a multi-stage retrieval pipeline. The function below retrieves candidates from each vector space, fuses them with RRF, and then re-ranks the merged list by text similarity to give the semantic model the final say.
+When simple fusion is not enough, you can nest prefetch stages to build a multistage retrieval pipeline. The function below retrieves candidates from each vector space, fuses them with RRF, and then reranks the merged list by text similarity to give the semantic model the final say.
 
 ```python
 async def nested_prefetch_search(query: str, top_k: int = 5):
@@ -911,7 +911,7 @@ async def nested_prefetch_search(query: str, top_k: int = 5):
     async with AsyncVectorAIClient(url=SERVER) as client:
         results = await client.points.query(
             COLLECTION,
-            query=text_vec,   # Stage 3: re-rank by text similarity
+            query=text_vec,   # Stage 3: rerank by text similarity
             using="text",
             prefetch=[
                 PrefetchQuery(
@@ -932,12 +932,12 @@ async def nested_prefetch_search(query: str, top_k: int = 5):
 
 results = asyncio.run(nested_prefetch_search("outdoor hiking gear"))
 
-print("=== Nested prefetch: fuse then re-rank ===")
+print("=== Nested prefetch: fuse then rerank ===")
 for r in results:
     print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('name')}")
 ```
 
-The diagram below traces the execution flow from raw candidate retrieval through fusion to final re-ranking.
+The diagram below traces the execution flow from raw candidate retrieval through fusion to final reranking.
 
 ```text
 Stage 1 (inner prefetch):
@@ -948,17 +948,17 @@ Stage 2 (outer prefetch):
   └─ RRF fusion of both → 15 candidates
 
 Stage 3 (final query):
-  └─ Re-rank 15 candidates by text similarity → top 5
+  └─ Rerank 15 candidates by text similarity → top 5
 ```
 
 `query=text_vec, using="text"` in the final stage re-scores the fused candidates using the text vector, giving the text space the final say on ranking while the image space contributed to the candidate pool.
 
 ### Expected output
 
-The function queries for `"outdoor hiking gear"` using a three-stage nested pipeline. Stage 1 retrieves 20 candidates from the text space and 20 from the image space. Stage 2 fuses both lists with RRF, keeping the top 15. Stage 3 re-scores those 15 candidates using the `all-MiniLM-L6-v2` text embedding as the final query vector (`using="text"`), so the product whose description is semantically closest to the query surfaces at the top. The final scores are cosine similarity values from the text re-ranking step, not RRF scores.
+The function queries for `"outdoor hiking gear"` using a three-stage nested pipeline. Stage 1 retrieves 20 candidates from the text space and 20 from the image space. Stage 2 fuses both lists with RRF, keeping the top 15. Stage 3 re-scores those 15 candidates using the `all-MiniLM-L6-v2` text embedding as the final query vector (`using="text"`), so the product whose description is semantically closest to the query surfaces at the top. The final scores are cosine similarity values from the text reranking step, not RRF scores.
 
 ```text
-=== Nested prefetch: fuse then re-rank ===
+=== Nested prefetch: fuse then rerank ===
   id=5  score=0.6234  Waterproof Hiking Boots
   id=0  score=0.4567  Classic Leather Jacket
   id=8  score=0.3456  Canvas Tote Bag
@@ -1002,7 +1002,7 @@ async def tuned_multimodal_search(query: str, top_k: int = 5):
 
 results = asyncio.run(tuned_multimodal_search("premium audio equipment"))
 
-print("=== Tuned multi-model search (DBSF, per-space hnsw_ef) ===")
+print("=== Tuned multimodel search (DBSF, per-space hnsw_ef) ===")
 for r in results:
     print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('name')}")
 ```
@@ -1065,7 +1065,7 @@ asyncio.run(cleanup())
 
 ## Patterns summary
 
-The following patterns recap the core multi-model techniques covered in this tutorial. Use them as a quick reference when building your own pipelines.
+The following patterns recap the core multimodel techniques covered in this tutorial. Use them as a quick reference when building your own pipelines.
 
 ### Pattern 1: Independent space search
 
@@ -1077,7 +1077,7 @@ results = await client.points.search(
 )
 ```
 
-### Pattern 2: Server-side multi-model fusion
+### Pattern 2: Server-side multimodel fusion
 
 Provide two `PrefetchQuery` entries and set `query={"fusion": Fusion.RRF}` to have the server merge the candidate lists.
 
@@ -1105,9 +1105,9 @@ fused = reciprocal_rank_fusion(
 )
 ```
 
-### Pattern 4: Nested prefetch with re-ranking
+### Pattern 4: Nested prefetch with reranking
 
-Nest an RRF-fusion prefetch inside the outer query and set `query=text_vec` to fuse first, then re-rank by the text vector.
+Nest an RRF-fusion prefetch inside the outer query and set `query=text_vec` to fuse first, then rerank by the text vector.
 
 ```python
 results = await client.points.query(
@@ -1151,8 +1151,8 @@ The table below lists every Actian VectorAI feature this tutorial demonstrated, 
 | Named vector search | `points.search(using="text")` | Search a specific vector space |
 | Server-side RRF | `query={"fusion": Fusion.RRF}` | Rank-based fusion of prefetch results |
 | Server-side DBSF | `query={"fusion": Fusion.DBSF}` | Score-normalized fusion |
-| Prefetch | `PrefetchQuery(query=..., using=..., limit=...)` | Multi-stage candidate retrieval |
-| Nested prefetch | `PrefetchQuery(prefetch=[...])` | Three-stage fuse-then-re-rank pipeline |
+| Prefetch | `PrefetchQuery(query=..., using=..., limit=...)` | Multistage candidate retrieval |
+| Nested prefetch | `PrefetchQuery(prefetch=[...])` | Three-stage fuse-then-rerank pipeline |
 | Client-side RRF | `reciprocal_rank_fusion(results, weights=...)` | Weighted client-side fusion |
 | Client-side DBSF | `distribution_based_score_fusion(results)` | Score-aware client-side fusion |
 | Search batch | `points.search_batch(searches=[...])` | Multiple queries in one call |

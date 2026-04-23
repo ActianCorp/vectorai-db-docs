@@ -13,9 +13,9 @@ Common questions about vector storage, dimensions, and representations.
 
 VectorAI DB supports any fixed dimension per collection. The right dimension depends on the embedding model you use. For example, `OpenAI`'s `text-embedding-3-small` produces 1536-dimensional vectors, while Sentence Transformers typically produce 384 or 768 dimensions. Match the dimension at collection creation to the output of your chosen model.
 
-### What is the difference between dense vectors and multi-vector representations?
+### What is the difference between dense vectors and multivector representations?
 
-A dense vector represents an entire object as a single fixed-length embedding. A multi-vector representation stores multiple embeddings per object (for example, one per token or image patch), enabling fine-grained similarity matching at the segment level. VectorAI DB supports multi-vector representations through models such as ColBERT, ColPali, and ColQwen.
+A dense vector represents an entire object as a single fixed-length embedding. A multivector representation stores multiple embeddings per object (for example, one per token or image patch), enabling fine-grained similarity matching at the segment level. VectorAI DB supports multivector representations through models such as ColBERT, ColPali, and ColQwen.
 
 ### How are vectors stored in VectorAI DB?
 

@@ -1,6 +1,6 @@
 ---
 title: "Multivector document intelligence with visual RAG"
-description: "Build a multi-modal document intelligence system that embeds PDF pages as images with CLIP, retrieves them via Actian VectorAI DB, and generates answers using GPT-4o vision."
+description: "Build a multimodal document intelligence system that embeds PDF pages as images with CLIP, retrieves them via Actian VectorAI DB, and generates answers using GPT-4o vision."
 ---
 
 This article walks through building a visual RAG pipeline that treats each PDF page as an image, embeds it with CLIP, stores it in Actian VectorAI DB, and uses GPT-4o vision to answer questions directly from retrieved page images — no text extraction required.
@@ -10,11 +10,11 @@ Traditional document RAG systems extract text from PDFs, chunk it, embed the chu
 - Charts and graphs—revenue trends, system architecture diagrams
 - Tables—financial statements, comparison matrices
 - Images—product photos, screenshots, annotated figures
-- Complex layouts—multi-column reports, slide decks, scanned documents
+- Complex layouts—multicolumn reports, slide decks, scanned documents
 
 Text extraction loses this visual information entirely.
 
-_Multivector Document Intelligence_ takes a different approach inspired by the ColPali architecture: instead of extracting text, it treats each PDF page as an image. Every page is embedded using a vision model (CLIP), stored as a vector, and retrieved based on visual and semantic similarity. A Vision-Language Model (GPT-4o) then reads the retrieved page images to generate answers.
+_Multivector Document Intelligence_ takes a different approach inspired by the Contextualized Late Interaction over PaliGemma (ColPali) architecture. Instead of extracting text, it treats each PDF page as an image. Every page is embedded using a vision model (CLIP), stored as a vector, and retrieved based on visual and semantic similarity. A vision-language model (GPT-4o) then reads the retrieved page images to generate answers.
 
 As a result, the system can answer questions about charts, tables, diagrams, and layouts, not just plain text.
 
@@ -652,7 +652,7 @@ This system is inspired by the ColPali architecture, which demonstrated that:
 The implementation simplifies ColPali by using:
 
 - CLIP instead of PaliGemma for embedding — simpler to deploy and widely available
-- Single vector per page instead of multi-vector patch embeddings — compatible with standard vector databases without specialised infrastructure
+- Single vector per page instead of multivector patch embeddings — compatible with standard vector databases without specialised infrastructure
 - GPT-4o vision instead of a specialised reader model for answer generation — no custom training required
 
 This trade-off produces a practical system that works with Actian VectorAI DB while preserving the core insight: visual document understanding beats text extraction for rich documents.

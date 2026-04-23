@@ -378,14 +378,14 @@ All fields are optional. Omitting `SearchParams` entirely uses the collection's 
 
 #### Quantization-aware search
 
-When a collection uses scalar or product quantization, use `QuantizationSearchParams` to control how quantized vectors are used during the search. The following example enables rescoring, which re-ranks the initial candidates using the original full-precision vectors for higher accuracy.
+When a collection uses scalar or product quantization, use `QuantizationSearchParams` to control how quantized vectors are used during the search. The following example enables rescoring, which reranks the initial candidates using the original full-precision vectors for higher accuracy.
 
 ```python
 params = SearchParams(
     hnsw_ef=128,
     quantization=QuantizationSearchParams(
         ignore=False,       # Use quantized vectors for the initial candidate pass
-        rescore=True,       # Re-rank the top candidates with full-precision vectors
+        rescore=True,       # Rerank the top candidates with full-precision vectors
         oversampling=2.0,   # Retrieve 2x candidates before rescoring
     ),
 )
@@ -394,7 +394,7 @@ params = SearchParams(
 | Parameter | Effect |
 |-----------|--------|
 | `ignore=False` | Use quantized vectors for initial search (fast) |
-| `rescore=True` | Re-rank candidates with original full-precision vectors |
+| `rescore=True` | Rerank candidates with original full-precision vectors |
 | `oversampling=2.0` | Retrieve 2x candidates before rescoring for higher recall |
 
 ## Step 7: Score threshold — filter low-confidence results
@@ -678,7 +678,7 @@ Query: Explain vector databases
 
 ## Step 12: The universal query endpoint
 
-`points.query` is a more powerful alternative to `points.search`. It supports vector search, payload ordering, server-side fusion, random sampling, and multi-stage prefetch — all through a single endpoint.
+`points.query` is a more powerful alternative to `points.search`. It supports vector search, payload ordering, server-side fusion, random sampling, and multistage prefetch — all through a single endpoint.
 
 ### Vector search via points.query
 
@@ -729,7 +729,7 @@ for r in results:
 
 ### Multi-stage prefetch
 
-Run this cell to run two filtered sub-searches in parallel — one for machine learning documents and one for deep learning documents — and then re-rank the merged candidate pool with a final similarity query, all in a single round-trip.
+Run this cell to run two filtered subsearches in parallel — one for machine learning documents and one for deep learning documents — and then rerank the merged candidate pool with a final similarity query, all in a single round-trip.
 
 ```python
 from actian_vectorai import PrefetchQuery
@@ -754,18 +754,18 @@ async def query_prefetch(query: str):
     return results
 
 results = asyncio.run(query_prefetch("How models learn from data"))
-print("\n=== query: prefetch ML + DL, then re-rank ===")
+print("\n=== query: prefetch ML + DL, then rerank ===")
 for r in results:
     print(f"  id={r.id}  score={r.score:.4f}  topic={r.payload.get('topic')}")
 ```
 
 #### How prefetch works
 
-Prefetch executes the filtered sub-searches first, then merges their results for a final re-ranking pass.
+Prefetch executes the filtered subsearches first, then merges their results for a final reranking pass.
 
 1. In the first stage, the engine fetches candidates matching the machine learning topic filter.
 2. In the second stage, the engine fetches candidates matching the deep learning topic filter.
-3. In the final stage, the top-level query re-ranks the merged candidate pool by similarity.
+3. In the final stage, the top-level query reranks the merged candidate pool by similarity.
 
 This is more efficient than running two separate searches and merging the results on the client side.
 
@@ -804,7 +804,7 @@ Returning vectors increases response size significantly — each 384-dim float v
 | Use case | `with_vectors` |
 |----------|---------------|
 | Normal search (most cases) | False (default) |
-| Client-side re-ranking | `True` |
+| Client-side reranking | `True` |
 | Similarity visualization (t-SNE, UMAP) | `True` |
 | Debugging embeddings | `True` |
 | Export for another system | `True` |
@@ -981,8 +981,8 @@ Now that you can embed, store, search, and tune vector queries, explore the foll
   <Card title="Predicate filters" href="/academy/tutorials/predicate-filters">
     Combine similarity search with structured payload constraints
   </Card>
-  <Card title="Re-ranking search results" href="/academy/tutorials/re-ranking">
-    Improve relevance with cross-encoder and reciprocal rank fusion re-ranking
+  <Card title="Reranking search results" href="/academy/tutorials/re-ranking">
+    Improve relevance with cross-encoder and reciprocal rank fusion reranking
   </Card>
   <Card title="Retrieval quality" href="/academy/tutorials/retrieval-quality">
     Measure and optimize search accuracy using precision, recall, and MRR

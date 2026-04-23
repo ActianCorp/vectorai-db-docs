@@ -27,13 +27,13 @@ The following example shows a 384-dimensional dense vector, truncated for displa
 
 VectorAI DB stores dense vectors efficiently using optimized memory layouts and indexing structures. The HNSW (Hierarchical Navigable Small World) index enables fast approximate nearest neighbor search across large collections of dense vectors.
 
-## Multi-vector representations
+## Multivector representations
 
-VectorAI DB supports multiple vector embeddings per data object rather than using a single embedding. Models such as ColBERT, ColPali, and ColQwen generate these multi-vector representations, allowing fine-grained semantic matching at the token or segment level.
+VectorAI DB supports multiple vector embeddings per data object rather than using a single embedding. Models such as ColBERT, ColPali, and ColQwen generate these multivector representations, allowing fine-grained semantic matching at the token or segment level.
 
-Traditional single-vector approaches compress entire documents into one embedding, losing nuanced information about individual parts. Multi-vector representations preserve this granularity by generating separate embeddings for different segments such as tokens in text or patches in images.
+Traditional single-vector approaches compress entire documents into one embedding, losing nuanced information about individual parts. Multivector representations preserve this granularity by generating separate embeddings for different segments such as tokens in text or patches in images.
 
-### How multi-vector search works
+### How multivector search works
 
 During search, VectorAI DB compares corresponding parts of documents rather than treating entire texts as monolithic units. This architecture improves search precision by enabling:
 
@@ -42,11 +42,11 @@ During search, VectorAI DB compares corresponding parts of documents rather than
 - Segment-level analysis to evaluate relevance of sections in long-form content.
 - Fine-grained scoring to assess relevance across document parts independently.
 
-Multi-vector search delivers more accurate retrieval for complex queries where specific document sections matter more than overall similarity.
+Multivector search delivers more accurate retrieval for complex queries where specific document sections matter more than overall similarity.
 
-### Use cases for multi-vector embeddings
+### Use cases for multivector embeddings
 
-Multi-vector representations excel in scenarios requiring precise matching:
+Multivector representations excel in scenarios requiring precise matching:
 
 - Document retrieval — Find specific passages that answer queries within long documents.
 - Visual search — Match detailed image regions rather than whole-image similarity.
