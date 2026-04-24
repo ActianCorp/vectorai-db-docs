@@ -1,10 +1,10 @@
 ---
-title: "Multi-model fusion"
+title: "Multimodel fusion"
 description: "Combine search results from multiple embedding models using fusion."
 icon: "code"
 ---
 
-Multi-model fusion runs the same query through multiple embedding models and fuses the results into a single ranking. Different embedding models capture different aspects of semantic meaning, and combining their results produces more comprehensive retrieval than any single model alone.
+Multimodel fusion runs the same query through multiple embedding models and fuses the results into a single ranking. Different embedding models capture different aspects of semantic meaning, and combining their results produces more comprehensive retrieval than any single model alone.
 
 This code example creates a collection, inserts 100 sample documents, and generates three separate query embeddings to simulate different models. It searches with each embedding, then fuses all three result sets using RRF to produce a single combined ranking.
 
@@ -134,7 +134,7 @@ Each fused result includes these fields:
 - `score`: Fused score combining rank positions from all three model searches
 - `payload`: Metadata object from the matching point
 
-Multi-model fusion provides these advantages:
+Multimodel fusion provides these advantages:
 
 - Different models capture complementary semantic signals
 - Results that rank highly across multiple models are more likely to be relevant
