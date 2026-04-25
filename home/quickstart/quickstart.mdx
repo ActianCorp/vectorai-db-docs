@@ -44,7 +44,7 @@ Connect to the VectorAI server and create a collection named **products** with d
     ```python
     from actian_vectorai import VectorAIClient, VectorParams, Distance
 
-    with VectorAIClient("localhost:50051") as client:
+    with VectorAIClient("localhost:6574") as client:
         # Check server connection
         info = client.health_check()
         print(f"Connected to {info['title']} v{info['version']}")
@@ -63,7 +63,7 @@ Connect to the VectorAI server and create a collection named **products** with d
     from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
 
     async def main():
-        async with AsyncVectorAIClient("localhost:50051") as client:
+        async with AsyncVectorAIClient("localhost:6574") as client:
             info = await client.health_check()
             print(f"Connected to {info['title']} v{info['version']}")
             
@@ -131,7 +131,7 @@ from actian_vectorai import VectorAIClient
 NUM_VECTORS = 100
 DIMENSION = 128
 
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     print(f"Inserting {NUM_VECTORS} vectors...")
     
     # Generate sample data
@@ -161,7 +161,7 @@ import random
 DIMENSION = 128
 COLLECTION = "products"
 
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Search for similar vectors
     print("Searching for similar vectors...")
     query = [random.gauss(0, 1) for _ in range(DIMENSION)]
@@ -199,7 +199,7 @@ When you're done, clean up by deleting the collection:
 ```python
 from actian_vectorai import VectorAIClient
 
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     client.collections.delete("products")
     print("Collection 'products' deleted successfully")
 ```
