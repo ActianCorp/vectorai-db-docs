@@ -19,29 +19,21 @@ This short guide shows you how to create a collection, insert vectors, and perfo
 
 Install the VectorAI DB Python SDK using pip:
 
-{/* ```bash
+```bash
 pip install actian-vectorai
-``` */}
-
-<Info>
-Coming soon
-</Info>
+```
 
 ## Step 2: Run the Docker container
 
 Download and run the VectorAI DB Docker container:
 
-{/* ```bash
-docker pull actian/vectorai-server:latest
-docker run -p 50051:50051 actian/vectorai-server:latest
-``` */}
+```bash
+docker pull actian/vectorai:latest
+docker run -p 6574:6574 -p 6575:6575 actian/vectorai:latest
+```
+Port 6574 is for the gRPC server. Port 6575 is for the Web UI.
 
-
-<Info>
-Coming soon
-</Info>
-
-This command hosts the server on **localhost:50051**.
+This command hosts the server on **localhost:6574** and the Web UI on **localhost:6575**.
 
 ## Step 3: Create a collection
 
