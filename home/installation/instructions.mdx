@@ -3,7 +3,6 @@ title: "Local installation"
 description: "Get VectorAI DB running locally using Docker in just a few minutes."
 ---
 
-
 ## Prerequisites
 
 Before installing, ensure you have:
@@ -24,49 +23,36 @@ For best performance, use the recommended configuration.
 
 Pull and run the VectorAI DB Docker container:
 
-{/* ```bash
-docker pull actian/cortex-server:latest
-docker run -p 50051:50051 actian/cortex-server:latest
-``` */}
+```bash
+docker pull actian/vectorai:latest
+docker run -p 6574:6574 -p 6575:6575 actian/vectorai:latest
+```
 
-<Info>
-Coming soon
-</Info>
-
-The server is available at `localhost:50051`.
+For this and other options, the gRPC server is available at `localhost:6574`. The Web UI is available at `localhost:6575`.
 
 ### Option 2: With data persistence
 
 To persist your data between container restarts:
 
-{/* ```bash
-docker run -p 50051:50051 \
-  -v $(pwd)/data:/app/data \
-  actian/cortex-server:latest
-``` */}
-
-
-<Info>
-Coming soon
-</Info>
-
+```bash
+docker run -p 6574:6574 -p 6575:6575 \
+  -v $(pwd)/data:/var/lib/actian-vectorai \
+  actian/vectorai:latest
+```
 
 ### Option 3: Using Docker Compose
 
 Create a `docker-compose.yml` file:
 
 ```yaml
-version: '3.8'
 services:
   vectorai:
-    image: actian/cortex-server:latest
+    image: actian/vectorai:latest
     ports:
-      - "50051:50051"
+      - "6574:6574"
+      - "6575:6575"
     volumes:
-      - ./data:/app/data
-      - ./config:/app/config
-    environment:
-      - VECTORAI_LOG_LEVEL=info
+      - ./data:/var/lib/actian-vectorai
     restart: unless-stopped
 ```
 
@@ -85,7 +71,7 @@ docker-compose down
 ## Verify installation
 
 <Warning>
-**Python SDK Required**: To verify your installation, you need to have the Cortex Python SDK installed. Install it using `pip install actian-cortex-client` or follow the [SDK installation guide](/sdks/python/installation).
+**Python SDK Required**: To verify your installation, you need to have the VectorAI Python SDK installed. Install it using `pip install actian-vectorai` or follow the [SDK installation guide](/sdks/python/installation).
 </Warning>
 
 Test your installation by checking the server health:
@@ -95,7 +81,7 @@ import asyncio
 from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
 
 async def main():
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         info = await client.health_check()
         print(f"Connected to {info['title']} v{info['version']}")
 
@@ -111,7 +97,7 @@ The table below lists common installation issues and their solutions.
 | Issue                | Solution                                                        |
 |----------------------|-----------------------------------------------------------------|
 | Connection failed    | Ensure Docker container is running: `docker ps` |
-| Port already in use  | Stop services using port 50051 or use a different port: `-p 50052:50051` |
+| Port already in use  | Stop services using port 6574 or use a different port: `-p 6576:6574` |
 | Permission denied    | Run Docker commands with appropriate permissions or add user to docker group |
 | Container exits      | Check logs: `docker logs <container-id>` |
 
