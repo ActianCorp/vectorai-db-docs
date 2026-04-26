@@ -29,11 +29,11 @@ Download and run the VectorAI DB Docker container:
 
 ```bash
 docker pull actian/vectorai:latest
-docker run -p 6574:6574 -p 6575:6575 actian/vectorai:latest
+docker run -p 6573-6575:6573-6575 -v <local_data_dir>:/var/lib/actian-vectorai actian/vectorai:latest
 ```
-Port 6574 is for the gRPC server. Port 6575 is for the Web UI.
+Port 6573 is for the RESTful API, 6574 for gRPC, and 6575 for WebUI. The /var/lib/actian-vectorai directory is the containers location for storing Actian VectorAI DB. It should be volume-mounted to persist the data.
 
-This command hosts the server on **localhost:6574** and the Web UI on **localhost:6575**.
+This command hosts the RESTful API on **localhost:6573**, the server on **localhost:6574**, and the WebUI on **localhost:6575**.
 
 ## Step 3: Create a collection
 
