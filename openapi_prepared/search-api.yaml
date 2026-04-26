@@ -8,7 +8,7 @@ info:
     url: https://www.actian.com
 
 servers:
-  - url: http://localhost:50052
+  - url: http://localhost:6575
     description: Local development server (REST API)
   - url: https://api.vectorai.actian.com
     description: Production server
@@ -307,7 +307,7 @@ paths:
         - lang: cURL
           label: Search
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -525,7 +525,7 @@ paths:
         - lang: cURL
           label: Batch search
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/search/batch" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/search/batch" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -770,7 +770,7 @@ paths:
         - lang: cURL
           label: Scroll
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/scroll" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/scroll" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -912,7 +912,7 @@ paths:
         - lang: cURL
           label: Count points
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/count" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/count" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -921,7 +921,7 @@ paths:
         - lang: cURL
           label: Count with filter
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/count" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/count" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{

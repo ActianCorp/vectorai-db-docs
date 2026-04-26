@@ -108,7 +108,7 @@ from actian_vectorai.models.collections import HnswConfigDiff
 from sentence_transformers import SentenceTransformer
 
 # gRPC endpoint for the Actian VectorAI server
-SERVER = "localhost:50051"
+SERVER = "localhost:6574"
 # Name of the vector collection that stores supply chain events
 COLLECTION = "Supply-Chain-Risk"
 # Lightweight model that produces 384-dimensional embeddings
@@ -134,7 +134,7 @@ Every component is configured upfront. The key settings are:
 Running this configuration block prints the following confirmation:
 
 ```text
-VectorAI Server: localhost:50051
+VectorAI Server: localhost:6574
 Collection: Supply-Chain-Risk
 Embedding model: all-MiniLM-L6-v2 (384-dim)
 ```

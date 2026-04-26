@@ -75,7 +75,7 @@ from actian_vectorai.models.points import (
     WithVectorsSelector,
 )
 
-SERVER = "localhost:50051"
+SERVER = "localhost:6574"
 COLLECTION = "multimodal-products"
 TEXT_DIM = 384   # Output dimensionality of all-MiniLM-L6-v2
 IMAGE_DIM = 512  # Output dimensionality of clip-ViT-B-32
@@ -94,7 +94,7 @@ print(f"CLIP model: clip-ViT-B-32 ({IMAGE_DIM}-dim)")
 Running this block initializes the Actian VectorAI client, loads both the `all-MiniLM-L6-v2` text model and the `clip-ViT-B-32` image model into memory, and echoes the active server address, collection name, and the output dimensionality of each model. No collection is created at this stage—it simply confirms that all dependencies are loaded and the configuration constants are set.
 
 ```text
-Server:     localhost:50051
+Server:     localhost:6574
 Collection: multimodal-products
 Text model: all-MiniLM-L6-v2 (384-dim)
 CLIP model: clip-ViT-B-32 (512-dim)

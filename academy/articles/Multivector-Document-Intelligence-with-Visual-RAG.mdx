@@ -99,7 +99,7 @@ The pipeline depends on an Actian VectorAI DB instance, a Python environment, an
 The pipeline stores and retrieves page-level CLIP vectors through a VectorAI DB server.
 
 - A running Actian VectorAI DB server accessible over gRPC (default port `50051`)
-- The server URL — for local development this is typically `http://localhost:50051`
+- The server URL — for local development this is typically `http://localhost:6574`
 - If you do not have an instance running yet, then follow the [installation guide](/docs/guides/index) to set one up before continuing
 
 ### Python environment
@@ -186,7 +186,7 @@ from actian_vectorai import (
 )
 from actian_vectorai.models.points import ScoredPoint
 
-SERVER = "localhost:50051"
+SERVER = "localhost:6574"
 COLLECTION = "Multivector-DocIntel"
 CLIP_DIM = 512
 
@@ -203,7 +203,7 @@ print(f"CLIP model loaded ({CLIP_DIM}-dim)")
 #### Why this step matters
 Every component is configured upfront. The key settings are listed below.
 
-- `SERVER` — The Actian VectorAI gRPC endpoint (default `localhost:50051`).
+- `SERVER` — The Actian VectorAI gRPC endpoint (default `localhost:6574`).
 - `COLLECTION` — The collection name for document page vectors.
 - `clip_model` — The CLIP ViT-B-32 model that embeds both page images and text queries into the same 512-dimensional space.
 - `PAGE_IMAGES_DIR` — The local directory where rendered page images are saved for later vision-language model (VLM) input.
@@ -213,7 +213,7 @@ Every component is configured upfront. The key settings are listed below.
 Running the configuration block prints the following to confirm each component loaded successfully:
 
 ```text
-VectorAI Server: localhost:50051
+VectorAI Server: localhost:6574
 Collection: Multivector-DocIntel
 CLIP model loaded (512-dim)
 ```

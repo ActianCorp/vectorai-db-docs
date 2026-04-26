@@ -81,7 +81,7 @@ from actian_vectorai.models.collections import HnswConfigDiff
 from actian_vectorai.models.enums import Fusion, TokenizerType
 
 # Server address and collection name used throughout this guide
-SERVER = "localhost:50051"
+SERVER = "localhost:6574"
 COLLECTION = "Recipe-Recommendations"
 EMBED_DIM = 384  # Output dimension of all-MiniLM-L6-v2
 
@@ -106,7 +106,7 @@ print(f"Embedding:  all-MiniLM-L6-v2 ({EMBED_DIM}-dim)")
 Running the block above prints the server address, collection name, and embedding model name to confirm the configuration loaded correctly.
 
 ```text
-Server:     localhost:50051
+Server:     localhost:6574
 Collection: Recipe-Recommendations
 Embedding:  all-MiniLM-L6-v2 (384-dim)
 ```

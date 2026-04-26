@@ -8,7 +8,7 @@ info:
     url: https://www.actian.com
 
 servers:
-  - url: http://localhost:50052
+  - url: http://localhost:6575
     description: Local development server (REST API)
   - url: https://api.vectorai.actian.com
     description: Production server
@@ -191,7 +191,7 @@ paths:
         - lang: cURL
           label: Upsert points
           source: |
-            curl -X PUT "http://localhost:50052/collections/my_collection/points" \
+            curl -X PUT "http://localhost:6575/collections/my_collection/points" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -361,7 +361,7 @@ paths:
         - lang: cURL
           label: Get points
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -483,7 +483,7 @@ paths:
         - lang: cURL
           label: Get point
           source: |
-            curl -X GET "http://localhost:50052/collections/my_collection/points/1" \
+            curl -X GET "http://localhost:6575/collections/my_collection/points/1" \
               -H "Accept: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>'
 
@@ -609,7 +609,7 @@ paths:
         - lang: cURL
           label: Delete by IDs
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/delete" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/delete" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -753,7 +753,7 @@ paths:
         - lang: cURL
           label: Update vectors
           source: |
-            curl -X PUT "http://localhost:50052/collections/my_collection/points/vectors" \
+            curl -X PUT "http://localhost:6575/collections/my_collection/points/vectors" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -887,7 +887,7 @@ paths:
         - lang: cURL
           label: Set payload
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/payload" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/payload" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -1016,7 +1016,7 @@ paths:
         - lang: cURL
           label: Overwrite payload
           source: |
-            curl -X PUT "http://localhost:50052/collections/my_collection/points/payload" \
+            curl -X PUT "http://localhost:6575/collections/my_collection/points/payload" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -1148,7 +1148,7 @@ paths:
         - lang: cURL
           label: Delete payload keys
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/payload/delete" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/payload/delete" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -1268,7 +1268,7 @@ paths:
         - lang: cURL
           label: Clear payload
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/payload/clear" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/payload/clear" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -1388,7 +1388,7 @@ paths:
   #       - lang: cURL
   #         label: Create field index
   #         source: |
-  #           curl -X PUT "http://localhost:50052/collections/my_collection/index" \
+  #           curl -X PUT "http://localhost:6575/collections/my_collection/index" \
   #             -H "Content-Type: application/json" \
   #             -d '{
   #               "field_name": "price",

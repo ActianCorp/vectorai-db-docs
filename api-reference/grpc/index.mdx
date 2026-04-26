@@ -9,35 +9,15 @@ From this page you can learn about the gRPC connection details, understand when 
 
 ## Connection details
 
-- **Default port**: 50051.
+- **Default port**: 6574.
 - **Protocol**: gRPC over HTTP/2.
 - **Serialization**: Protocol Buffers (protobuf).
-
-## Benefits of gRPC
-
-gRPC offers several advantages over REST for vector database operations.
-
-- **High performance**: binary serialization is faster and more compact than JSON.
-- **Low latency**: HTTP/2 multiplexing reduces connection overhead.
-- **Type safety**: strong typing with Protocol Buffers.
-- **Bidirectional streaming**: support for streaming requests and responses.
-- **Code generation**: automatic client generation from .proto files.
-
-## When to use gRPC
-
-Choose gRPC endpoints when you need:
-
-- Minimal latency for vector operations.
-- High-throughput batch processing.
-- Microservices architecture with service-to-service communication.
-- Streaming data operations.
-- Strong typing and contract-first API design.
 
 For standard web applications and quick prototyping, the [REST API](/api-reference/rest) may be simpler to integrate.
 
 ## Client libraries
 
-The Python SDK supports gRPC endpoints for communication with VectorAI DB. For more information about using the Python SDK with gRPC endpoints, see [Python SDK](/sdks/python/installation).
+The Python SDK supports gRPC endpoints for communication with VectorAI DB. For more information about using the Python SDK with gRPC endpoints, see [Python SDK](/sdks/python/quickstart).
 
 ## Create a collection and run a search
 
@@ -51,8 +31,8 @@ from actian_vectorai import (
     VectorParams,
 )
 
-# Connect to gRPC endpoint (default port 50051)
-with VectorAIClient("localhost:50051") as client:
+# Connect to gRPC endpoint (default port 6574)
+with VectorAIClient("localhost:6574") as client:
     # Health check
     info = client.health_check()
     print(f"Connected to {info['title']} v{info['version']}")

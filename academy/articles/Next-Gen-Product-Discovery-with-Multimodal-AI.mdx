@@ -26,7 +26,7 @@ By the end, the system retrieves product images using both semantic similarity a
 
 Before starting, make sure you have the following in place:
 
-- A running Actian VectorAI instance reachable at `localhost:50051`.
+- A running Actian VectorAI instance reachable at `localhost:6574`.
 - Python 3.10 or later.
 - A set of product images and associated metadata (product name, category, color, gender, and so on). This tutorial uses a fashion product dataset as its example, but the same pipeline applies to any product catalog.
 
@@ -159,7 +159,7 @@ from actian_vectorai.models.collections import HnswConfigDiff
 from actian_vectorai.models.points import ScoredPoint
 
 # Server address, collection name, and vector dimensionality used throughout this tutorial
-SERVER = "localhost:50051"
+SERVER = "localhost:6574"
 COLLECTION = "NextGen-Purchase"
 DENSE_DIM = 512  # CLIP ViT-B-32 outputs 512-dimensional vectors
 
@@ -178,7 +178,7 @@ The CLIP model is loaded once at module level so that every subsequent call to `
 Running this block prints the server address, collection name, and the CLIP model dimensionality, confirming the configuration is valid before any collections or vectors are created.
 
 ```text
-VectorAI Server: localhost:50051
+VectorAI Server: localhost:6574
 Collection: NextGen-Purchase
 CLIP model loaded (512-dim)
 ```

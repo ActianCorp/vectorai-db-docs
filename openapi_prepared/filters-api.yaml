@@ -8,7 +8,7 @@ info:
     url: https://www.actian.com
 
 servers:
-  - url: http://localhost:50052
+  - url: http://localhost:6575
     description: Local development server (REST API)
   - url: https://api.vectorai.actian.com
     description: Production server
@@ -56,7 +56,7 @@ paths:
         Match points where a field has an exact value.
 
         ```bash
-        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+        curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
           -H "Content-Type: application/json" \
           -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
           -d '{
@@ -89,7 +89,7 @@ paths:
         Match points where a numeric field falls within a range.
 
         ```bash
-        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+        curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
           -H "Content-Type: application/json" \
           -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
           -d '{
@@ -124,7 +124,7 @@ paths:
         Require multiple conditions to all be true.
 
         ```bash
-        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+        curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
           -H "Content-Type: application/json" \
           -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
           -d '{
@@ -155,7 +155,7 @@ paths:
         Include points matching one condition while excluding those matching another.
 
         ```bash
-        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+        curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
           -H "Content-Type: application/json" \
           -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
           -d '{
@@ -188,7 +188,7 @@ paths:
         Match points where at least one condition is true.
 
         ```bash
-        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+        curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
           -H "Content-Type: application/json" \
           -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
           -d '{
@@ -220,7 +220,7 @@ paths:
         Restrict results to specific point IDs using `has_id`.
 
         ```bash
-        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+        curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
           -H "Content-Type: application/json" \
           -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
           -d '{
@@ -251,7 +251,7 @@ paths:
         Combine `should`, `must`, and `must_not` clauses in a single filter.
 
         ```bash
-        curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+        curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
           -H "Content-Type: application/json" \
           -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
           -d '{
@@ -443,7 +443,7 @@ paths:
         - lang: cURL
           label: Equality filter
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -471,7 +471,7 @@ paths:
         - lang: cURL
           label: Range filter
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -501,7 +501,7 @@ paths:
         - lang: cURL
           label: Boolean filter
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -529,7 +529,7 @@ paths:
         - lang: cURL
           label: OR filter
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -556,7 +556,7 @@ paths:
         - lang: cURL
           label: ID filter
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -582,7 +582,7 @@ paths:
         - lang: cURL
           label: Combined boolean filter
           source: |
-            curl -X POST "http://localhost:50052/collections/my_collection/points/search" \
+            curl -X POST "http://localhost:6575/collections/my_collection/points/search" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{

@@ -121,7 +121,7 @@ from actian_vectorai.models.enums import (
 from sentence_transformers import SentenceTransformer
 
 # gRPC server address
-SERVER = "localhost:50051"
+SERVER = "localhost:6574"
 # collection names for clause-level and contract-level data
 CLAUSE_COLLECTION = "Legal-Clauses"
 CONTRACT_COLLECTION = "Legal-Contracts"
@@ -138,7 +138,7 @@ print(f"Embedding model: {EMBED_MODEL} ({EMBED_DIM}-dim)")
 This block imports all required SDK types — including connection pooling, WAL and optimizer configuration, quantization search parameters, rebuild management types, `OrderBy`, and alternative distance metrics — then sets the server address, collection names, and loads the `all-MiniLM-L6-v2` embedding model. The four `print` statements confirm the active configuration values so every subsequent step can be verified against a known baseline.
 **Expected Output**
 ```text
-VectorAI Server: localhost:50051
+VectorAI Server: localhost:6574
 Clause collection: Legal-Clauses
 Contract collection: Legal-Contracts
 Embedding model: all-MiniLM-L6-v2 (384-dim)

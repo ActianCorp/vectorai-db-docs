@@ -1,5 +1,6 @@
 ---
-title: "Quickstart"
+title: "Python SDK Quickstart"
+sidebarTitle: "Python"
 description: "Get started with VectorAI DB using the Python SDK."
 ---
 
@@ -19,29 +20,20 @@ This short guide shows you how to create a collection, insert vectors, and perfo
 
 Install the VectorAI DB Python SDK using pip.
 
-{/* ```bash
+```bash
 pip install actian-vectorai
-``` */}
-
-<Info>
-Coming soon
-</Info>
+```
 
 ## Step 2: Run the Docker container
 
 Download and run the VectorAI DB Docker container.
 
-{/* ```bash
-docker pull actian/vectorai-server:latest
-docker run -p 50051:50051 actian/vectorai-server:latest
-``` */}
+```bash
+docker pull actian/vectorai:latest
+docker run -p 6574:6574 -p 6575:6575 actian/vectorai:latest
+```
 
-
-<Info>
-Coming soon
-</Info>
-
-This command hosts the server on `localhost:50051`.
+The gRPC server is available at `localhost:6574`. The Web UI is available at `localhost:6575`.
 
 ## Step 3: Create a collection
 
@@ -52,7 +44,7 @@ Connect to the VectorAI server and create a collection named `products` with dim
     ```python
     from actian_vectorai import VectorAIClient, VectorParams, Distance
 
-    with VectorAIClient("localhost:50051") as client:
+    with VectorAIClient("localhost:6574") as client:
         # Check server connection
         info = client.health_check()
         print(f"Connected to {info['title']} v{info['version']}")
@@ -71,7 +63,7 @@ Connect to the VectorAI server and create a collection named `products` with dim
     from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
 
     async def main():
-        async with AsyncVectorAIClient("localhost:50051") as client:
+        async with AsyncVectorAIClient("localhost:6574") as client:
             info = await client.health_check()
             print(f"Connected to {info['title']} v{info['version']}")
 
@@ -139,7 +131,7 @@ from actian_vectorai import VectorAIClient
 NUM_VECTORS = 100
 DIMENSION = 128
 
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     print(f"Inserting {NUM_VECTORS} vectors...")
 
     # Generate sample data
@@ -169,7 +161,7 @@ import random
 DIMENSION = 128
 COLLECTION = "products"
 
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Search for similar vectors
     print("Searching for similar vectors...")
     query = [random.gauss(0, 1) for _ in range(DIMENSION)]
@@ -207,7 +199,7 @@ When you are done, clean up by deleting the collection.
 ```python
 from actian_vectorai import VectorAIClient
 
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     client.collections.delete("products")
     print("Collection 'products' deleted successfully")
 ```

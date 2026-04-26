@@ -8,12 +8,12 @@ The VectorAI DB REST API provides a complete HTTP-based interface for managing c
 ## Base URL
 
 ```
-http://localhost:50052
+http://localhost:6575
 ```
 
 For production deployments, use your VectorAI DB instance URL.
 
-Port 50051 is used for gRPC connections. The REST API runs on port 50052.
+Port 6574 is used for gRPC connections. The REST API runs on port 6575.
 
 ## Authentication
 
@@ -54,7 +54,7 @@ All API requests should include the `Content-Type: application/json` header. Req
 The following example inserts a point into a collection.
 
 ```bash
-curl -X PUT http://localhost:50052/collections/my_collection/points \
+curl -X PUT http://localhost:6575/collections/my_collection/points \
   -H "Content-Type: application/json" \
   -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
   -d '{
@@ -113,18 +113,14 @@ The REST API uses standard HTTP status codes to indicate the outcome of each req
 - `409 Conflict` - Resource already exists.
 - `500 Internal Server Error` - Server error.
 
-## Rate limiting
-
-Rate limits depend on your VectorAI DB deployment configuration. Check response headers for rate limit information.
-
 ## Python SDK
 
-For a more ergonomic development experience with type safety and automatic connection management, consider using the [Python SDK](/sdks/python/installation). The SDK communicates over gRPC (port 50051) and provides the same operations available through the REST API.
+For a more ergonomic development experience with type safety and automatic connection management, consider using the [Python SDK](/sdks/python/quickstart). The SDK communicates over gRPC (port 6574) and provides the same operations available through the REST API.
 
 ```python
 from actian_vectorai import VectorAIClient, VectorParams, Distance
 
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Create collection
     client.collections.create(
         "my_collection",

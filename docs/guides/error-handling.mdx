@@ -63,7 +63,7 @@ from actian_vectorai import (
     get_retry_delay,
 )
 
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     try:
         results = client.points.search("products", vector=query, limit=10)
     except CollectionNotFoundError as e:
@@ -172,7 +172,7 @@ Expand each section for details about what causes each error and how to resolve 
     **Fix:** Pass `api_key` to `VectorAIClient`.
 
     ```python
-    client = VectorAIClient("localhost:50051", api_key="your-secret-key")
+    client = VectorAIClient("localhost:6574", api_key="your-secret-key")
     ```
   </Accordion>
 
@@ -195,13 +195,7 @@ Explore these related guides to learn more.
   <Card title="Troubleshooting" href="/docs/guides/troubleshooting">
     Diagnose connection, search, and startup issues.
   </Card>
-  <Card title="Monitoring and logging" href="/docs/guides/monitoring-and-logging">
-    Observability, metrics collection, and log management.
-  </Card>
-  <Card title="Python SDK" href="/sdks/python/installation">
-    Full SDK reference including the exceptions module.
-  </Card>
-  <Card title="Troubleshooting" href="/docs/guides/troubleshooting">
-    Diagnose and resolve common connection and timeout issues.
+  <Card title="Python SDK" href="/sdks/python/quickstart">
+    Get started with the Python SDK.
   </Card>
 </CardGroup>

@@ -32,7 +32,7 @@ Before starting, make sure the following are in place.
 - Python 3.10 or later.
 - `pip` available in your environment (verify with `pip --version`).
 - A virtual environment activated (recommended: `python -m venv .venv && source .venv/bin/activate`).
-- An Actian VectorAI DB server running (default: `localhost:50051`).
+- An Actian VectorAI DB server running (default: `localhost:6574`).
 - Internet access on first run — `sentence-transformers` downloads the embedding model (`all-MiniLM-L6-v2`, approximately 90 MB) from Hugging Face when you first call `SentenceTransformer(EMBED_MODEL)`.
 - At least 512 MB of free memory to load the embedding model.
 
@@ -74,7 +74,7 @@ from actian_vectorai import (
 from actian_vectorai.models.collections import HnswConfigDiff
 
 # Connection and collection settings
-SERVER = "localhost:50051"
+SERVER = "localhost:6574"
 COLLECTION = "Movies"
 
 # Embedding model settings — model name and its output dimension must match
@@ -105,7 +105,7 @@ The table below describes what each import provides.
 The three constants are printed in order — server address, collection name, and the model name with its output dimension.
 
 ```text
-Server:     localhost:50051
+Server:     localhost:6574
 Collection: Movies
 Model:      all-MiniLM-L6-v2 (384 dimensions)
 ```
@@ -134,7 +134,7 @@ When the server is reachable, health information similar to the following is pri
 Server health: {'title': 'actian-vectorai', 'version': '2.5.0'}
 ```
 
-If you see a connection error, then verify that the VectorAI DB server is running on `localhost:50051`.
+If you see a connection error, then verify that the VectorAI DB server is running on `localhost:6574`.
 
 When `check_connection()` runs, the `async with AsyncVectorAIClient(...)` block manages the gRPC connection lifecycle. The client opens a channel to `SERVER`, runs the coroutine body including `health_check()`, and closes the channel when the block exits, so resources are released even if something fails. The sequence is as follows.
 

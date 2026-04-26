@@ -26,7 +26,7 @@ pip install llama-index-core llama-index-embeddings-openai
 Before using this integration, make sure your environment meets the following prerequisites:
 
 - Python 3.10–3.12
-- A running Actian VectorAI DB instance (default endpoint: `localhost:50051`)
+- A running Actian VectorAI DB instance (default endpoint: `localhost:6574`)
 
 ## Quickstart
 
@@ -63,7 +63,7 @@ The integration supports several connection patterns for managing client lifecyc
 Use a context manager for automatic connection handling:
 
 ```python
-with ActianVectorAIVectorStore(url="localhost:50051") as vector_store:
+with ActianVectorAIVectorStore(url="localhost:6574") as vector_store:
     vector_store.add(nodes)
     result = vector_store.query(query)
 ```
@@ -88,7 +88,7 @@ Pass a pre-configured `VectorAIClient` when you need to share a connection or su
 ```python
 from actian_vectorai import VectorAIClient
 
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     vector_store = ActianVectorAIVectorStore(client=client)
     vector_store.add(nodes)
     result = vector_store.query(query)
@@ -140,7 +140,7 @@ Pass a pre-configured `AsyncVectorAIClient` when you need to share an async conn
 ```python
 from actian_vectorai import AsyncVectorAIClient
 
-async with AsyncVectorAIClient("localhost:50051") as async_client:
+async with AsyncVectorAIClient("localhost:6574") as async_client:
     vector_store = ActianVectorAIVectorStore(async_client=async_client)
     await vector_store.async_add(nodes)
 
@@ -204,7 +204,7 @@ Specify explicit vector parameters instead of relying on auto-detection:
 from actian_vectorai import VectorParams, Distance
 
 with ActianVectorAIVectorStore(
-    url="localhost:50051",
+    url="localhost:6574",
     collection_name="my_collection",
     dense_vector_name="dense_vector",
     dense_vector_params=VectorParams(size=1536, distance=Distance.Cosine),
@@ -274,7 +274,7 @@ The following table lists the parameters you can pass when creating an `ActianVe
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `url` | `str` | `"localhost:50051"` | Actian VectorAI DB endpoint (`host:port`). Ignored when explicit clients are provided. |
+| `url` | `str` | `"localhost:6574"` | Actian VectorAI DB endpoint (`host:port`). Ignored when explicit clients are provided. |
 | `collection_name` | `str` | `"llama_index_collection"` | Collection to use for storing vectors and metadata. |
 | `dense_vector_name` | `str` | `"llama_index_dense_vector"` | Name of the dense vector field inside the collection. |
 | `dense_vector_params` | `VectorParams \| None` | `None` | Vector configuration (size, distance metric). Inferred from the first inserted embedding if omitted (defaults to cosine distance). |
@@ -312,7 +312,7 @@ The following limitations apply to the current version of this integration:
 
 Explore related topics to get the most out of VectorAI DB with LlamaIndex:
 
-- [OpenAI embeddings](/docs/integrations/openai-embedding-model) — Configure OpenAI as your embedding provider.
+- [LangChain](/docs/integrations/langchain) — Alternative framework for RAG pipelines.
 - [LangChain](/docs/integrations/langchain) — Use VectorAI DB with the LangChain framework.
 - [Search](/docs/fundamentals/search/search) — Understand the underlying vector search operations.
 - [Filtering](/docs/fundamentals/filtering/filtering) — Apply metadata conditions to narrow search results.

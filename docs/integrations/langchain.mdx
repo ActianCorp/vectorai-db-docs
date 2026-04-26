@@ -28,7 +28,7 @@ pip install langchain-openai
 Before using this integration, make sure your environment meets the following prerequisites:
 
 - Python 3.10 or later
-- A running Actian VectorAI DB instance (default endpoint: `localhost:50051`). See [Docker installation](/docs/installation/docker) for setup instructions.
+- A running Actian VectorAI DB instance (default endpoint: `localhost:6574`). See [Docker installation](/docs/installation/docker) for setup instructions.
 - An `OPENAI_API_KEY` environment variable set with a valid OpenAI API key, if using `OpenAIEmbeddings` as your embedding provider.
 
 ## Quickstart
@@ -41,7 +41,7 @@ from langchain_actian_vectorai import ActianVectorAIVectorStore
 from langchain_openai import OpenAIEmbeddings
 
 # Connect to the VectorAI DB server.
-client = VectorAIClient("localhost:50051")
+client = VectorAIClient("localhost:6574")
 client.connect()
 
 # Create a collection configured for OpenAI embeddings with cosine distance.
@@ -76,7 +76,7 @@ store = ActianVectorAIVectorStore.from_texts(
     embedding=OpenAIEmbeddings(),
     metadatas=[{"source": "book"}, {"source": "article"}],
     collection_name="my_collection",
-    url="localhost:50051",
+    url="localhost:6574",
 )
 ```
 
@@ -95,7 +95,7 @@ store = ActianVectorAIVectorStore.from_documents(
     documents=docs,
     embedding=OpenAIEmbeddings(),
     collection_name="my_collection",
-    url="localhost:50051",
+    url="localhost:6574",
 )
 ```
 
@@ -113,7 +113,7 @@ store = await ActianVectorAIVectorStore.afrom_texts(
     embedding=OpenAIEmbeddings(),
     metadatas=[{"source": "book"}, {"source": "article"}],
     collection_name="my_collection",
-    url="localhost:50051",
+    url="localhost:6574",
 )
 
 # Run an async similarity search on the store.
@@ -135,7 +135,7 @@ store = await ActianVectorAIVectorStore.afrom_documents(
     documents=docs,
     embedding=OpenAIEmbeddings(),
     collection_name="my_collection",
-    url="localhost:50051",
+    url="localhost:6574",
 )
 
 # Search for similar documents and delete by ID.
@@ -238,7 +238,7 @@ The following table lists the parameters you can pass when creating an `ActianVe
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `url` | `"localhost:50051"` | VectorAI server gRPC address. |
+| `url` | `"localhost:6574"` | VectorAI server gRPC address. |
 | `collection_name` | Auto-generated UUID | Collection name in VectorAI DB. |
 | `distance` | `"COSINE"` | Distance metric: `COSINE`, `EUCLID`, or `DOT`. |
 | `content_payload_key` | `"page_content"` | Payload key for document content. |
@@ -267,7 +267,7 @@ The following table lists all available methods on `ActianVectorAIVectorStore` a
 
 Explore related topics to continue building with LangChain and VectorAI DB:
 
-- [OpenAI embeddings](/docs/integrations/openai-embedding-model) — Configure OpenAI as your embedding provider.
+- [LlamaIndex](/docs/integrations/llama-index) — Alternative framework for RAG applications.
 - [LlamaIndex](/docs/integrations/llama-index) — Use VectorAI DB with the LlamaIndex framework.
 - [Search](/docs/fundamentals/search/search) — Understand the underlying vector search operations.
 - [Filtering](/docs/fundamentals/filtering/filtering) — Apply metadata conditions to narrow search results.

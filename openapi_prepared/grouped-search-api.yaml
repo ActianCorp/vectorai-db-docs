@@ -48,7 +48,7 @@ info:
     url: https://www.actian.com
 
 servers:
-  - url: http://localhost:50052
+  - url: http://localhost:6575
     description: Local development server (REST API)
   - url: https://api.vectorai.actian.com
     description: Production server
@@ -267,7 +267,7 @@ components:
 #        - lang: cURL
 #          label: Search groups
 #          source: |
-#            curl -X POST "http://localhost:50052/collections/my_collection/points/search/groups" \
+#            curl -X POST "http://localhost:6575/collections/my_collection/points/search/groups" \
 #              -H "Content-Type: application/json" \
 #              -d '{
 #                "vector": [0.1, 0.2, 0.3, 0.4],
@@ -469,7 +469,7 @@ components:
 #        - lang: cURL
 #          label: Query groups
 #          source: |
-#            curl -X POST "http://localhost:50052/collections/my_collection/points/query/groups" \
+#            curl -X POST "http://localhost:6575/collections/my_collection/points/query/groups" \
 #              -H "Content-Type: application/json" \
 #              -d '{
 #                "query": [0.1, 0.2, 0.3, 0.4],

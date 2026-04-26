@@ -45,7 +45,7 @@ Follow these steps to verify the container is running and reachable.
 <Steps>
   <Step title="Confirm the container is running">
     ```bash
-    docker ps | grep cortex
+    docker ps | grep vectorai
     ```
     If the container is not listed, start it:
     ```bash
@@ -53,19 +53,19 @@ Follow these steps to verify the container is running and reachable.
     ```
   </Step>
   <Step title="Check the port binding">
-    Verify port `50051` is exposed:
+    Verify port `6574` is exposed:
     ```bash
     docker port <container-id>
     ```
-    Expected output: `50051/tcp -> 0.0.0.0:50051`
+    Expected output: `6574/tcp -> 0.0.0.0:6574`
   </Step>
   <Step title="Test connectivity from the host">
     ```bash
-    nc -zv localhost 50051
+    nc -zv localhost 6574
     ```
     If this fails, check for firewall rules or other processes using the port:
     ```bash
-    lsof -i :50051
+    lsof -i :6574
     ```
   </Step>
   <Step title="Check server logs for binding errors">
@@ -82,7 +82,7 @@ This error indicates the client cannot reach the server. In addition to the step
 - Confirm the `host` and `port` passed to `VectorAIClient` match the container binding
 - If connecting from another container, use the Docker network service name instead of `localhost`:
   ```python
-  client = VectorAIClient("vectorai:50051")  # Docker Compose service name
+  client = VectorAIClient("vectorai:6574")  # Docker Compose service name
   ```
 - Check that TLS settings match — if the server has TLS enabled, the client must also enable TLS
 
@@ -108,7 +108,7 @@ Use the following code to inspect the current state of a collection, including p
 ```python
 from actian_vectorai import VectorAIClient
 
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     info = client.get_collection_info("my-collection")
     print(f"Points:  {info.points_count}")
     print(f"Indexed: {info.indexed_vectors_count}")
@@ -208,7 +208,7 @@ The following table lists common log messages and their fixes.
 |-------------|-------|-----|
 | `failed to load config` | Malformed `config.yaml` | Validate YAML syntax |
 | `license file not found` | Wrong `VECTORAI_LICENSE_FILE` path | Check volume mount path |
-| `address already in use` | Port 50051 taken by another process | Stop the other process or change the port |
+| `address already in use` | Port 6574 taken by another process | Stop the other process or change the port |
 | `permission denied: data_dir` | Data directory not writable | Fix directory ownership: `chown -R 1000:1000 /data` |
 
 ## Use logs to diagnose issues
@@ -264,10 +264,10 @@ Ensure a volume is mounted to the data directory. Without a volume, all data is 
 
 ```bash
 # Correct — data persists on the host
-docker run -v /path/to/host/data:/app/data actian/cortex-server:latest
+docker run -v /path/to/host/data:/app/data actian/vectorai:latest
 
 # Incorrect — data lost on container removal
-docker run actian/cortex-server:latest
+docker run actian/vectorai:latest
 ```
 
 Verify the volume mount:
@@ -281,9 +281,6 @@ docker inspect <container-id> | grep -A 10 Mounts
 Explore these related guides to learn more.
 
 <CardGroup cols={2}>
-  <Card title="Monitoring and logging" href="/docs/guides/monitoring-and-logging">
-    Set up Prometheus metrics and alerts to catch issues early.
-  </Card>
   <Card title="Error handling" href="/docs/guides/error-handling">
     Handle specific gRPC error codes in your application code.
   </Card>

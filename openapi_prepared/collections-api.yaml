@@ -8,7 +8,7 @@ info:
     url: https://www.actian.com
 
 servers:
-  - url: http://localhost:50052
+  - url: http://localhost:6575
     description: Local development server (REST API)
   - url: https://api.vectorai.actian.com
     description: Production server
@@ -120,7 +120,7 @@ paths:
         - lang: cURL
           label: List collections
           source: |
-            curl -X GET "http://localhost:50052/collections" \
+            curl -X GET "http://localhost:6575/collections" \
               -H "Accept: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>'
 
@@ -368,7 +368,7 @@ paths:
         - lang: cURL
           label: Get collection info
           source: |
-            curl -X GET "http://localhost:50052/collections/my_collection" \
+            curl -X GET "http://localhost:6575/collections/my_collection" \
               -H "Accept: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>'
 
@@ -547,7 +547,7 @@ paths:
         - lang: cURL
           label: Create collection
           source: |
-            curl -X PUT "http://localhost:50052/collections/my_collection" \
+            curl -X PUT "http://localhost:6575/collections/my_collection" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -559,7 +559,7 @@ paths:
         - lang: cURL
           label: Create with HNSW config
           source: |
-            curl -X PUT "http://localhost:50052/collections/my_hnsw_collection" \
+            curl -X PUT "http://localhost:6575/collections/my_hnsw_collection" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -691,7 +691,7 @@ paths:
         - lang: cURL
           label: Update collection
           source: |
-            curl -X PATCH "http://localhost:50052/collections/my_collection" \
+            curl -X PATCH "http://localhost:6575/collections/my_collection" \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -784,7 +784,7 @@ paths:
         - lang: cURL
           label: Delete collection
           source: |
-            curl -X DELETE "http://localhost:50052/collections/my_collection" \
+            curl -X DELETE "http://localhost:6575/collections/my_collection" \
               -H "Accept: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>'
 
@@ -867,7 +867,7 @@ paths:
         - lang: cURL
           label: Check exists
           source: |
-            curl -X GET "http://localhost:50052/collections/my_collection/exists" \
+            curl -X GET "http://localhost:6575/collections/my_collection/exists" \
               -H "Accept: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>'
 
@@ -977,7 +977,7 @@ paths:
   #       - lang: cURL
   #         label: Create Alias
   #         source: |
-  #           curl -X POST "http://localhost:50052/collections/aliases" \
+  #           curl -X POST "http://localhost:6575/collections/aliases" \
   #             -H "Content-Type: application/json" \
   #             -d '{
   #               "actions": [
@@ -1031,7 +1031,7 @@ paths:
   #       - lang: cURL
   #         label: List Aliases
   #         source: |
-  #           curl -X GET "http://localhost:50052/collections/aliases" \
+  #           curl -X GET "http://localhost:6575/collections/aliases" \
   #             -H "Accept: application/json"
 
 components:

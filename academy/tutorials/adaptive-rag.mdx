@@ -93,7 +93,7 @@ from actian_vectorai.models.points import (
     WithPayloadSelector,
 )
 
-SERVER = "localhost:50051"
+SERVER = "localhost:6574"
 COLLECTION = "Adaptive-RAG"
 EMBED_DIM = 384
 
@@ -118,7 +118,7 @@ print(f"Embedding:  all-MiniLM-L6-v2 ({EMBED_DIM}-dim)")
 This block loads the `all-MiniLM-L6-v2` sentence-transformer model and defines the three shared constants—`SERVER`, `COLLECTION`, and `EMBED_DIM`—that every subsequent step references. The three `print` calls confirm the active server address, the target collection name, and the embedding model with its vector dimensionality, so you can verify the configuration is correct before proceeding.
 
 ```text
-Server:     localhost:50051
+Server:     localhost:6574
 Collection: Adaptive-RAG
 Embedding:  all-MiniLM-L6-v2 (384-dim)
 ```
