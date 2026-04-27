@@ -60,10 +60,10 @@ Before diving into the tasks, understand these key concepts:
 - VectorAI DB running and accessible. To start a local instance:
 
   ```bash
-  docker run -p 50051:50051 actian/vectorai-db
+  docker run -p 6574:6574 actian/vectorai-db
   ```
 
-  The SDK connects over gRPC on port `50051` by default. If your instance uses a different host or port, replace `localhost:50051` in the examples below.
+  The SDK connects over gRPC on port `6574` by default. If your instance uses a different host or port, replace `localhost:6574` in the examples below.
 
 - If your VectorAI DB instance requires authentication, see [Security and authentication](/docs/guides/security) for how to pass credentials to the client.
 

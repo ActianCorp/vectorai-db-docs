@@ -8,7 +8,7 @@ info:
     url: https://www.actian.com
 
 servers:
-  - url: http://localhost:6575
+  - url: http://localhost:6573
     description: Local development server (REST API)
   - url: https://api.vectorai.actian.com
     description: Production server

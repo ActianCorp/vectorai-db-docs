@@ -30,10 +30,12 @@ Download and run the VectorAI DB Docker container.
 
 ```bash
 docker pull actian/vectorai:latest
-docker run -p 6574:6574 -p 6575:6575 actian/vectorai:latest
+docker run -p 6573-6575:6573-6575 \
+  -v ./data:/var/lib/actian-vectorai \
+  actian/vectorai:latest
 ```
 
-The gRPC server is available at `localhost:6574`. The Web UI is available at `localhost:6575`.
+The gRPC server is available at `localhost:6574`. The WebUI is available at `localhost:6575`.
 
 ## Step 3: Create a collection
 

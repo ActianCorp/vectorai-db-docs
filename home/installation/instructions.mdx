@@ -25,18 +25,20 @@ Pull and run the VectorAI DB Docker container:
 
 ```bash
 docker pull actian/vectorai:latest
-docker run -p 6574:6574 -p 6575:6575 actian/vectorai:latest
+docker run -p 6573-6575:6573-6575 \
+  -v ./data:/var/lib/actian-vectorai \
+  actian/vectorai:latest
 ```
 
-For this and other options, the gRPC server is available at `localhost:6574`. The Web UI is available at `localhost:6575`.
+For this and other options, the gRPC server is available at `localhost:6574`. The WebUI is available at `localhost:6575`.
 
 ### Option 2: With data persistence
 
 To persist your data between container restarts:
 
 ```bash
-docker run -p 6574:6574 -p 6575:6575 \
-  -v $(pwd)/data:/var/lib/actian-vectorai \
+docker run -p 6573-6575:6573-6575 \
+  -v ./data:/var/lib/actian-vectorai \
   actian/vectorai:latest
 ```
 
@@ -49,7 +51,8 @@ services:
   vectorai:
     image: actian/vectorai:latest
     ports:
-      - "6574:6574"
+      - "6573:6573"
+	  - "6574:6574"
       - "6575:6575"
     volumes:
       - ./data:/var/lib/actian-vectorai
