@@ -46,12 +46,12 @@
               "docs/integrations/llama-index"
             ]
           },
-          {
+{
             "group": "Reference",
             "pages": [
               "home/support/faq",
               "home/support/support",
-		      "home/support/licensing"
+              "home/support/licensing"
             ]
           }
         ]
