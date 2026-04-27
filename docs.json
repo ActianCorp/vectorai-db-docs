@@ -50,7 +50,8 @@
             "group": "Reference",
             "pages": [
               "home/support/faq",
-              "home/support/support"
+              "home/support/support",
+			  "home/license/licensing"
             ]
           }
         ]
