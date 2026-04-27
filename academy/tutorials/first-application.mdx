@@ -50,7 +50,7 @@ The two packages serve distinct roles in the application.
 
 | Package | Purpose |
 |---------|---------|
-| `actian-vectorai` | Official Python SDK — async/sync clients, Filter DSL, gRPC transport. |
+| `actian-vectorai-client` | Official Python SDK — async/sync clients, Filter DSL, gRPC transport. |
 | `sentence-transformers` | Open-source library for generating text embeddings. |
 
 ---
@@ -63,7 +63,7 @@ The following snippet imports every class needed for this tutorial and sets thre
 import asyncio
 from sentence_transformers import SentenceTransformer
 
-from actian_vectorai import (
+from actian_vectorai_client import (
     AsyncVectorAIClient,
     Distance,
     Field,
@@ -71,7 +71,7 @@ from actian_vectorai import (
     PointStruct,
     VectorParams,
 )
-from actian_vectorai.models.collections import HnswConfigDiff
+from actian_vectorai_client.models.collections import HnswConfigDiff
 
 # Connection and collection settings
 SERVER = "localhost:6574"

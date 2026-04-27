@@ -41,7 +41,7 @@ pip install actian-vectorai-client sentence-transformers pillow
 
 Each package serves a distinct role in the pipeline:
 
-- `actian-vectorai` is the Actian VectorAI Python SDK, providing the async client, named vector support, server-side fusion, and gRPC transport.
+- `actian-vectorai-client` is the Actian VectorAI Python SDK, providing the async client, named vector support, server-side fusion, and gRPC transport.
 - `sentence-transformers` generates text embeddings using `all-MiniLM-L6-v2` and image embeddings using `clip-ViT-B-32`.
 - `pillow` handles image loading and preprocessing.
 
@@ -57,7 +57,7 @@ import io
 from PIL import Image
 from sentence_transformers import SentenceTransformer
 
-from actian_vectorai import (
+from actian_vectorai_client import (
     AsyncVectorAIClient,
     Distance,
     Field,
@@ -68,9 +68,9 @@ from actian_vectorai import (
     SearchParams,
     reciprocal_rank_fusion,
 )
-from actian_vectorai.models.collections import HnswConfigDiff
-from actian_vectorai.models.enums import Fusion
-from actian_vectorai.models.points import (
+from actian_vectorai_client.models.collections import HnswConfigDiff
+from actian_vectorai_client.models.enums import Fusion
+from actian_vectorai_client.models.points import (
     WithPayloadSelector,
     WithVectorsSelector,
 )

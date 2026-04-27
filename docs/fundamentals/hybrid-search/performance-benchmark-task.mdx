@@ -13,13 +13,13 @@ The code below runs a single vector search and a hybrid search side by side, mea
 <CodeGroup>
 ```python Python
 import time
-from actian_vectorai import VectorAIClient, reciprocal_rank_fusion
+from actian_vectorai_client import VectorAIClient, reciprocal_rank_fusion
 import random
 
 COLLECTION = "documents"
 DIMENSION = 128
 
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     query = [random.gauss(0, 1) for _ in range(DIMENSION)]
 
     # Single search benchmark
@@ -44,13 +44,13 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient, reciprocalRankFusion } from '@actian/cortex-client';
+import { VectorAIClient, reciprocalRankFusion } from '@actian/vectorai-client';
 
 const COLLECTION = "documents";
 const DIMENSION = 128;
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     const query = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
 

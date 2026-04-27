@@ -39,7 +39,7 @@ import asyncio
 from datetime import datetime, timezone
 
 # Import VectorAI client, data models, and filter primitives
-from actian_vectorai import (
+from actian_vectorai_client import (
     AsyncVectorAIClient,
     Distance,
     Field,
@@ -52,7 +52,7 @@ from actian_vectorai import (
     is_null,
     nested,
 )
-from actian_vectorai.models.collections import HnswConfigDiff
+from actian_vectorai_client.models.collections import HnswConfigDiff
 from sentence_transformers import SentenceTransformer
 
 SERVER = "localhost:6574"

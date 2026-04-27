@@ -145,10 +145,10 @@ paths:
         - lang: Python
           label: Batch upsert
           source: |
-            from actian_vectorai import VectorAIClient, PointStruct
+            from actian_vectorai_client import VectorAIClient, PointStruct
             import random
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Batch upsert multiple points
                 points = [
                     PointStruct(
@@ -163,9 +163,9 @@ paths:
         - lang: Python
           label: Single point
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Upsert single point (convenience method)
                 result = client.points.upsert_single(
                     "my_collection",
@@ -177,9 +177,9 @@ paths:
         - lang: JavaScript
           label: Batch upsert
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             await client.points.upsert('my_collection', [
                 { id: 1, vector: [0.1, 0.2, 0.3, 0.4], payload: { category: 'A', value: 10 } },
@@ -335,9 +335,9 @@ paths:
         - lang: Python
           label: Get points by ID
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Get multiple points by ID
                 points = client.points.get("my_collection", ids=[1, 5, 10, 100], with_payload=True, with_vectors=True)
                 
@@ -348,9 +348,9 @@ paths:
         - lang: JavaScript
           label: Get points by ID
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             const points = await client.points.get('my_collection', [1, 2, 3]);
             for (const p of points) {
@@ -458,9 +458,9 @@ paths:
         - lang: Python
           label: Get single point
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Get single point by ID
                 points = client.points.get("my_collection", ids=[1])
                 point = points[0]
@@ -471,9 +471,9 @@ paths:
         - lang: JavaScript
           label: Get single point
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             const points = await client.points.get('my_collection', [1]);
             const point = points[0];
@@ -579,18 +579,18 @@ paths:
         - lang: Python
           label: Delete by IDs
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Delete specific points by ID
                 result = client.points.delete_by_ids("my_collection", ids=[100, 101, 102])
                 print(f"✓ Deleted points")
         - lang: Python
           label: Delete by filter
           source: |
-            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            from actian_vectorai_client import VectorAIClient, Field, FilterBuilder
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Delete points matching filter
                 filter = FilterBuilder().must(Field("category").eq("C")).build()
                 result = client.points.delete("my_collection", filter=filter)
@@ -598,9 +598,9 @@ paths:
         - lang: JavaScript
           label: Delete by IDs
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             await client.points.deleteByIds('my_collection', [1, 2, 3], { wait: true });
             console.log('Deleted points 1, 2, 3');
@@ -725,10 +725,10 @@ paths:
         - lang: Python
           label: Update vectors
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
             import random
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Update vector for a point
                 new_vector = [random.gauss(0, 1) for _ in range(32)]
                 result = client.points.update_vectors(
@@ -739,9 +739,9 @@ paths:
         - lang: JavaScript
           label: Update vectors
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             await client.points.updateVectors('my_collection', [
                 { id: 1, vectors: [0.9, 0.8, 0.7, 0.6] },
@@ -863,9 +863,9 @@ paths:
         - lang: Python
           label: Set payload by IDs
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Set/merge payload fields
                 client.points.set_payload(
                     "my_collection",
@@ -876,9 +876,9 @@ paths:
         - lang: JavaScript
           label: Set payload by IDs
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             await client.points.setPayload('my_collection', { color: 'red', featured: true }, { ids: [1, 2, 3] });
             console.log('Set payload on points 1, 2, 3');
@@ -992,9 +992,9 @@ paths:
         - lang: Python
           label: Overwrite payload
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Replace entire payload
                 client.points.overwrite_payload(
                     "my_collection",
@@ -1005,9 +1005,9 @@ paths:
         - lang: JavaScript
           label: Overwrite payload
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             await client.points.overwritePayload('my_collection', { name: 'overwritten', new_field: 42 }, { ids: [3] });
             console.log('Overwrote payload on point 3');
@@ -1124,9 +1124,9 @@ paths:
         - lang: Python
           label: Delete payload keys
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Delete specific payload fields
                 client.points.delete_payload(
                     "my_collection",
@@ -1137,9 +1137,9 @@ paths:
         - lang: JavaScript
           label: Delete payload keys
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             await client.points.deletePayload('my_collection', ['tags'], { ids: [1, 2] });
             console.log('Deleted "tags" key from points 1, 2');
@@ -1248,18 +1248,18 @@ paths:
         - lang: Python
           label: Clear payload
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Clear all payload fields
                 client.points.clear_payload("my_collection", ids=[5])
                 print("✓ Cleared payload on point 5")
         - lang: JavaScript
           label: Clear payload
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             await client.points.clearPayload('my_collection', { ids: [5] });
             console.log('Cleared payload on point 5');
@@ -1367,9 +1367,9 @@ paths:
   #       - lang: Python
   #         label: Create field index
   #         source: |
-  #           from actian_vectorai import VectorAIClient, FieldType
+  #           from actian_vectorai_client import VectorAIClient, FieldType
   #
-  #           with VectorAIClient("localhost:50051") as client:
+  #           with VectorAIClient("localhost:6574") as client:
   #               # Create index on price field
   #               client.points.create_field_index(
   #                   "my_collection",

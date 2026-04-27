@@ -17,11 +17,11 @@ Use the following code to permanently remove a collection and all its data.
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Permanently delete collection
         await client.collections.delete("my_collection")
         print("Collection deleted")
@@ -30,11 +30,11 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
     try {
         // Permanently delete collection
         await client.collections.delete('my_collection');
@@ -55,11 +55,11 @@ To reset a collection to an empty state, delete and recreate it with the same na
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
+from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Removes all data and recreates with specified configuration
         await client.collections.recreate(
             "my_collection",  # Collection name
@@ -71,11 +71,11 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
     try {
         // Removes all data and recreates with specified configuration
         await client.collections.recreate('my_collection', {

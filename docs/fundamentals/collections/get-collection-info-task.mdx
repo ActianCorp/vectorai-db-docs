@@ -13,11 +13,11 @@ The following example retrieves collection configuration and properties.
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Get collection info
         info = await client.collections.get_info("my_collection")
         
@@ -29,11 +29,11 @@ async def main():
 asyncio.run(main())
 ```
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
     try {
         // Get collection info
         const info = await client.collections.getInfo('my_collection');
@@ -66,11 +66,11 @@ The following example monitors collection size, index status, and resource usage
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Get vector count
         count = await client.points.count("my_collection")
         print(f"Total vectors: {count}")
@@ -85,11 +85,11 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
     try {
         // Get detailed info
         const info = await client.collections.getInfo('my_collection');
@@ -124,11 +124,11 @@ The following example checks the current state of a collection by calling `get_i
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Get collection information
         info = await client.collections.get_info("my_collection")
         print(f"Collection status: {info.status}")
@@ -136,11 +136,11 @@ async def main():
 asyncio.run(main())
 ```
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
     try {
         // Get collection information
         const info = await client.collections.getInfo('my_collection');
@@ -163,11 +163,11 @@ The health check monitors database connectivity and uptime at the instance level
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Get health check information
         health = await client.health_check()
         print(f"Title: {health['title']}")
@@ -177,11 +177,11 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
     try {
         // Get health check information
         const health = await client.healthCheck();
@@ -208,11 +208,11 @@ Retrieve a list of all collections in your VectorAI DB instance. This returns in
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # List all collections
         collections = await client.collections.list()
         
@@ -226,11 +226,11 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
     try {
         // List all collections
         const collections = await client.collections.list();

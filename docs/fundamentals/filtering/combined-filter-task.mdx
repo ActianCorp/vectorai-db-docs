@@ -12,11 +12,11 @@ Before you begin, make sure you have a running VectorAI DB instance and a `produ
 
 <CodeGroup>
 ```python Python
-from actian_vectorai import VectorAIClient, FilterBuilder, Field
+from actian_vectorai_client import VectorAIClient, FilterBuilder, Field
 import random
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Generate query vector
     query_vector = [random.gauss(0, 1) for _ in range(128)]
     
@@ -47,11 +47,11 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient, FilterBuilder, Field } from '@actian/cortex-client';
+import { VectorAIClient, FilterBuilder, Field } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     // Generate query vector
     const queryVector = Array.from({ length: 128 }, () => Math.random() * 2 - 1);

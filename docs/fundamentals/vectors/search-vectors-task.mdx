@@ -17,13 +17,13 @@ The `search()` method returns results ranked by similarity score. Score interpre
 <CodeGroup>
 ```python Python
 import random
-from actian_vectorai import VectorAIClient, PointStruct
+from actian_vectorai_client import VectorAIClient, PointStruct
 
 DIMENSION = 384
 COLLECTION = "documents"
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Batch insert multiple document vectors
     payloads = [
         {"text": "Machine learning fundamentals", "category": "education"},
@@ -63,13 +63,13 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 const DIMENSION = 384;
 const COLLECTION = 'documents';
 
 async function main() {
-  const client = new CortexClient('localhost:50051');
+  const client = new VectorAIClient('localhost:6574');
 
   // Batch insert multiple document vectors
   const payloads = [

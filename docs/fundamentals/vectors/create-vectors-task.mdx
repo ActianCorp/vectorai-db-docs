@@ -17,13 +17,13 @@ The following example creates a collection and stores a vector with metadata. In
 <CodeGroup>
 ```python Python
 import random
-from actian_vectorai import VectorAIClient, VectorParams, Distance, PointStruct
+from actian_vectorai_client import VectorAIClient, VectorParams, Distance, PointStruct
 
 DIMENSION = 384
 COLLECTION = "documents"
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Create a collection for dense vectors
     client.collections.create(
         COLLECTION,  # Collection name
@@ -49,13 +49,13 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 const DIMENSION = 384;
 const COLLECTION = 'documents';
 
 async function main() {
-  const client = new CortexClient('localhost:50051');
+  const client = new VectorAIClient('localhost:6574');
 
   // Create a collection for dense vectors
   await client.collections.create(COLLECTION, {
@@ -92,12 +92,12 @@ The distance metric you choose determines how VectorAI DB measures similarity be
 <CodeGroup>
 ```python Python
 import random
-from actian_vectorai import VectorAIClient, VectorParams, Distance, PointStruct
+from actian_vectorai_client import VectorAIClient, VectorParams, Distance, PointStruct
 
 DIMENSION = 128
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Create collections with different distance metrics
     for metric in [Distance.Cosine, Distance.Euclid]:
         collection_name = f"vectors_{metric.name.lower()}"
@@ -127,12 +127,12 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 const DIMENSION = 128;
 
 async function main() {
-  const client = new CortexClient('localhost:50051');
+  const client = new VectorAIClient('localhost:6574');
 
   // Create collections with different distance metrics
   const metrics = ['COSINE', 'EUCLIDEAN'];

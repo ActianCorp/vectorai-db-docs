@@ -3,193 +3,159 @@ title: "Error handling"
 description: "Understand error codes and exception types returned by VectorAI DB and how to handle them in your application."
 ---
 
-VectorAI DB uses standard gRPC status codes for all errors. The Python SDK maps these to typed exceptions so you can handle them precisely in your application code.
+VectorAI DB uses standard transport status codes and the Python SDK maps them to typed exceptions. Catch specific exceptions when you can, and use `VectorAIError` as the application-level catch-all.
 
 | | |
 |---|---|
-| **Error transport** | gRPC status codes |
-| **SDK exceptions** | `actian_vectorai.exceptions` module |
-| **SDK version** | All versions |
-
-## gRPC status codes
-
-VectorAI DB returns the following gRPC status codes.
-
-| Status code | Numeric | Meaning |
-|---|---|---|
-| `OK` | 0 | Success |
-| `INVALID_ARGUMENT` | 3 | Bad request — malformed input or wrong parameter type |
-| `NOT_FOUND` | 5 | Collection or point does not exist |
-| `ALREADY_EXISTS` | 6 | Collection with this name already exists |
-| `RESOURCE_EXHAUSTED` | 8 | Server at capacity — too many connections or requests |
-| `FAILED_PRECONDITION` | 9 | Operation not permitted in current state |
-| `ABORTED` | 10 | Concurrent modification conflict |
-| `UNIMPLEMENTED` | 12 | Operation not supported by this server edition |
-| `INTERNAL` | 13 | Unexpected server-side error |
-| `UNAVAILABLE` | 14 | Server not reachable or not yet ready |
-| `UNAUTHENTICATED` | 16 | Missing or invalid API key |
+| **SDK exceptions** | `actian_vectorai_client.exceptions` module |
+| **Base exception** | `VectorAIError` |
+| **Retry helpers** | `is_retryable(error)`, `get_retry_delay(error)` |
 
 ## Python SDK exceptions
 
-The Python SDK raises typed exceptions that wrap the underlying gRPC status codes. All exceptions inherit from `VectorAIError`, which you can use as a catch-all.
+The current Python SDK exposes these exception classes for common application handling.
 
-| Exception class | gRPC code | When raised |
+| Exception class | Typical cause | Useful fields |
 |---|---|---|
-| `VectorAIInvalidArgumentError` | `INVALID_ARGUMENT` | Wrong input type or malformed request |
-| `VectorAINotFoundError` | `NOT_FOUND` | Collection or point does not exist |
-| `VectorAIAlreadyExistsError` | `ALREADY_EXISTS` | Creating a collection that already exists |
-| `VectorAIResourceExhaustedError` | `RESOURCE_EXHAUSTED` | Server capacity limit reached |
-| `VectorAIUnavailableError` | `UNAVAILABLE` | Cannot connect to the server |
-| `VectorAIUnauthenticatedError` | `UNAUTHENTICATED` | Invalid or missing API key |
-| `VectorAIInternalError` | `INTERNAL` | Unexpected server error |
-| `VectorAIError` | Any | Base class for all SDK errors |
+| `CollectionNotFoundError` | A collection does not exist | `collection_name`, `code`, `message` |
+| `CollectionExistsError` | Creating a collection that already exists | `collection_name`, `code`, `message` |
+| `ConnectionError` | Server is unavailable or the channel failed | `code`, `message`, `details` |
+| `ConnectionTimeoutError` | Connection attempt timed out | `address`, `timeout`, `code`, `message` |
+| `RateLimitError` | Server rate limit or quota exceeded | `retry_after`, `code`, `message` |
+| `TimeoutError` | RPC deadline exceeded | `timeout`, `operation`, `code`, `message` |
+| `UnimplementedError` | The server does not implement the operation | `operation`, `code`, `message` |
+| `VectorAIError` | Base class for SDK errors | `code`, `message`, `details`, `operation` |
 
-## Handle errors in application code
+## Catch specific exceptions
 
-The following patterns show you how to catch and respond to specific exception types.
-
-### Catch specific exceptions
-
-Use a try/except block to catch specific exceptions and handle each error type appropriately.
+Use the namespaced SDK APIs in examples and production code. Collections live under `client.collections`, and vector search lives under `client.points`.
 
 ```python
-from actian_vectorai import (
+from actian_vectorai_client import (
+    CollectionNotFoundError,
+    TimeoutError,
+    UnimplementedError,
     VectorAIClient,
     VectorAIError,
-    CollectionNotFoundError,
-    UnimplementedError,
-    VectorAITimeoutError,
-    is_retryable,
     get_retry_delay,
+    is_retryable,
 )
+
+query = [0.1] * 128
 
 with VectorAIClient("localhost:6574") as client:
     try:
         results = client.points.search("products", vector=query, limit=10)
-    except CollectionNotFoundError as e:
-        print(f"Collection '{e.collection_name}' not found")
-    except UnimplementedError as e:
-        print(f"Operation '{e.operation}' not supported by server")
-    except VectorAITimeoutError:
-        print("Request timed out — try increasing timeout")
-    except VectorAIError as e:
-        if is_retryable(e):
-            delay = get_retry_delay(e, attempt=1)
+    except CollectionNotFoundError as error:
+        print(f"Collection '{error.collection_name}' not found")
+    except UnimplementedError as error:
+        print(f"Operation '{error.operation}' is not supported by this server")
+    except TimeoutError:
+        print("Request timed out; try increasing the per-call timeout")
+    except VectorAIError as error:
+        if is_retryable(error):
+            delay = get_retry_delay(error, attempt=1)
             print(f"Transient error, retry after {delay:.1f}s")
         else:
             raise
 ```
 
-### Create a collection idempotently
+## Create a collection idempotently
 
-Catch `VectorAIAlreadyExistsError` to skip creation when the collection already exists.
+Catch `CollectionExistsError` to skip creation when a collection is already present.
 
 ```python
-from actian_vectorai.exceptions import VectorAIAlreadyExistsError
+from actian_vectorai_client import (
+    CollectionExistsError,
+    Distance,
+    VectorAIClient,
+    VectorParams,
+)
 
-try:
-    client.create_collection(
-        name="product-embeddings",
-        vectors_config={"size": 1536, "distance": "Cosine"},
-    )
-except VectorAIAlreadyExistsError:
-    pass  # Collection already exists — safe to continue
+with VectorAIClient("localhost:6574") as client:
+    try:
+        client.collections.create(
+            "product-embeddings",
+            vectors_config=VectorParams(size=1536, distance=Distance.Cosine),
+        )
+    except CollectionExistsError:
+        pass
 ```
 
-### Retry on transient errors
+## Retry transient failures
 
-Use exponential backoff for `UNAVAILABLE` and `RESOURCE_EXHAUSTED` errors, which are often transient.
+Use exponential backoff for retryable errors. The helper functions understand SDK exception types, including `ConnectionError`, `RateLimitError`, and `TimeoutError`.
 
 ```python
 import time
-from actian_vectorai.exceptions import VectorAIUnavailableError, VectorAIResourceExhaustedError
 
-RETRYABLE = (VectorAIUnavailableError, VectorAIResourceExhaustedError)
+from actian_vectorai_client import VectorAIError, get_retry_delay, is_retryable
 
-def search_with_retry(client, collection_name, query_vector, limit, max_retries=3):
-    delay = 1.0
+
+def search_with_retry(client, collection_name, query_vector, limit=10, max_retries=3):
     for attempt in range(max_retries):
         try:
-            return client.search(
-                collection_name=collection_name,
-                query_vector=query_vector,
+            return client.points.search(
+                collection_name,
+                vector=query_vector,
                 limit=limit,
             )
-        except RETRYABLE as e:
-            if attempt == max_retries - 1:
+        except VectorAIError as error:
+            if not is_retryable(error) or attempt == max_retries - 1:
                 raise
-            time.sleep(delay)
-            delay *= 2
+            time.sleep(get_retry_delay(error, attempt=attempt + 1))
 ```
 
 ## Inspect error details
 
-Every SDK exception exposes the underlying gRPC status code and a human-readable message. Use these fields to log errors or build custom handling logic.
+Every SDK exception exposes `message`, `code`, `details`, and `operation` where available. Use these fields for logging and custom handling.
 
 ```python
-from actian_vectorai.exceptions import VectorAIError
+from actian_vectorai_client import VectorAIError
 
 try:
-    client.search(...)
-except VectorAIError as e:
-    print(f"Code:    {e.grpc_status_code}")
-    print(f"Message: {e.message}")
-    print(f"Details: {e.details}")
+    client.points.search("products", vector=[0.1] * 128, limit=10)
+except VectorAIError as error:
+    print(f"Code:      {error.code}")
+    print(f"Message:   {error.message}")
+    print(f"Details:   {error.details}")
+    print(f"Operation: {error.operation}")
 ```
 
 ## Common error messages
 
-Expand each section for details about what causes each error and how to resolve it.
-
 <AccordionGroup>
   <Accordion title="Collection not found">
-    **Code:** `NOT_FOUND`
-
-    **Message:** `collection 'my-collection' does not exist`
-
     **Cause:** The collection name is misspelled, or the collection was deleted.
 
-    **Fix:** Call `client.list_collections()` to verify the collection exists before operating on it.
+    **Fix:** Call `client.collections.list()` to verify the collection exists before operating on it.
+
+    ```python
+    collections = client.collections.list()
+    print(collections)
+    ```
   </Accordion>
 
   <Accordion title="Wrong vector dimensions">
-    **Code:** `INVALID_ARGUMENT`
-
-    **Message:** `vector size mismatch: expected 1536, got 768`
-
-    **Cause:** The query vector or inserted vector has a different number of dimensions than the collection's configuration.
+    **Cause:** The query vector or inserted vector has a different number of dimensions than the collection configuration.
 
     **Fix:** Confirm the embedding model and collection dimensions match.
   </Accordion>
 
   <Accordion title="Authentication failure">
-    **Code:** `UNAUTHENTICATED`
+    **Cause:** The server has authentication enabled but the client did not supply a valid access token.
 
-    **Message:** `invalid or missing API key`
-
-    **Cause:** The server has API key auth enabled but the client did not supply a key, or supplied the wrong key.
-
-    **Fix:** Pass `api_key` to `VectorAIClient`.
-
-    ```python
-    client = VectorAIClient("localhost:6574", api_key="your-secret-key")
-    ```
+    **Fix:** Pass the configured token to `VectorAIClient` or set `ACTIAN_VECTORAI_ACCESS_TOKEN`.
   </Accordion>
 
-  <Accordion title="Server internal error">
-    **Code:** `INTERNAL`
+  <Accordion title="Server unavailable">
+    **Cause:** VectorAI DB is not running, is still starting, or is unreachable at the configured address.
 
-    **Message:** `internal server error`
-
-    **Cause:** Unexpected condition on the server side, typically a bug or disk/memory exhaustion.
-
-    **Fix:** Check server logs for details. If the error persists, then contact [Actian support](https://www.actian.com/support).
+    **Fix:** Confirm the server is reachable at `localhost:6574` or set `ACTIAN_VECTORAI_URL`.
   </Accordion>
 </AccordionGroup>
 
 ## Next steps
-
-Explore these related guides to learn more.
 
 <CardGroup cols={2}>
   <Card title="Troubleshooting" href="/docs/guides/troubleshooting">

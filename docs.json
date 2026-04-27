@@ -8,11 +8,16 @@
     "dark": "#0052A3"
   },
   "favicon": "/favicon.svg",
-  "openapi": [
-    "openapi_prepared/authentication-api.yaml"
-  ],
   "api": {
-    "baseUrl": "http://localhost:6575",
+    "baseUrl": "http://localhost:6573",
+    "openapi": [
+      "openapi_prepared/authentication-api.yaml",
+      "openapi_prepared/collections-api.yaml",
+      "openapi_prepared/filters-api.yaml",
+      "openapi_prepared/grouped-search-api.yaml",
+      "openapi_prepared/points-api.yaml",
+      "openapi_prepared/search-api.yaml"
+    ],
     "playground": {
       "mode": "show"
     }
@@ -51,7 +56,7 @@
             "pages": [
               "home/support/faq",
               "home/support/support",
-              "home/support/licensing"
+              "home/support/license"
             ]
           }
         ]
@@ -62,8 +67,12 @@
           {
             "group": "SDKs",
             "pages": [
+              "sdks/python/installation",
               "sdks/python/quickstart",
-              "sdks/javascript/quickstart"
+              "sdks/python/reference",
+              "sdks/javascript/installation",
+              "sdks/javascript/quickstart",
+              "sdks/javascript/reference"
             ]
           },
           {

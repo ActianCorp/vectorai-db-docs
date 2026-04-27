@@ -13,7 +13,7 @@ This guide explains how to build a semantic financial document analysis system p
 
 Before starting, ensure the following are in place:
 
-- A running VectorAI DB instance (see the [installation guide](/docs/installation/docker).)
+- A running VectorAI DB instance (see the [installation guide](/home/installation/instructions).)
 - Python 3.9 or later.
 - An OpenAI API key set as the environment variable `OPENAI_API_KEY`.
 - The following packages installed.
@@ -85,7 +85,7 @@ The following code imports the required libraries, initializes the OpenAI client
 
 ```python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, PointStruct
+from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance, PointStruct
 import openai
 from typing import List, Dict, Optional
 import uuid
@@ -97,7 +97,7 @@ client = openai.OpenAI()
 
 async def create_financial_collection():
     """Create a collection for financial documents if it does not already exist."""
-    async with AsyncVectorAIClient("localhost:50051") as db:
+    async with AsyncVectorAIClient("localhost:6574") as db:
         exists = await db.collections.exists("financial_docs")
         if exists:
             return
@@ -321,7 +321,7 @@ async def index_financial_document(
         for chunk, embedding in zip(chunks, embeddings)
     ]
 
-    async with AsyncVectorAIClient("localhost:50051") as db:
+    async with AsyncVectorAIClient("localhost:6574") as db:
         await db.points.upsert("financial_docs", points=points)
 
     print(f"Indexed {len(points)} chunks from {file_path}")
@@ -335,7 +335,7 @@ The following code defines the `FinancialAnalyzer` class, which provides three m
 Note that each chunk passed to the LLM is truncated to 500 characters. Precise figures may require cross-referencing the full source document:
 
 ```python
-from actian_vectorai import Filter, Conditions
+from actian_vectorai_client import Filter, Conditions
 
 class FinancialAnalyzer:
     """AI-powered financial document analyzer."""
@@ -373,7 +373,7 @@ class FinancialAnalyzer:
         if section:
             conditions.append(Conditions.match("section", section))
 
-        async with AsyncVectorAIClient("localhost:50051") as db:
+        async with AsyncVectorAIClient("localhost:6574") as db:
             results = await db.points.search(
                 "financial_docs",
                 vector=query_vector,

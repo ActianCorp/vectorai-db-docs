@@ -60,7 +60,7 @@ from datetime import datetime, timezone
 from sentence_transformers import SentenceTransformer
 
 # Core Actian VectorAI client, distance metric, filter DSL, index param types, and point structures
-from actian_vectorai import (
+from actian_vectorai_client import (
     AsyncVectorAIClient,
     Distance,
     Field,
@@ -76,9 +76,9 @@ from actian_vectorai import (
     VectorParams,
 )
 # HNSW graph configuration for tuning the approximate nearest-neighbor index
-from actian_vectorai.models.collections import HnswConfigDiff
+from actian_vectorai_client.models.collections import HnswConfigDiff
 # Fusion strategy (RRF) for multisignal ranking and word-tokenizer type for text indexes
-from actian_vectorai.models.enums import Fusion, TokenizerType
+from actian_vectorai_client.models.enums import Fusion, TokenizerType
 
 # Server address and collection name used throughout this guide
 SERVER = "localhost:6574"

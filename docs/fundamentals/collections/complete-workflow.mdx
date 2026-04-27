@@ -28,7 +28,7 @@ The following example uses a `product_catalog` collection with 128-dimensional v
 ```python Python
 import asyncio
 import random
-from actian_vectorai import (
+from actian_vectorai_client import (
     AsyncVectorAIClient, VectorParams, Distance,
     HnswConfigDiff, OptimizersConfigDiff
 )
@@ -42,7 +42,7 @@ def random_vector(size=128):
     return [v / magnitude for v in vec]
 
 async def main():
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
 
         # ── Step 1: Create collection ──────────────────────────────────────
         await client.collections.create(
@@ -104,11 +104,8 @@ async def main():
         await client.vde.flush(COLLECTION)          # Write pending changes to disk
         print("[6] Flushed to disk")
 
-        await client.vde.save_snapshot(
-            COLLECTION,
-            snapshot_path=f"/backups/{COLLECTION}_backup.snap"
-        )
-        print("[6] Snapshot saved")
+        rebuilt = await client.vde.rebuild_index(COLLECTION)
+        print(f"[6] Rebuild accepted: {rebuilt}")
 
         # ── Step 7: Delete ─────────────────────────────────────────────────
         await client.collections.delete(COLLECTION)
@@ -118,7 +115,7 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 const COLLECTION = 'product_catalog';
 
@@ -130,7 +127,7 @@ function randomVector(size = 128) {
 }
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
     try {
         // -- Step 1: Create collection ------------------------------------------
         await client.collections.create(COLLECTION, {
@@ -190,10 +187,8 @@ async function main() {
         await client.vde.flush(COLLECTION);
         console.log('[6] Flushed to disk');
 
-        await client.vde.saveSnapshot(COLLECTION, {
-            snapshotPath: `/backups/${COLLECTION}_backup.snap`
-        });
-        console.log('[6] Snapshot saved');
+        const rebuilt = await client.vde.rebuildIndex(COLLECTION);
+        console.log(`[6] Rebuild accepted: ${rebuilt}`);
 
         // -- Step 7: Delete -----------------------------------------------------
         await client.collections.delete(COLLECTION);

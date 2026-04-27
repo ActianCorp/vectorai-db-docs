@@ -89,11 +89,11 @@ Establish a connection using the async client:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 
 async def connect():
     """Connect to VectorAI DB and verify connection."""
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # List existing collections to verify connection
         collections = await client.collections.list()
         print(f"Connected! Found {len(collections)} existing collections")
@@ -116,11 +116,11 @@ Collections store vectors of a specific dimension with a distance metric:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
+from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
 
 async def create_collection():
     """Create a new vector collection."""
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         collection_name = "my_first_collection"
         
         # Check if collection already exists
@@ -160,12 +160,12 @@ Add points containing vectors and metadata payloads:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient, PointStruct
+from actian_vectorai_client import AsyncVectorAIClient, PointStruct
 import random
 
 async def insert_vectors():
     """Insert sample vectors into the collection."""
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         collection_name = "my_first_collection"
         
         # Create sample points with random vectors
@@ -210,12 +210,12 @@ Query the collection using a vector:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 import random
 
 async def search_vectors():
     """Search for similar vectors."""
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         collection_name = "my_first_collection"
         
         # Create a query vector
@@ -259,11 +259,11 @@ Fetch specific points directly:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 
 async def retrieve_points():
     """Retrieve specific points by ID."""
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         collection_name = "my_first_collection"
         
         # Get specific points
@@ -292,12 +292,12 @@ Modify existing data:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient, PointStruct
+from actian_vectorai_client import AsyncVectorAIClient, PointStruct
 import random
 
 async def update_and_delete():
     """Update and delete points."""
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         collection_name = "my_first_collection"
         
         # Update a point by upserting with same ID
@@ -329,11 +329,11 @@ Check collection statistics:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 
 async def get_info():
     """Get collection information."""
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         collection_name = "my_first_collection"
         
         # Get collection configuration
@@ -359,12 +359,12 @@ The following script combines all operations from the tasks above into a single 
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, PointStruct
+from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance, PointStruct
 import random
 
 async def complete_workflow():
     """Complete VectorAI DB workflow demonstration."""
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         collection_name = "demo_collection"
         
         # 1. Create collection
@@ -425,7 +425,7 @@ The following accordions cover common errors and how to resolve them.
  <Accordion title="Connection refused">
  **Cause**: VectorAI DB server not running.
  
- **Solution**: Start the server with `docker run -p 50051:50051 actian/vectorai-db`
+ **Solution**: Start the server with `docker run -p 6573-6575:6573-6575 actian/vectorai:latest`
  </Accordion>
  
  <Accordion title="Dimension mismatch">

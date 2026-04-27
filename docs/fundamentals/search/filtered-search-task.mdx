@@ -15,12 +15,12 @@ The filter conditions evaluate alongside vector similarity, not instead of it. V
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient, FilterBuilder, Field
+from actian_vectorai_client import AsyncVectorAIClient, FilterBuilder, Field
 import random
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Generate query vector
         query_vector = [random.gauss(0, 1) for _ in range(128)]
         
@@ -48,10 +48,10 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient, Field } from '@actian/cortex-client';
+import { VectorAIClient, Field } from '@actian/vectorai-client';
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     try {
         // Generate query vector

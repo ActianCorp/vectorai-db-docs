@@ -7,7 +7,7 @@ description: "Get started with VectorAI DB using the JavaScript SDK."
 This short guide shows you how to create a collection, insert vectors, and perform similarity search using the JavaScript SDK.
 
 <Warning>
-**VectorAI DB Required**: This quickstart requires VectorAI DB running in a Docker container. Docker deployment is the only supported version at the moment. [Set up VectorAI DB locally →](/home/installation/instructions)
+**VectorAI DB Required**: This quickstart requires VectorAI DB running in a Docker container. Docker deployment is the only supported version at the moment. [Set up VectorAI DB locally](/home/installation/instructions)
 </Warning>
 
 ## Prerequisites
@@ -92,7 +92,7 @@ console.log(`Inserting ${NUM_VECTORS} vectors...`);
 const points = generateSampleProducts(NUM_VECTORS, DIMENSION);
 
 await client.points.upsert(COLLECTION, points, { wait: true });
-console.log(`✓ Inserted ${NUM_VECTORS} vectors`);
+console.log(`Inserted ${NUM_VECTORS} vectors`);
 
 const count = await client.points.count(COLLECTION);
 console.log(`Vector count: ${count}`);
@@ -151,5 +151,8 @@ Now that you have completed the quickstart, explore these resources to build fur
 <CardGroup cols={2}>
   <Card title="Documentation" icon="book-open" href="/docs">
     Explore complete technical documentation
+  </Card>
+  <Card title="JavaScript reference" icon="code" href="/sdks/javascript/reference">
+    Review JavaScript SDK namespaces and configuration
   </Card>
 </CardGroup>

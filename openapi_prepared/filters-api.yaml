@@ -291,10 +291,10 @@ paths:
         - lang: Python
           label: Equality filter
           source: |
-            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            from actian_vectorai_client import VectorAIClient, Field, FilterBuilder
             import random
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 query_vec = [random.gauss(0, 1) for _ in range(4)]
 
                 search_filter = FilterBuilder() \
@@ -313,10 +313,10 @@ paths:
         - lang: Python
           label: Range filter
           source: |
-            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            from actian_vectorai_client import VectorAIClient, Field, FilterBuilder
             import random
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 query_vec = [random.gauss(0, 1) for _ in range(4)]
 
                 price_filter = FilterBuilder() \
@@ -336,10 +336,10 @@ paths:
         - lang: Python
           label: AND + NOT filter
           source: |
-            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            from actian_vectorai_client import VectorAIClient, Field, FilterBuilder
             import random
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 query_vec = [random.gauss(0, 1) for _ in range(4)]
 
                 search_filter = FilterBuilder() \
@@ -359,10 +359,10 @@ paths:
         - lang: Python
           label: OR filter
           source: |
-            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            from actian_vectorai_client import VectorAIClient, Field, FilterBuilder
             import random
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 query_vec = [random.gauss(0, 1) for _ in range(4)]
 
                 category_filter = FilterBuilder() \
@@ -382,10 +382,10 @@ paths:
         - lang: Python
           label: ID filter
           source: |
-            from actian_vectorai import VectorAIClient, FilterBuilder, has_id
+            from actian_vectorai_client import VectorAIClient, FilterBuilder, has_id
             import random
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 query_vec = [random.gauss(0, 1) for _ in range(4)]
 
                 id_filter = FilterBuilder() \
@@ -403,9 +403,9 @@ paths:
         - lang: Python
           label: Count with filter
           source: |
-            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            from actian_vectorai_client import VectorAIClient, Field, FilterBuilder
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 total = client.points.count("my_collection")
 
                 elec_filter = FilterBuilder() \
@@ -418,10 +418,10 @@ paths:
         - lang: Python
           label: Combined boolean filter
           source: |
-            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            from actian_vectorai_client import VectorAIClient, Field, FilterBuilder
             import random
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 query_vec = [random.gauss(0, 1) for _ in range(4)]
 
                 combined_filter = FilterBuilder() \

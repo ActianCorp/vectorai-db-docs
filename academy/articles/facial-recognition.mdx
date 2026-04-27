@@ -63,7 +63,7 @@ Facial recognition systems are built as multistage pipelines, where each compone
 Before following the implementation steps, ensure your environment meets the following requirements:
 
 - Python 3.9 or later is installed.
-- Actian VectorAI DB is running and accessible at `localhost:50051` (see [installation guide](/docs/installation/index)).
+- Actian VectorAI DB is running and accessible at `localhost:6574` (see [installation guide](/docs/installation/index)).
 - A GPU is optional but strongly recommended for DeepFace embedding extraction at production throughput.
 - The following system-level dependencies are installed for OpenCV and DeepFace:
   - On Ubuntu/Debian: `libgl1-mesa-glx libglib2.0-0`.
@@ -79,7 +79,7 @@ All code snippets in this guide are designed to be placed in a single Python fil
 Run the following command to install the three packages required across all steps. This installs DeepFace for embedding extraction, OpenCV for image and video processing, and the Actian VectorAI DB Python client:
 
 ```bash
-pip install deepface opencv-python actian-vectorai
+pip install deepface opencv-python actian-vectorai-client
 ```
 
 <Note>
@@ -96,11 +96,11 @@ import uuid
 from typing import List, Dict, Optional, Any
 import numpy as np
 import cv2
-from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, PointStruct
+from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance, PointStruct
 from deepface import DeepFace
 
 async def create_face_collection():
-    async with AsyncVectorAIClient("localhost:50051") as db:
+    async with AsyncVectorAIClient("localhost:6574") as db:
         exists = await db.collections.exists("face_database")
         if exists:
             print("Collection already exists")
@@ -118,7 +118,7 @@ async def create_face_collection():
 ```
 
 <Note>
-Verify with your Actian engineering team that `AsyncVectorAIClient`, `VectorParams`, `Distance`, and `PointStruct` are exported from `actian_vectorai` with the method signatures used here before running in production.
+Verify with your Actian engineering team that `AsyncVectorAIClient`, `VectorParams`, `Distance`, and `PointStruct` are exported from `actian_vectorai_client` with the method signatures used here before running in production.
 </Note>
 
 ### Step 3: Extract face embeddings
@@ -229,7 +229,7 @@ async def register_face(
     
     face_id = str(uuid.uuid4())
     
-    async with AsyncVectorAIClient("localhost:50051") as db:
+    async with AsyncVectorAIClient("localhost:6574") as db:
         await db.points.upsert(
             "face_database",
             points=[PointStruct(
@@ -288,7 +288,7 @@ Verify with engineering that `db.points.upsert()` accepts a string UUID as the `
 `search_face` converts a query image into an embedding and returns up to `limit` matching records whose cosine similarity score meets or exceeds `threshold`. `verify_identity` performs the same search but restricts the candidate set to faces already registered under `claimed_person_id`, returning a verification result with the matched name and confidence score:
 
 ```python
-from actian_vectorai import Filter, Conditions
+from actian_vectorai_client import Filter, Conditions
 
 async def search_face(
     image_path: str,
@@ -310,7 +310,7 @@ async def search_face(
     if embedding is None:
         return []
     
-    async with AsyncVectorAIClient("localhost:50051") as db:
+    async with AsyncVectorAIClient("localhost:6574") as db:
         results = await db.points.search(
             "face_database",
             vector=embedding,
@@ -351,7 +351,7 @@ async def verify_identity(
     if embedding is None:
         return {"verified": False, "reason": "No face detected"}
     
-    async with AsyncVectorAIClient("localhost:50051") as db:
+    async with AsyncVectorAIClient("localhost:6574") as db:
         results = await db.points.search(
             "face_database",
             vector=embedding,
@@ -429,7 +429,7 @@ class RealTimeFaceRecognition:
     
     async def _search_embedding(self, embedding: List[float]) -> List[Dict]:
         """Query the database for the closest face to the given embedding."""
-        async with AsyncVectorAIClient("localhost:50051") as db:
+        async with AsyncVectorAIClient("localhost:6574") as db:
             results = await db.points.search(
                 "face_database",
                 vector=embedding,

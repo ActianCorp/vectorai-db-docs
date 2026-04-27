@@ -86,7 +86,7 @@ vector_store.close()
 Pass a pre-configured `VectorAIClient` when you need to share a connection or supply custom client configuration:
 
 ```python
-from actian_vectorai import VectorAIClient
+from actian_vectorai_client import VectorAIClient
 
 with VectorAIClient("localhost:6574") as client:
     vector_store = ActianVectorAIVectorStore(client=client)
@@ -138,7 +138,7 @@ await vector_store.aclose()
 Pass a pre-configured `AsyncVectorAIClient` when you need to share an async connection:
 
 ```python
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 
 async with AsyncVectorAIClient("localhost:6574") as async_client:
     vector_store = ActianVectorAIVectorStore(async_client=async_client)
@@ -201,7 +201,7 @@ with ActianVectorAIVectorStore() as vector_store:
 Specify explicit vector parameters instead of relying on auto-detection:
 
 ```python
-from actian_vectorai import VectorParams, Distance
+from actian_vectorai_client import VectorParams, Distance
 
 with ActianVectorAIVectorStore(
     url="localhost:6574",

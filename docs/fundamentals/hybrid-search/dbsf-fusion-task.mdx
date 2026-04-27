@@ -12,13 +12,13 @@ The example below creates a collection, inserts 100 sample points with metadata,
 ```python Python
 import asyncio
 import random
-from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, PointStruct, distribution_based_score_fusion
+from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance, PointStruct, distribution_based_score_fusion
 
 COLLECTION = "documents"
 DIMENSION = 128
 
 async def main():
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Create collection if it doesn't exist
         if not await client.collections.exists(COLLECTION):
             await client.collections.create(
@@ -74,13 +74,13 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient, distributionBasedScoreFusion } from '@actian/cortex-client';
+import { VectorAIClient, distributionBasedScoreFusion } from '@actian/vectorai-client';
 
 const COLLECTION = "documents";
 const DIMENSION = 128;
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     // Create collection if it doesn't exist
     await client.collections.create(COLLECTION, {

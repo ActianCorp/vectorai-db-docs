@@ -9,7 +9,7 @@ import Prerequisites from "/snippets/python-prerequisites.mdx";
 This short guide shows you how to create a collection, insert vectors, and perform similarity search using the Python SDK.
 
 <Warning>
-**VectorAI DB Required**: This quickstart requires VectorAI DB running in a Docker container. Docker deployment is the only supported version at the moment. [Set up VectorAI DB locally →](/docs/installation/docker)
+**VectorAI DB Required**: This quickstart requires VectorAI DB running in a Docker container. Docker deployment is the only supported version at the moment. [Set up VectorAI DB locally](/home/installation/instructions)
 </Warning>
 
 ## Prerequisites
@@ -46,7 +46,7 @@ Connect to the VectorAI server and create a collection named `products` with dim
 <Tabs>
   <Tab title="Synchronous">
     ```python
-    from actian_vectorai import VectorAIClient, VectorParams, Distance
+    from actian_vectorai_client import VectorAIClient, VectorParams, Distance
 
     with VectorAIClient("localhost:6574") as client:
         # Check server connection
@@ -64,7 +64,7 @@ Connect to the VectorAI server and create a collection named `products` with dim
   <Tab title="Asynchronous">
     ```python
     import asyncio
-    from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
+    from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
 
     async def main():
         async with AsyncVectorAIClient("localhost:6574") as client:
@@ -89,7 +89,7 @@ Create a function to generate sample product vectors with metadata.
 ```python
 import random
 from typing import List
-from actian_vectorai import PointStruct
+from actian_vectorai_client import PointStruct
 
 def generate_sample_products(
     num_products: int = 100,
@@ -130,7 +130,7 @@ def generate_sample_products(
 Generate and insert vectors into the collection.
 
 ```python
-from actian_vectorai import VectorAIClient
+from actian_vectorai_client import VectorAIClient
 
 NUM_VECTORS = 100
 DIMENSION = 128
@@ -147,7 +147,7 @@ with VectorAIClient("localhost:6574") as client:
 
     # Batch insert
     client.points.upsert("products", points)
-    print(f"✓ Inserted {NUM_VECTORS} vectors")
+    print(f"Inserted {NUM_VECTORS} vectors")
 
     # Verify count
     count = client.points.count("products")
@@ -159,7 +159,7 @@ with VectorAIClient("localhost:6574") as client:
 Perform similarity search to find the top five most similar vectors.
 
 ```python
-from actian_vectorai import VectorAIClient
+from actian_vectorai_client import VectorAIClient
 import random
 
 DIMENSION = 128
@@ -201,7 +201,7 @@ Top result payload: {'price': 451.6, 'id': 39, 'in_stock': False, 'category': 'e
 When you are done, clean up by deleting the collection.
 
 ```python
-from actian_vectorai import VectorAIClient
+from actian_vectorai_client import VectorAIClient
 
 with VectorAIClient("localhost:6574") as client:
     client.collections.delete("products")
@@ -215,5 +215,8 @@ Now that you have completed the quickstart, explore these resources to build fur
 <CardGroup cols={2}>
   <Card title="Documentation" icon="book-open" href="/docs">
     Explore complete technical documentation
+  </Card>
+  <Card title="Python reference" icon="code" href="/sdks/python/reference">
+    Review Python SDK namespaces and configuration
   </Card>
 </CardGroup>

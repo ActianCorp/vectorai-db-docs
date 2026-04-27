@@ -81,7 +81,7 @@ pip install actian-vectorai-client sentence-transformers
 
 Each package serves a specific role in the pipeline:
 
-- `actian-vectorai` — Official Python SDK for Actian VectorAI DB (async/sync clients, Filter DSL, gRPC transport).
+- `actian-vectorai-client` — Official Python SDK for Actian VectorAI DB (async/sync clients, Filter DSL, gRPC transport).
 - `sentence-transformers` — For generating text embeddings with `all-MiniLM-L6-v2`.
 
 ## Implementation
@@ -94,7 +94,7 @@ The following block imports the Actian VectorAI client, the embedding model, and
 
 ```python
 # Core Actian VectorAI SDK — client, distance metric, filter helpers, and data types
-from actian_vectorai import (
+from actian_vectorai_client import (
     AsyncVectorAIClient,
     Distance,
     Field,
@@ -103,7 +103,7 @@ from actian_vectorai import (
     VectorParams,
 )
 # HNSW index tuning parameters
-from actian_vectorai.models.collections import HnswConfigDiff
+from actian_vectorai_client.models.collections import HnswConfigDiff
 # Sentence embedding model for converting event text to dense vectors
 from sentence_transformers import SentenceTransformer
 
@@ -127,7 +127,7 @@ print(f"Embedding model: {EMBED_MODEL} ({EMBED_DIM}-dim)")
 
 Every component is configured upfront. The key settings are:
 
-- VectorAI server — The Actian VectorAI gRPC endpoint (default port `50051`).
+- VectorAI server - The Actian VectorAI gRPC endpoint (default port `6574`).
 - Collection name — Identifies the vector collection for supply chain events.
 - Embedding model — Converts event text into 384-dimensional dense vectors.
 

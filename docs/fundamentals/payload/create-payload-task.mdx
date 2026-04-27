@@ -15,13 +15,13 @@ To create one point with metadata:
 <CodeGroup>
 ```python Python
 import random
-from actian_vectorai import VectorAIClient, PointStruct
+from actian_vectorai_client import VectorAIClient, PointStruct
 
 DIMENSION = 128
 COLLECTION = "products"
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Generate vector from your embedding model
     vector = [random.gauss(0, 1) for _ in range(DIMENSION)]
 
@@ -43,13 +43,13 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 const DIMENSION = 128;
 const COLLECTION = 'products';
 
 async function main() {
-  const client = new CortexClient('localhost:50051');
+  const client = new VectorAIClient('localhost:6574');
 
   // Generate vector from your embedding model
   const vector = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
@@ -84,13 +84,13 @@ To create multiple points with metadata at once:
 <CodeGroup>
 ```python Python
 import random
-from actian_vectorai import VectorAIClient, PointStruct
+from actian_vectorai_client import VectorAIClient, PointStruct
 
 DIMENSION = 128
 COLLECTION = "products"
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     random.seed(42)  # Reproducible random vectors
 
     # Prepare batch data
@@ -123,13 +123,13 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 const DIMENSION = 128;
 const COLLECTION = 'products';
 
 async function main() {
-  const client = new CortexClient('localhost:50051');
+  const client = new VectorAIClient('localhost:6574');
 
   // Prepare batch data
   const payloads = [

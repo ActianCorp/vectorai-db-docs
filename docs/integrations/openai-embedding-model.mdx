@@ -24,7 +24,7 @@ Before running the examples on this page, make sure you have a VectorAI DB colle
 Install the OpenAI Python client and the VectorAI DB client:
 
 ```bash
-pip install openai actian-vectorai
+pip install openai actian-vectorai-client
 ```
 
 ## Generate and store embeddings
@@ -34,7 +34,7 @@ The following example generates embeddings for a set of texts using OpenAI's `te
 <CodeGroup>
 ```python Python
 import openai
-from actian_vectorai import VectorAIClient, VectorParams, Distance, PointStruct
+from actian_vectorai_client import VectorAIClient, VectorParams, Distance, PointStruct
 
 OPENAI_API_KEY = "<YOUR_API_KEY>"
 EMBEDDING_MODEL = "text-embedding-3-small"
@@ -54,7 +54,7 @@ texts = [
 response = openai_client.embeddings.create(input=texts, model=EMBEDDING_MODEL)
 
 # Connect to VectorAI DB and create a collection
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     client.collections.create(
         COLLECTION,  # Collection name
         vectors_config=VectorParams(
@@ -79,7 +79,7 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 import OpenAI from 'openai';
 
 const OPENAI_API_KEY = '<YOUR_API_KEY>';
@@ -89,7 +89,7 @@ const COLLECTION = 'openai_docs';
 async function main() {
   // Initialize OpenAI client
   const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-  const client = new CortexClient('localhost:50051');
+  const client = new VectorAIClient('localhost:6574');
 
   // Texts to embed
   const texts = [
@@ -141,7 +141,7 @@ query_embedding = openai_client.embeddings.create(
 ).data[0].embedding
 
 # Search the collection
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     results = client.points.search(
         COLLECTION,
         query_vector=query_embedding,  # Query embedding
@@ -153,7 +153,7 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 import OpenAI from 'openai';
 
 const OPENAI_API_KEY = '<YOUR_API_KEY>';
@@ -162,7 +162,7 @@ const COLLECTION = 'openai_docs';
 
 async function main() {
   const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-  const client = new CortexClient('localhost:50051');
+  const client = new VectorAIClient('localhost:6574');
 
   // Generate an embedding for the search query
   const query = 'How does vector similarity work?';
@@ -200,7 +200,7 @@ For higher accuracy, use `text-embedding-3-large`, which produces 3072-dimension
 EMBEDDING_MODEL = "text-embedding-3-large"
 
 # Create a collection sized for the larger model
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     client.collections.create(
         "openai_large_docs",
         vectors_config=VectorParams(
@@ -211,12 +211,12 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 const EMBEDDING_MODEL = 'text-embedding-3-large';
 
 async function main() {
-  const client = new CortexClient('localhost:50051');
+  const client = new VectorAIClient('localhost:6574');
 
   // Create a collection sized for the larger model
   await client.collections.create('openai_large_docs', {
