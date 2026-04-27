@@ -30,16 +30,6 @@ Install extras when your application needs the related integration.
 | Telemetry | `pip install "actian-vectorai-client[telemetry]"` | Enable OpenTelemetry support. |
 | Everything | `pip install "actian-vectorai-client[all]"` | Install all optional runtime extras. |
 
-### Install from source
-
-Use the local source checkout when developing the SDK itself.
-
-```bash
-cd cortex.client/clients/python
-uv venv .venv
-uv pip install -e ".[dev]"
-```
-
 ## Configure the client
 
 The SDK reads `ACTIAN_VECTORAI_*` environment variables and `.env` files automatically. Constructor arguments take precedence over environment values.
