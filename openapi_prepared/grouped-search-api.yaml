@@ -16,10 +16,10 @@ info:
     ## Python SDK
 
     ```python
-    from actian_vectorai import VectorAIClient, FieldType
+    from actian_vectorai_client import VectorAIClient, FieldType
     import random
 
-    with VectorAIClient("localhost:50051") as client:
+    with VectorAIClient("localhost:6574") as client:
         # Create index on grouping field
         client.points.create_field_index(
             "my_collection",
@@ -237,10 +237,10 @@ components:
 #        - lang: Python
 #          label: Search groups
 #          source: |
-#            from actian_vectorai import VectorAIClient, FieldType
+#            from actian_vectorai_client import VectorAIClient, FieldType
 #            import random
 #
-#            with VectorAIClient("localhost:50051") as client:
+#            with VectorAIClient("localhost:6574") as client:
 #                # Create index on grouping field (required)
 #                client.points.create_field_index(
 #                    "my_collection",
@@ -441,10 +441,10 @@ components:
 #        - lang: Python
 #          label: Query groups
 #          source: |
-#            from actian_vectorai import VectorAIClient, FieldType
+#            from actian_vectorai_client import VectorAIClient, FieldType
 #            import random
 #
-#            with VectorAIClient("localhost:50051") as client:
+#            with VectorAIClient("localhost:6574") as client:
 #                # Create index on grouping field (required)
 #                client.points.create_field_index(
 #                    "my_collection",

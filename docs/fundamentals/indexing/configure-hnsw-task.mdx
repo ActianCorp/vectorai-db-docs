@@ -16,10 +16,10 @@ The following example creates a collection with custom `m` and `ef_construct` va
 
 <CodeGroup>
 ```python Python
-from actian_vectorai import VectorAIClient, VectorParams, Distance, HnswConfigDiff
+from actian_vectorai_client import VectorAIClient, VectorParams, Distance, HnswConfigDiff
 
 # Connect to VectorAI DB server (use context manager to ensure proper connection)
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Create collection with custom HNSW parameters
     client.collections.create(
         "my_collection",  # Collection name
@@ -33,11 +33,11 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     // Create collection with custom HNSW parameters
     await client.collections.create('my_collection', {
@@ -66,10 +66,10 @@ When you omit `hnsw_config`, VectorAI DB applies balanced default settings that 
 
 <CodeGroup>
 ```python Python
-from actian_vectorai import VectorAIClient, VectorParams, Distance
+from actian_vectorai_client import VectorAIClient, VectorParams, Distance
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Collection with default index settings
     client.collections.create(
         "my_collection",  # Collection name
@@ -82,11 +82,11 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     // Collection with default index settings
     await client.collections.create('my_collection', {

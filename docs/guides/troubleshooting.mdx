@@ -96,7 +96,7 @@ The following table lists checks to perform when a search returns no results.
 
 | Check | Action |
 |-------|--------|
-| Collection is empty | Run `client.get_collection_info(name)` and check `points_count` |
+| Collection is empty | Run `client.collections.get_info(name)` and check `points_count` |
 | Query vector has wrong dimensions | Confirm dimensions match `collection.vectors_config.size` |
 | Filter is too restrictive | Remove the filter and retry to isolate the issue |
 | Collection is still indexing | Check index status in the GUI or via `get_collection_info` |
@@ -106,10 +106,10 @@ The following table lists checks to perform when a search returns no results.
 Use the following code to inspect the current state of a collection, including point count, indexed vector count, and status:
 
 ```python
-from actian_vectorai import VectorAIClient
+from actian_vectorai_client import VectorAIClient
 
 with VectorAIClient("localhost:6574") as client:
-    info = client.get_collection_info("my-collection")
+    info = client.collections.get_info("my-collection")
     print(f"Points:  {info.points_count}")
     print(f"Indexed: {info.indexed_vectors_count}")
     print(f"Status:  {info.status}")
@@ -130,11 +130,13 @@ Expand each section for details on how to tune search parameters and verify your
     `hnsw_ef` controls how many candidates the HNSW graph explores during search. Increase it to trade speed for better recall:
 
     ```python
-    results = client.search(
-        collection_name="my-collection",
-        query_vector=query_embedding,
+    from actian_vectorai_client import SearchParams
+
+    results = client.points.search(
+        "my-collection",
+        vector=query_embedding,
         limit=10,
-        search_params={"hnsw_ef": 128}   # Override server default
+        params=SearchParams(hnsw_ef=128)   # Override server default
     )
     ```
   </Accordion>
@@ -143,7 +145,7 @@ Expand each section for details on how to tune search parameters and verify your
     Verify that the collection's distance metric matches the one used to train your embedding model:
 
     ```python
-    info = client.get_collection_info("my-collection")
+    info = client.collections.get_info("my-collection")
     print(info.config.params.vectors.distance)
     # Should match your embedding model's expected metric
     ```
@@ -284,7 +286,7 @@ Explore these related guides to learn more.
   <Card title="Error handling" href="/docs/guides/error-handling">
     Handle specific gRPC error codes in your application code.
   </Card>
-  <Card title="Docker installation" href="/docs/installation/docker">
+  <Card title="Docker installation" href="/home/installation/instructions">
     Container setup, volume mounts, and Docker Compose configuration.
   </Card>
   <Card title="HNSW indexing" href="/docs/fundamentals/indexing/indexing">

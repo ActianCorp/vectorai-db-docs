@@ -212,10 +212,10 @@ paths:
         - lang: Python
           label: Basic search
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
             import random
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Basic vector search
                 query = [random.gauss(0, 1) for _ in range(64)]
                 results = client.points.search("my_collection", vector=query, limit=5)
@@ -226,10 +226,10 @@ paths:
         - lang: Python
           label: Search with score threshold
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
             import random
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Search with minimum score
                 query = [random.gauss(0, 1) for _ in range(64)]
                 results = client.points.search(
@@ -242,10 +242,10 @@ paths:
         - lang: Python
           label: Search with custom HNSW
           source: |
-            from actian_vectorai import VectorAIClient, SearchParams
+            from actian_vectorai_client import VectorAIClient, SearchParams
             import random
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Search with custom HNSW parameters
                 query = [random.gauss(0, 1) for _ in range(64)]
                 results = client.points.search(
@@ -258,10 +258,10 @@ paths:
         - lang: Python
           label: Exact search
           source: |
-            from actian_vectorai import VectorAIClient, SearchParams
+            from actian_vectorai_client import VectorAIClient, SearchParams
             import random
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Exact (brute-force) search
                 query = [random.gauss(0, 1) for _ in range(64)]
                 results = client.points.search(
@@ -275,9 +275,9 @@ paths:
         - lang: JavaScript
           label: Basic search
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             const results = await client.points.search('my_collection', [0.1, 0.2, 0.3, 0.4], {
                 limit: 5,
@@ -291,9 +291,9 @@ paths:
         - lang: JavaScript
           label: Filtered search
           source: |
-            import { CortexClient, Field } from '@actian/cortex-client';
+            import { VectorAIClient, Field } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             const filter = Field.of('category').eq('electronics');
             const results = await client.points.search('my_collection', [0.1, 0.2, 0.3, 0.4], {
@@ -491,10 +491,10 @@ paths:
         - lang: Python
           label: Batch search
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
             import random
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Execute multiple searches at once
                 queries = [
                     {"vector": [random.gauss(0, 1) for _ in range(64)], "limit": 3}
@@ -508,9 +508,9 @@ paths:
         - lang: JavaScript
           label: Batch search
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             const batchResults = await client.points.searchBatch('my_collection', [
                 { vector: [0.1, 0.2, 0.3, 0.4], limit: 3 },
@@ -695,9 +695,9 @@ paths:
         - lang: Python
           label: Manual scroll
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Manual cursor-based scroll
                 offset = None
                 page = 0
@@ -722,9 +722,9 @@ paths:
         - lang: Python
           label: Scroll all (convenience)
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Automatically paginate through all points
                 all_points = client.points.scroll_all(
                     "my_collection",
@@ -734,9 +734,9 @@ paths:
         - lang: Python
           label: Filtered scroll
           source: |
-            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            from actian_vectorai_client import VectorAIClient, Field, FilterBuilder
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Scroll with filter
                 payload_filter = FilterBuilder().must(Field("group").eq("g0")).build()
                 filtered, _ = client.points.scroll(
@@ -748,9 +748,9 @@ paths:
         - lang: JavaScript
           label: Scroll points
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             let offset = undefined;
             let page = 0;
@@ -870,18 +870,18 @@ paths:
         - lang: Python
           label: Count all points
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Count total points
                 count = client.points.count("my_collection")
                 print(f"Total points: {count}")
         - lang: Python
           label: Count with filter
           source: |
-            from actian_vectorai import VectorAIClient, Field, FilterBuilder
+            from actian_vectorai_client import VectorAIClient, Field, FilterBuilder
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Count points matching filter
                 payload_filter = FilterBuilder().must(Field("category").eq("A")).build()
                 count_a = client.points.count("my_collection", filter=payload_filter)
@@ -889,9 +889,9 @@ paths:
         - lang: JavaScript
           label: Count all points
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             const count = await client.points.count('my_collection');
             console.log(`Total points: ${count}`);
@@ -900,9 +900,9 @@ paths:
         - lang: JavaScript
           label: Count with filter
           source: |
-            import { CortexClient, Field } from '@actian/cortex-client';
+            import { VectorAIClient, Field } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             const filter = Field.of('category').eq('electronics');
             const count = await client.points.count('my_collection', { filter });

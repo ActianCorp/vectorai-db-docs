@@ -17,13 +17,13 @@ The following example finds semantically similar items that match specific crite
 <CodeGroup>
 ```python Python
 import random
-from actian_vectorai import VectorAIClient, FilterBuilder, Field
+from actian_vectorai_client import VectorAIClient, FilterBuilder, Field
 
 DIMENSION = 128
 COLLECTION = "products"
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Search for electronics under $600 with similarity
     query_vector = [random.gauss(0, 1) for _ in range(DIMENSION)]
     
@@ -48,13 +48,13 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient, Field } from '@actian/cortex-client';
+import { VectorAIClient, Field } from '@actian/vectorai-client';
 
 const DIMENSION = 128;
 const COLLECTION = 'products';
 
 async function main() {
-  const client = new CortexClient('localhost:50051');
+  const client = new VectorAIClient('localhost:6574');
 
   // Search for electronics under $600 with similarity
   const queryVector = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);

@@ -15,8 +15,8 @@ This guide walks through building a customer support assistant that uses VectorA
 
 Before starting, ensure the following are installed and configured:
 
-- **Python 3.9+** with `pip`
-- **VectorAI DB** running at `localhost:50051` (see [Docker installation](/docs/installation/docker) for setup)
+- **Python 3.10+** with `pip`
+- **VectorAI DB** running at `localhost:6574` (see [Docker installation](/home/installation/instructions) for setup)
 - **OpenAI API key** — set as the `OPENAI_API_KEY` environment variable
 
 Install the required Python packages:
@@ -98,14 +98,14 @@ Create separate collections for knowledge and customer context:
 ```python
 import asyncio
 import os
-from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, PointStruct
+from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance, PointStruct
 import openai
 
 openai.api_key = os.environ["OPENAI_API_KEY"]
 
 async def setup_collections():
     """Initialize collections for the support assistant."""
-    async with AsyncVectorAIClient("localhost:50051") as db:
+    async with AsyncVectorAIClient("localhost:6574") as db:
         if not await db.collections.exists("support_knowledge"):
             await db.collections.create(
                 "support_knowledge",
@@ -178,7 +178,7 @@ async def index_knowledge(documents: List[Dict[str, Any]]):
         for doc, emb in zip(documents, embeddings)
     ]
     
-    async with AsyncVectorAIClient("localhost:50051") as db:
+    async with AsyncVectorAIClient("localhost:6574") as db:
         await db.points.upsert("support_knowledge", points=points)
     
     print(f"Indexed {len(points)} knowledge documents")
@@ -225,7 +225,7 @@ Track customer interactions for context:
 
 ```python
 from datetime import datetime
-from actian_vectorai import Filter, Conditions
+from actian_vectorai_client import Filter, Conditions
 
 async def store_interaction(
     customer_id: str,
@@ -255,7 +255,7 @@ async def store_interaction(
         }
     )
     
-    async with AsyncVectorAIClient("localhost:50051") as db:
+    async with AsyncVectorAIClient("localhost:6574") as db:
         await db.points.upsert("customer_memory", points=[point])
 
 async def recall_customer_context(
@@ -275,7 +275,7 @@ async def recall_customer_context(
     """
     query_vector = embed([query])[0]
     
-    async with AsyncVectorAIClient("localhost:50051") as db:
+    async with AsyncVectorAIClient("localhost:6574") as db:
         results = await db.points.search(
             "customer_memory",
             vector=query_vector,
@@ -330,7 +330,7 @@ class SupportAssistant:
         if category:
             conditions.append(Conditions.match("category", category))
         
-        async with AsyncVectorAIClient("localhost:50051") as db:
+        async with AsyncVectorAIClient("localhost:6574") as db:
             results = await db.points.search(
                 "support_knowledge",
                 vector=query_vector,

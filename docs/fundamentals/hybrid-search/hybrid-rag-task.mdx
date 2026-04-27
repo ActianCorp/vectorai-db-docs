@@ -14,7 +14,7 @@ In production, use an actual embedding model to generate question embeddings and
 
 <CodeGroup>
 ```python Python
-from actian_vectorai import VectorAIClient, reciprocal_rank_fusion
+from actian_vectorai_client import VectorAIClient, reciprocal_rank_fusion
 import random
 
 COLLECTION = "documents"
@@ -65,7 +65,7 @@ def hybrid_rag_retrieval(client, user_question, top_k=5):
     return fused[:top_k]
 
 # Usage in RAG pipeline
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     user_question = "How do I reset my password?"
 
     # Retrieve relevant context
@@ -86,7 +86,7 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient, reciprocalRankFusion } from '@actian/cortex-client';
+import { VectorAIClient, reciprocalRankFusion } from '@actian/vectorai-client';
 
 const COLLECTION = "documents";
 const DIMENSION = 384;
@@ -133,7 +133,7 @@ function hybridRagRetrieval(client, userQuestion, topK = 5) {
 }
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     const userQuestion = "How do I reset my password?";
 

@@ -8,7 +8,7 @@ Score threshold search returns only results that meet a minimum similarity score
 
 Use score thresholds when result quality matters more than result count. Without a threshold, search always returns up to `limit` results regardless of how relevant they are. A threshold discards low-confidence matches early, reducing noise in downstream processing.
 
-Before running this example, make sure you have a VectorAI DB instance running at `localhost:50051` and the relevant SDK installed. For setup instructions, see [Docker installation](/docs/installation/docker).
+Before running this example, make sure you have a VectorAI DB instance running at `localhost:6574` and the relevant SDK installed. For setup instructions, see [Docker installation](/home/installation/instructions).
 
 <CodeGroup>
 ```python Python
@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import random
 
-from actian_vectorai import (
+from actian_vectorai_client import (
     Distance,
     FieldType,
     PointStruct,
@@ -24,7 +24,7 @@ from actian_vectorai import (
     VectorParams,
 )
 
-SERVER = "localhost:50051"
+SERVER = "localhost:6574"
 COLLECTION = "semantic_demo"
 DIM = 64
 fmt = "\n=== {:50} ==="
@@ -124,9 +124,9 @@ if __name__ == "__main__":
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
-const SERVER = 'localhost:50051';
+const SERVER = 'localhost:6574';
 const COLLECTION = 'semantic_demo';
 const DIM = 64;
 
@@ -160,7 +160,7 @@ function fakeEmbed(text, dim = DIM) {
 }
 
 async function main() {
-  const client = new CortexClient(SERVER);
+  const client = new VectorAIClient(SERVER);
   try {
     await client.collections.delete(COLLECTION).catch(() => {});
     await client.collections.create(COLLECTION, {

@@ -14,10 +14,10 @@ This example creates a collection named `image_embeddings` configured to use Euc
 
 <CodeGroup>
 ```python Python
-from actian_vectorai import VectorAIClient, VectorParams, Distance
+from actian_vectorai_client import VectorAIClient, VectorParams, Distance
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Create collection with Euclidean distance
     client.collections.create(
         "image_embeddings",  # Collection name
@@ -26,11 +26,11 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     // Create collection with Euclidean distance
     await client.collections.create('image_embeddings', {

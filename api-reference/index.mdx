@@ -3,7 +3,7 @@ title: "API reference"
 description: "Complete API documentation for VectorAI DB."
 ---
 
-VectorAI DB supports two API protocols for flexible integration with your applications. Both protocols provide the same feature coverage, so choose the one that best fits your infrastructure and performance requirements. For details on securing your API requests, see the [Authentication](/api-reference/authentication) guide.
+VectorAI DB supports two API protocols for flexible integration with your applications. Both protocols provide the same feature coverage, so choose the one that best fits your infrastructure and performance requirements. For details on securing your API requests, see the [Access Tokens](/api-reference/access-tokens/create-access-token) guide.
 
 <CardGroup cols={2}>
 <Card
@@ -29,4 +29,4 @@ The REST API provides a familiar HTTP interface with JSON payloads. It runs on p
 
 ## gRPC
 
-gRPC offers superior performance with efficient binary serialization and HTTP/2 multiplexing. It runs on port 50051 by default and is the recommended choice when you need minimal latency, bidirectional streaming, or are building performance-critical applications. The Python SDK uses gRPC by default.
+gRPC offers superior performance with efficient binary serialization and HTTP/2 multiplexing. It runs on port 6574 by default and is the recommended choice when you need minimal latency, bidirectional streaming, or are building performance-critical applications. The Python SDK uses gRPC by default.

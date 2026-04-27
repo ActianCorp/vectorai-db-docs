@@ -11,12 +11,12 @@ This is the fastest search type because it performs only vector similarity compu
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 import random
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Generate or use your query vector
         query_vector = [random.gauss(0, 1) for _ in range(128)]
         
@@ -35,10 +35,10 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     try {
         // Generate or use your query vector
@@ -82,12 +82,12 @@ Use `query()` for standard vector search:
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 import random
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Generate query vector
         query_vector = [random.gauss(0, 1) for _ in range(128)]
         
@@ -107,10 +107,10 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     try {
         // Generate query vector
@@ -152,11 +152,11 @@ Sort results by payload fields without using vectors:
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Sort by price (ascending)
         results = await client.points.query(
             "products",  # Collection name
@@ -185,10 +185,10 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     try {
         // Sort by price (ascending)
@@ -249,12 +249,12 @@ Execute multiple queries in a single request:
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient
+from actian_vectorai_client import AsyncVectorAIClient
 import random
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Create multiple query vectors
         queries = [
             [random.gauss(0, 1) for _ in range(128)]  # Generate query vector
@@ -278,10 +278,10 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     try {
         // Create multiple query vectors
@@ -335,12 +335,12 @@ Combine vector search with filters and custom ordering:
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient, FilterBuilder, Field
+from actian_vectorai_client import AsyncVectorAIClient, FilterBuilder, Field
 import random
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Generate query vector
         query_vector = [random.gauss(0, 1) for _ in range(128)]
         
@@ -370,10 +370,10 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient, Field, Filter } from '@actian/cortex-client';
+import { VectorAIClient, Field, Filter } from '@actian/vectorai-client';
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     try {
         // Generate query vector

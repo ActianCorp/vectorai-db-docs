@@ -97,9 +97,9 @@ paths:
         - lang: Python
           label: List collections
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # List all collections
                 collections = client.collections.list()
                 
@@ -109,9 +109,9 @@ paths:
         - lang: JavaScript
           label: List collections
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             const collections = await client.collections.list();
             console.log(`Found ${collections.length} collections:`, collections);
@@ -344,9 +344,9 @@ paths:
         - lang: Python
           label: Get collection info
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Get collection information
                 info = client.collections.get_info("my_collection")
                 
@@ -357,9 +357,9 @@ paths:
         - lang: JavaScript
           label: Get collection info
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             const info = await client.collections.getInfo('my_collection');
             console.log(`Vectors: ${info.vectorsCount}, Points: ${info.pointsCount}, Segments: ${info.segmentsCount}`);
@@ -488,9 +488,9 @@ paths:
         - lang: Python
           label: Create basic collection
           source: |
-            from actian_vectorai import VectorAIClient, VectorParams, Distance
+            from actian_vectorai_client import VectorAIClient, VectorParams, Distance
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Create a basic collection
                 client.collections.create(
                     "my_collection",
@@ -500,14 +500,14 @@ paths:
         - lang: Python
           label: Create with HNSW config
           source: |
-            from actian_vectorai import (
+            from actian_vectorai_client import (
                 VectorAIClient,
                 VectorParams,
                 Distance,
                 HnswConfigDiff
             )
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Create collection with custom HNSW parameters
                 client.collections.create(
                     "my_collection",
@@ -518,9 +518,9 @@ paths:
         - lang: JavaScript
           label: Create basic collection
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             await client.collections.create('my_collection', {
                 dimension: 4,
@@ -532,9 +532,9 @@ paths:
         - lang: JavaScript
           label: Create with HNSW config
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             await client.collections.create('my_collection', {
                 dimension: 4,
@@ -664,9 +664,9 @@ paths:
         - lang: Python
           label: Update collection
           source: |
-            from actian_vectorai import VectorAIClient, OptimizersConfigDiff
+            from actian_vectorai_client import VectorAIClient, OptimizersConfigDiff
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Update optimizer configuration
                 client.collections.update(
                     "my_collection",
@@ -678,9 +678,9 @@ paths:
         - lang: JavaScript
           label: Update collection
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             await client.collections.update('my_collection', {
                 hnswConfig: { m: 32, efConstruct: 200 },
@@ -761,9 +761,9 @@ paths:
         - lang: Python
           label: Delete collection
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Delete collection
                 if client.collections.exists("my_collection"):
                     client.collections.delete("my_collection")
@@ -773,9 +773,9 @@ paths:
         - lang: JavaScript
           label: Delete collection
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             await client.collections.delete('my_collection');
             console.log('Deleted collection');
@@ -847,18 +847,18 @@ paths:
         - lang: Python
           label: Check collection exists
           source: |
-            from actian_vectorai import VectorAIClient
+            from actian_vectorai_client import VectorAIClient
 
-            with VectorAIClient("localhost:50051") as client:
+            with VectorAIClient("localhost:6574") as client:
                 # Check if collection exists
                 exists = client.collections.exists("my_collection")
                 print(f"Collection exists: {exists}")
         - lang: JavaScript
           label: Check collection exists
           source: |
-            import { CortexClient } from '@actian/cortex-client';
+            import { VectorAIClient } from '@actian/vectorai-client';
 
-            const client = new CortexClient('localhost:50051');
+            const client = new VectorAIClient('localhost:6574');
 
             const exists = await client.collections.exists('my_collection');
             console.log(`Collection exists: ${exists}`);
@@ -949,9 +949,9 @@ paths:
   #       - lang: Python
   #         label: Create Alias
   #         source: |
-  #           from actian_vectorai import VectorAIClient
+  #           from actian_vectorai_client import VectorAIClient
   #
-  #           with VectorAIClient("localhost:50051") as client:
+  #           with VectorAIClient("localhost:6574") as client:
   #               # Create an alias
   #               client.collections.update_aliases([
   #                   {
@@ -965,9 +965,9 @@ paths:
   #       - lang: Python
   #         label: Zero-Downtime Swap
   #         source: |
-  #           from actian_vectorai import VectorAIClient
+  #           from actian_vectorai_client import VectorAIClient
   #
-  #           with VectorAIClient("localhost:50051") as client:
+  #           with VectorAIClient("localhost:6574") as client:
   #               # Atomically swap alias to new collection
   #               client.collections.update_aliases([
   #                   {"delete": {"alias_name": "production"}},
@@ -1020,9 +1020,9 @@ paths:
   #       - lang: Python
   #         label: List All Aliases
   #         source: |
-  #           from actian_vectorai import VectorAIClient
+  #           from actian_vectorai_client import VectorAIClient
   #
-  #           with VectorAIClient("localhost:50051") as client:
+  #           with VectorAIClient("localhost:6574") as client:
   #               # List all aliases
   #               aliases = client.collections.list_aliases()
   #

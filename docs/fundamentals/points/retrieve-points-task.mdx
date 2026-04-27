@@ -15,12 +15,12 @@ The `retrieve()` method is an alias for `get_many()`. Control what data is retur
 
 <CodeGroup>
 ```python Python
-from actian_vectorai import VectorAIClient
+from actian_vectorai_client import VectorAIClient
 
 COLLECTION = "products"
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Retrieve specific points by ID
     retrieve_ids = [1, 2, 3, 5]
     results = client.points.get(COLLECTION, ids=retrieve_ids)
@@ -35,12 +35,12 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 const COLLECTION = "products";
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     try {
         // Retrieve specific points by ID
@@ -78,12 +78,12 @@ Scroll operations are ideal for processing large collections that do not fit in 
 
 <CodeGroup>
 ```python Python
-from actian_vectorai import VectorAIClient
+from actian_vectorai_client import VectorAIClient
 
 COLLECTION = "products"
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     all_points = []
     offset = None  # Start from beginning
     page_num = 1
@@ -120,12 +120,12 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 const COLLECTION = "products";
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     try {
         const allPoints = [];

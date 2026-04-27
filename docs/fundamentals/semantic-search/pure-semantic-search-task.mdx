@@ -8,7 +8,7 @@ Pure semantic search retrieves the most similar documents to your query using on
 
 Use pure semantic search when you want broad retrieval across your entire document corpus without restricting results by category, date, or other metadata.
 
-Before running this example, make sure you have a VectorAI DB instance running at `localhost:50051` and the relevant SDK installed. For setup instructions, see [Docker installation](/docs/installation/docker).
+Before running this example, make sure you have a VectorAI DB instance running at `localhost:6574` and the relevant SDK installed. For setup instructions, see [Docker installation](/home/installation/instructions).
 
 This example demonstrates the core semantic search pipeline:
 
@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import random
 
-from actian_vectorai import (
+from actian_vectorai_client import (
     Distance,
     FieldType,
     PointStruct,
@@ -37,7 +37,7 @@ from actian_vectorai import (
     VectorParams,
 )
 
-SERVER = "localhost:50051"
+SERVER = "localhost:6574"
 COLLECTION = "semantic_demo"
 DIM = 64
 fmt = "\n=== {:50} ==="
@@ -135,9 +135,9 @@ if __name__ == "__main__":
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
-const SERVER = 'localhost:50051';
+const SERVER = 'localhost:6574';
 const COLLECTION = 'semantic_demo';
 const DIM = 64;
 
@@ -171,7 +171,7 @@ function fakeEmbed(text, dim = DIM) {
 }
 
 async function main() {
-  const client = new CortexClient(SERVER);
+  const client = new VectorAIClient(SERVER);
   try {
     await client.collections.delete(COLLECTION).catch(() => {});
     await client.collections.create(COLLECTION, {

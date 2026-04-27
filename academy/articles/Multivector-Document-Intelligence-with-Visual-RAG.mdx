@@ -21,7 +21,7 @@ As a result, the system can answer questions about charts, tables, diagrams, and
 You will build the full pipeline using:
 
 - `clip-ViT-B-32` for page-level image embeddings (512-dimensional dense vectors).
-- `actian-vectorai` for vector storage and semantic retrieval.
+- `actian-vectorai-client` for vector storage and semantic retrieval.
 - `openai` GPT-4o vision API for answer generation from retrieved page images.
 - `pdf2image` for converting PDF pages to images.
  
@@ -98,7 +98,7 @@ The pipeline depends on an Actian VectorAI DB instance, a Python environment, an
 
 The pipeline stores and retrieves page-level CLIP vectors through a VectorAI DB server.
 
-- A running Actian VectorAI DB server accessible over gRPC (default port `50051`)
+- A running Actian VectorAI DB server accessible over gRPC (default port `6574`)
 - The server URL — for local development this is typically `http://localhost:6574`
 - If you do not have an instance running yet, then follow the [installation guide](/docs/guides/index) to set one up before continuing
 
@@ -106,7 +106,7 @@ The pipeline stores and retrieves page-level CLIP vectors through a VectorAI DB 
 
 All dependencies are installed through `pip` into a standard Python environment.
 
-- Python 3.9 or later
+- Python 3.10 or later
 - `pip` for package installation
 
 ### OpenAI account
@@ -150,7 +150,7 @@ The key is read at runtime via `os.getenv("OPENAI_API_KEY")` in Step 6. Without 
 
 These provide:
 
-- `actian-vectorai` — Actian VectorAI Python SDK (async client, gRPC transport)
+- `actian-vectorai-client` — Actian VectorAI Python SDK (async client, gRPC transport)
 - `sentence-transformers` — CLIP ViT-B-32 for image and text embeddings
 - `pillow` — Image processing
 - `pdf2image` — Converts PDF pages to PIL images (requires poppler)
@@ -177,14 +177,14 @@ from pdf2image import convert_from_bytes
 from PIL import Image
 from sentence_transformers import SentenceTransformer
 
-from actian_vectorai import (
+from actian_vectorai_client import (
     AsyncVectorAIClient,
     Distance,
     HnswConfigDiff,
     PointStruct,
     VectorParams,
 )
-from actian_vectorai.models.points import ScoredPoint
+from actian_vectorai_client.models.points import ScoredPoint
 
 SERVER = "localhost:6574"
 COLLECTION = "Multivector-DocIntel"
@@ -257,7 +257,7 @@ Each helper has a distinct role in the pipeline.
 
 Create the collection with 512-dim cosine distance and HNSW indexing.
 
-`collections.get_or_create` takes the same `vectors_config` and optional `hnsw_config` arguments as `collections.create` in the [Create a collection](/docs/fundamentals/collections/create-collection-task) guide, including `hnsw_config=HnswConfigDiff(m=..., ef_construct=...)`. Match the `actian-vectorai` version you install to the docs or SDK release you are using.
+`collections.get_or_create` takes the same `vectors_config` and optional `hnsw_config` arguments as `collections.create` in the [Create a collection](/docs/fundamentals/collections/create-collection-task) guide, including `hnsw_config=HnswConfigDiff(m=..., ef_construct=...)`. Match the `actian-vectorai-client` version you install to the docs or SDK release you are using.
 
 ```python
 import asyncio

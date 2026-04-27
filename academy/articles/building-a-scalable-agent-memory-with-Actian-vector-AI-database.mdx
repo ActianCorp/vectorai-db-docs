@@ -64,7 +64,7 @@ pip install actian-vectorai-client sentence-transformers
 
 The two packages cover everything needed to connect to Actian VectorAI DB and produce embeddings locally:
 
-- `actian-vectorai` — Official Python SDK for Actian VectorAI DB (connection pooling, cross-collection lookup, OrderBy retrieval, advanced rebuild management, gRPC transport).
+- `actian-vectorai-client` — Official Python SDK for Actian VectorAI DB (connection pooling, cross-collection lookup, OrderBy retrieval, advanced rebuild management, gRPC transport).
 - `sentence-transformers` — For generating text embeddings with `all-MiniLM-L6-v2`.
 
 ---
@@ -82,7 +82,7 @@ import asyncio
 import math
 from datetime import datetime, timezone
 
-from actian_vectorai import (
+from actian_vectorai_client import (
     AsyncVectorAIClient,
     ConnectionPool,       # production connection pool
     PoolConfig,           # pool configuration settings
@@ -102,19 +102,19 @@ from actian_vectorai import (
     Direction,            # sort direction (Asc / Desc)
     is_null,
 )
-from actian_vectorai.models.collections import (
+from actian_vectorai_client.models.collections import (
     HnswConfigDiff,
     WalConfigDiff,          # Write-Ahead Log durability tuning
     OptimizersConfigDiff,   # background optimization control
 )
-from actian_vectorai.models.points import ScoredPoint
-from actian_vectorai.models.vde import (
+from actian_vectorai_client.models.points import ScoredPoint
+from actian_vectorai_client.models.vde import (
     RebuildDataSourceConfig,  # source data for index rebuild
     RebuildTargetConfig,      # target index type for rebuild
     RebuildRunConfig,         # batch size and runtime settings
     CompactOptions,           # fine-grained compaction control
 )
-from actian_vectorai.models.enums import (
+from actian_vectorai_client.models.enums import (
     RebuildDataSourceType,   # enum: current index, storage, snapshot
     RebuildTargetIndexType,  # enum: HNSW, flat, auto
 )

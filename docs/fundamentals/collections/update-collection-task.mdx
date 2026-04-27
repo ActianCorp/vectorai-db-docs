@@ -17,11 +17,11 @@ The following example updates the indexing threshold so that VectorAI DB delays 
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient, OptimizersConfigDiff
+from actian_vectorai_client import AsyncVectorAIClient, OptimizersConfigDiff
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Update collection configuration
         await client.collections.update(
             "my_collection",  # Collection name
@@ -35,11 +35,11 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
     try {
         // Update collection configuration
         await client.collections.update('my_collection', {

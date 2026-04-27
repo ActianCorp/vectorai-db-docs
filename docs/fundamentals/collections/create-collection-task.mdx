@@ -21,11 +21,11 @@ The following example creates a collection named `my_collection` that accepts 12
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
+from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Create a collection with 128-dimensional vectors
         await client.collections.create(
             "my_collection",  # Collection name
@@ -37,11 +37,11 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
     try {
         // Create a collection with 128-dimensional vectors
         await client.collections.create('my_collection', {
@@ -68,11 +68,11 @@ Customize the distance metric and index configuration when creating a collection
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, HnswConfigDiff
+from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance, HnswConfigDiff
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Create collection with custom HNSW parameters
         await client.collections.create(
             "my_collection",  # Collection name
@@ -87,11 +87,11 @@ async def main():
 asyncio.run(main())
 ```
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
     try {
         // Create collection with custom HNSW parameters
         await client.collections.create('my_collection', {
@@ -119,11 +119,11 @@ Before creating a collection, verify whether it already exists to avoid errors. 
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
+from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Check if collection already exists
         exists = await client.collections.exists("my_collection")
         if not exists:
@@ -140,11 +140,11 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
     try {
         // Check if collection already exists
         const exists = await client.collections.exists('my_collection');
@@ -174,11 +174,11 @@ Use `get_or_create()` to ensure a collection exists before your application star
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
+from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
 
 async def main():
     # Connect to VectorAI DB server
-    async with AsyncVectorAIClient("localhost:50051") as client:
+    async with AsyncVectorAIClient("localhost:6574") as client:
         # Returns existing collection or creates new one
         await client.collections.get_or_create(
             "my_collection",  # Collection name
@@ -190,11 +190,11 @@ asyncio.run(main())
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 async function main() {
     // Connect to VectorAI DB server
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
     try {
         // Returns existing collection or creates new one
         await client.collections.getOrCreate('my_collection', {

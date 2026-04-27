@@ -10,7 +10,7 @@ The example below creates four variations of a base query vector by adding small
 
 <CodeGroup>
 ```python Python
-from actian_vectorai import VectorAIClient, distribution_based_score_fusion
+from actian_vectorai_client import VectorAIClient, distribution_based_score_fusion
 import random
 
 COLLECTION = "documents"
@@ -30,7 +30,7 @@ def generate_query_variations(base_query_vector, num_variations=3):
 
     return variations
 
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Base query
     base_query = [random.gauss(0, 1) for _ in range(DIMENSION)]
 
@@ -57,7 +57,7 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient, distributionBasedScoreFusion } from '@actian/cortex-client';
+import { VectorAIClient, distributionBasedScoreFusion } from '@actian/vectorai-client';
 
 const COLLECTION = "documents";
 const DIMENSION = 128;
@@ -76,7 +76,7 @@ function generateQueryVariations(baseQueryVector, numVariations = 3) {
 }
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     // Base query
     const baseQuery = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);

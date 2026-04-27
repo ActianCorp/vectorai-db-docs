@@ -43,7 +43,7 @@ pip install actian-vectorai-client sentence-transformers
 
 Both packages are required: one communicates with the database, and the other loads and runs embedding models on your machine. The list below maps each dependency to the role it plays in later steps.
 
-- `actian-vectorai` — Official Python SDK for Actian VectorAI DB; provides async/sync clients, Filter DSL, and gRPC transport.
+- `actian-vectorai-client` — Official Python SDK for Actian VectorAI DB; provides async/sync clients, Filter DSL, and gRPC transport.
 - `sentence-transformers` — Framework for loading and running open-source embedding models; downloads and caches models from Hugging Face.
 
 ---
@@ -82,19 +82,19 @@ import asyncio
 import time
 from sentence_transformers import SentenceTransformer
 
-from actian_vectorai import (
+from actian_vectorai_client import (
     AsyncVectorAIClient,
     Distance,
     PointStruct,
     VectorParams,
 )
-from actian_vectorai.models.collections import (
+from actian_vectorai_client.models.collections import (
     HnswConfigDiff,
     ScalarQuantization,
     QuantizationConfig,
 )
-from actian_vectorai.models.enums import Datatype, QuantizationType
-from actian_vectorai.models.points import (
+from actian_vectorai_client.models.enums import Datatype, QuantizationType
+from actian_vectorai_client.models.points import (
     SearchParams,
     QuantizationSearchParams,
     WithPayloadSelector,
@@ -710,8 +710,8 @@ Multi-model collection ready: 20 documents, 2 vector spaces
 Each named space was produced by a different encoder, so you embed the query once per model and pass the vector that matches the `using` parameter (`"minilm"` or `"mpnet"`). The code below runs two single-space searches, then one fused query that merges candidate lists with reciprocal rank fusion (RRF). Running it prints the top three results from each approach side by side for the same query.
 
 ```python
-from actian_vectorai import PrefetchQuery
-from actian_vectorai.models.enums import Fusion
+from actian_vectorai_client import PrefetchQuery
+from actian_vectorai_client.models.enums import Fusion
 
 async def multi_model_search(query: str, top_k: int = 5):
     # Encode the query with both models to produce matching vectors for each named space

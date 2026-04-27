@@ -16,24 +16,24 @@ The following example removes a single point by ID.
 
 <CodeGroup>
 ```python Python
-from actian_vectorai import VectorAIClient
+from actian_vectorai_client import VectorAIClient
 
 COLLECTION = "products"
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Delete point with ID 11
     client.points.delete_by_ids(COLLECTION, ids=[11])
     print("Point deleted successfully")
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 const COLLECTION = "products";
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     try {
         // Delete point with ID 11
@@ -54,12 +54,12 @@ Deleting a nonexistent point does not cause an error — the operation completes
 
 <CodeGroup>
 ```python Python
-from actian_vectorai import VectorAIClient
+from actian_vectorai_client import VectorAIClient
 
 COLLECTION = "products"
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Delete multiple points
     delete_ids = [9, 10, 12, 13]
     client.points.delete_by_ids(COLLECTION, ids=delete_ids)
@@ -68,12 +68,12 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 const COLLECTION = "products";
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     try {
         // Delete multiple points
@@ -102,12 +102,12 @@ Compaction is a resource-intensive operation that may temporarily impact collect
 
 <CodeGroup>
 ```python Python
-from actian_vectorai import VectorAIClient
+from actian_vectorai_client import VectorAIClient
 
 COLLECTION = "products"
 
 # Connect to VectorAI DB server
-with VectorAIClient("localhost:50051") as client:
+with VectorAIClient("localhost:6574") as client:
     # Delete points
     client.points.delete_by_ids(COLLECTION, ids=[9, 10, 11, 12])
     print("Deleted 4 points")
@@ -119,12 +119,12 @@ with VectorAIClient("localhost:50051") as client:
 ```
 
 ```javascript JavaScript
-import { CortexClient } from '@actian/cortex-client';
+import { VectorAIClient } from '@actian/vectorai-client';
 
 const COLLECTION = "products";
 
 async function main() {
-    const client = new CortexClient('localhost:50051');
+    const client = new VectorAIClient('localhost:6574');
 
     try {
         // Delete points
