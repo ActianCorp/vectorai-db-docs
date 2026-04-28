@@ -63,7 +63,111 @@
         ]
       },
       {
-        "tab": "Developer Tools",
+        "tab": "Fundamentals",
+        "groups": [
+          {
+            "group": "Collections",
+            "pages": [
+              "docs/fundamentals/index",
+              "docs/fundamentals/collections/collections",
+              "docs/fundamentals/collections/create-collection-task",
+              "docs/fundamentals/collections/get-collection-info-task",
+              "docs/fundamentals/collections/update-collection-task",
+              "docs/fundamentals/collections/delete-collection-task",
+              "docs/fundamentals/collections/manage-collection-state-task",
+              "docs/fundamentals/collections/complete-workflow"
+            ]
+          },
+          {
+            "group": "Points",
+            "pages": [
+              "docs/fundamentals/points/points",
+              "docs/fundamentals/points/insert-points-task",
+              "docs/fundamentals/points/retrieve-points-task",
+              "docs/fundamentals/points/update-points-task",
+              "docs/fundamentals/points/delete-points-task"
+            ]
+          },
+          {
+            "group": "Vectors",
+            "pages": [
+              "docs/fundamentals/vectors/vectors",
+              "docs/fundamentals/vectors/create-vectors-task",
+              "docs/fundamentals/vectors/search-vectors-task"
+            ]
+          },
+          {
+            "group": "Payload",
+            "pages": [
+              "docs/fundamentals/payload/payload",
+              "docs/fundamentals/payload/create-payload-task",
+              "docs/fundamentals/payload/update-payload-task",
+              "docs/fundamentals/payload/filter-payload-task"
+            ]
+          },
+          {
+            "group": "Search",
+            "pages": [
+              "docs/fundamentals/search/search",
+              "docs/fundamentals/search/basic-search-task",
+              "docs/fundamentals/search/filtered-search-task",
+              "docs/fundamentals/search/search-with-payload-task",
+              "docs/fundamentals/search/search-with-vectors-task"
+            ]
+          },
+          {
+            "group": "Filtering",
+            "pages": [
+              "docs/fundamentals/filtering/filtering",
+              "docs/fundamentals/filtering/must-filter-task",
+              "docs/fundamentals/filtering/must-not-filter-task",
+              "docs/fundamentals/filtering/should-filter-task",
+              "docs/fundamentals/filtering/combined-filter-task"
+            ]
+          },
+          {
+            "group": "Semantic search",
+            "pages": [
+              "docs/fundamentals/semantic-search/semantic-search",
+              "docs/fundamentals/semantic-search/pure-semantic-search-task",
+              "docs/fundamentals/semantic-search/filtered-semantic-search-task",
+              "docs/fundamentals/semantic-search/score-threshold-search-task",
+              "docs/fundamentals/semantic-search/multi-constraint-search-task",
+              "docs/fundamentals/semantic-search/complete-workflow"
+            ]
+          },
+          {
+            "group": "Hybrid search",
+            "pages": [
+              "docs/fundamentals/hybrid-search/hybrid-search",
+              "docs/fundamentals/hybrid-search/hybrid-rag-task",
+              "docs/fundamentals/hybrid-search/rrf-fusion-task",
+              "docs/fundamentals/hybrid-search/dbsf-fusion-task",
+              "docs/fundamentals/hybrid-search/multi-model-fusion-task",
+              "docs/fundamentals/hybrid-search/query-variation-task",
+              "docs/fundamentals/hybrid-search/performance-benchmark-task"
+            ]
+          },
+          {
+            "group": "Distance metrics",
+            "pages": [
+              "docs/fundamentals/distance-metrics/distance-metrics",
+              "docs/fundamentals/distance-metrics/cosine-similarity-task",
+              "docs/fundamentals/distance-metrics/euclidean-distance-task",
+              "docs/fundamentals/distance-metrics/dot-product-task"
+            ]
+          },
+          {
+            "group": "Indexing",
+            "pages": [
+              "docs/fundamentals/indexing/indexing",
+              "docs/fundamentals/indexing/configure-hnsw-task"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API",
         "groups": [
           {
             "group": "SDKs",
@@ -203,7 +307,7 @@
     "primary": {
       "type": "button",
       "label": "Get Started",
-      "href": "https://www.actian.com/support"
+      "href": "/home/quickstart/quickstart"
     }
   },
   "contextual": {
