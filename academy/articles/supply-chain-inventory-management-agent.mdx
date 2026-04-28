@@ -94,7 +94,7 @@ The following block imports the Actian VectorAI client, the embedding model, and
 
 ```python
 # Core Actian VectorAI SDK — client, distance metric, filter helpers, and data types
-from actian_vectorai_client import (
+from actian_vectorai import (
     AsyncVectorAIClient,
     Distance,
     Field,
@@ -103,7 +103,7 @@ from actian_vectorai_client import (
     VectorParams,
 )
 # HNSW index tuning parameters
-from actian_vectorai_client.models.collections import HnswConfigDiff
+from actian_vectorai.models.collections import HnswConfigDiff
 # Sentence embedding model for converting event text to dense vectors
 from sentence_transformers import SentenceTransformer
 

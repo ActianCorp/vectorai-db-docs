@@ -70,7 +70,7 @@ from enum import Enum
 from dataclasses import dataclass
 from sentence_transformers import SentenceTransformer
 
-from actian_vectorai_client import (
+from actian_vectorai import (
     AsyncVectorAIClient,
     Distance,
     Field,
@@ -85,9 +85,9 @@ from actian_vectorai_client import (
     VectorParams,
     reciprocal_rank_fusion,
 )
-from actian_vectorai_client.models.collections import HnswConfigDiff
-from actian_vectorai_client.models.enums import Direction, Fusion, Sample
-from actian_vectorai_client.models.points import (
+from actian_vectorai.models.collections import HnswConfigDiff
+from actian_vectorai.models.enums import Direction, Fusion, Sample
+from actian_vectorai.models.points import (
     OrderBy,
     ScoredPoint,
     WithPayloadSelector,

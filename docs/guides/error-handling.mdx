@@ -7,7 +7,7 @@ VectorAI DB uses standard transport status codes and the Python SDK maps them to
 
 | | |
 |---|---|
-| **SDK exceptions** | `actian_vectorai_client.exceptions` module |
+| **SDK exceptions** | `actian_vectorai.exceptions` module |
 | **Base exception** | `VectorAIError` |
 | **Retry helpers** | `is_retryable(error)`, `get_retry_delay(error)` |
 
@@ -31,7 +31,7 @@ The current Python SDK exposes these exception classes for common application ha
 Use the namespaced SDK APIs in examples and production code. Collections live under `client.collections`, and vector search lives under `client.points`.
 
 ```python
-from actian_vectorai_client import (
+from actian_vectorai import (
     CollectionNotFoundError,
     TimeoutError,
     UnimplementedError,
@@ -65,7 +65,7 @@ with VectorAIClient("localhost:6574") as client:
 Catch `CollectionExistsError` to skip creation when a collection is already present.
 
 ```python
-from actian_vectorai_client import (
+from actian_vectorai import (
     CollectionExistsError,
     Distance,
     VectorAIClient,
@@ -89,7 +89,7 @@ Use exponential backoff for retryable errors. The helper functions understand SD
 ```python
 import time
 
-from actian_vectorai_client import VectorAIError, get_retry_delay, is_retryable
+from actian_vectorai import VectorAIError, get_retry_delay, is_retryable
 
 
 def search_with_retry(client, collection_name, query_vector, limit=10, max_retries=3):
@@ -111,7 +111,7 @@ def search_with_retry(client, collection_name, query_vector, limit=10, max_retri
 Every SDK exception exposes `message`, `code`, `details`, and `operation` where available. Use these fields for logging and custom handling.
 
 ```python
-from actian_vectorai_client import VectorAIError
+from actian_vectorai import VectorAIError
 
 try:
     client.points.search("products", vector=[0.1] * 128, limit=10)

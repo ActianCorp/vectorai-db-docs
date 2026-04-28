@@ -39,7 +39,7 @@ Use the SDK to connect over gRPC and create a collection named `products`.
 <Tabs>
   <Tab title="Synchronous">
     ```python
-    from actian_vectorai_client import VectorAIClient, VectorParams, Distance
+    from actian_vectorai import VectorAIClient, VectorParams, Distance
 
     with VectorAIClient("localhost:6574") as client:
         info = client.health_check()
@@ -54,7 +54,7 @@ Use the SDK to connect over gRPC and create a collection named `products`.
   <Tab title="Asynchronous">
     ```python
     import asyncio
-    from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
+    from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
 
     async def main():
         async with AsyncVectorAIClient("localhost:6574") as client:
@@ -77,7 +77,7 @@ Generate sample product records and upsert them as points.
 
 ```python
 import random
-from actian_vectorai_client import PointStruct, VectorAIClient
+from actian_vectorai import PointStruct, VectorAIClient
 
 def generate_sample_products(num_products: int = 100, dimension: int = 128):
     categories = ["electronics", "clothing", "food"]
@@ -111,7 +111,7 @@ Search for the five nearest points and retrieve the top match with payload.
 
 ```python
 import random
-from actian_vectorai_client import VectorAIClient
+from actian_vectorai import VectorAIClient
 
 DIMENSION = 128
 
@@ -131,7 +131,7 @@ with VectorAIClient("localhost:6574") as client:
 Delete the collection when you are finished.
 
 ```python
-from actian_vectorai_client import VectorAIClient
+from actian_vectorai import VectorAIClient
 
 with VectorAIClient("localhost:6574") as client:
     client.collections.delete("products")

@@ -16,7 +16,7 @@ The following example creates a collection with custom `m` and `ef_construct` va
 
 <CodeGroup>
 ```python Python
-from actian_vectorai_client import VectorAIClient, VectorParams, Distance, HnswConfigDiff
+from actian_vectorai import VectorAIClient, VectorParams, Distance, HnswConfigDiff
 
 # Connect to VectorAI DB server (use context manager to ensure proper connection)
 with VectorAIClient("localhost:6574") as client:
@@ -66,7 +66,7 @@ When you omit `hnsw_config`, VectorAI DB applies balanced default settings that 
 
 <CodeGroup>
 ```python Python
-from actian_vectorai_client import VectorAIClient, VectorParams, Distance
+from actian_vectorai import VectorAIClient, VectorParams, Distance
 
 # Connect to VectorAI DB server
 with VectorAIClient("localhost:6574") as client:

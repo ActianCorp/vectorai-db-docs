@@ -43,7 +43,7 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 
 # Import the client and all required types
-from actian_vectorai_client import (
+from actian_vectorai import (
     AsyncVectorAIClient,
     Distance,
     Field,
@@ -56,13 +56,13 @@ from actian_vectorai_client import (
     QuantizationSearchParams,
     VectorParams,
 )
-from actian_vectorai_client.models.collections import (
+from actian_vectorai.models.collections import (
     HnswConfigDiff,
     OptimizersConfigDiff,
     ScalarQuantization,
     QuantizationConfig,
 )
-from actian_vectorai_client.models.points import ScoredPoint
+from actian_vectorai.models.points import ScoredPoint
 
 # Server address, collection name, and embedding dimension
 SERVER = "localhost:6574"

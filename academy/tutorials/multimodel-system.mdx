@@ -57,7 +57,7 @@ import io
 from PIL import Image
 from sentence_transformers import SentenceTransformer
 
-from actian_vectorai_client import (
+from actian_vectorai import (
     AsyncVectorAIClient,
     Distance,
     Field,
@@ -68,9 +68,9 @@ from actian_vectorai_client import (
     SearchParams,
     reciprocal_rank_fusion,
 )
-from actian_vectorai_client.models.collections import HnswConfigDiff
-from actian_vectorai_client.models.enums import Fusion
-from actian_vectorai_client.models.points import (
+from actian_vectorai.models.collections import HnswConfigDiff
+from actian_vectorai.models.enums import Fusion
+from actian_vectorai.models.points import (
     WithPayloadSelector,
     WithVectorsSelector,
 )

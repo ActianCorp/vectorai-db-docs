@@ -85,7 +85,7 @@ The following code imports the required libraries, initializes the OpenAI client
 
 ```python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance, PointStruct
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, PointStruct
 import openai
 from typing import List, Dict, Optional
 import uuid
@@ -335,7 +335,7 @@ The following code defines the `FinancialAnalyzer` class, which provides three m
 Note that each chunk passed to the LLM is truncated to 500 characters. Precise figures may require cross-referencing the full source document:
 
 ```python
-from actian_vectorai_client import Filter, Conditions
+from actian_vectorai import Filter, Conditions
 
 class FinancialAnalyzer:
     """AI-powered financial document analyzer."""

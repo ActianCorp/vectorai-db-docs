@@ -98,7 +98,7 @@ Create separate collections for knowledge and customer context:
 ```python
 import asyncio
 import os
-from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance, PointStruct
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, PointStruct
 import openai
 
 openai.api_key = os.environ["OPENAI_API_KEY"]
@@ -225,7 +225,7 @@ Track customer interactions for context:
 
 ```python
 from datetime import datetime
-from actian_vectorai_client import Filter, Conditions
+from actian_vectorai import Filter, Conditions
 
 async def store_interaction(
     customer_id: str,

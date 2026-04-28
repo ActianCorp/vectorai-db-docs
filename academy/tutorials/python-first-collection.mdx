@@ -89,7 +89,7 @@ Establish a connection using the async client:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 
 async def connect():
     """Connect to VectorAI DB and verify connection."""
@@ -116,7 +116,7 @@ Collections store vectors of a specific dimension with a distance metric:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
 
 async def create_collection():
     """Create a new vector collection."""
@@ -160,7 +160,7 @@ Add points containing vectors and metadata payloads:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, PointStruct
+from actian_vectorai import AsyncVectorAIClient, PointStruct
 import random
 
 async def insert_vectors():
@@ -210,7 +210,7 @@ Query the collection using a vector:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 import random
 
 async def search_vectors():
@@ -259,7 +259,7 @@ Fetch specific points directly:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 
 async def retrieve_points():
     """Retrieve specific points by ID."""
@@ -292,7 +292,7 @@ Modify existing data:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, PointStruct
+from actian_vectorai import AsyncVectorAIClient, PointStruct
 import random
 
 async def update_and_delete():
@@ -329,7 +329,7 @@ Check collection statistics:
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 
 async def get_info():
     """Get collection information."""
@@ -359,7 +359,7 @@ The following script combines all operations from the tasks above into a single 
 <CodeGroup>
 ```python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance, PointStruct
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, PointStruct
 import random
 
 async def complete_workflow():

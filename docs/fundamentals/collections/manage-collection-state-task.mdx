@@ -17,7 +17,7 @@ Use `get_state()` to retrieve the current VDE state for a collection.
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 
 async def main():
     async with AsyncVectorAIClient("localhost:6574") as client:
@@ -51,7 +51,7 @@ Use `get_stats()` to inspect vector counts and storage usage.
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 
 async def main():
     async with AsyncVectorAIClient("localhost:6574") as client:
@@ -101,7 +101,7 @@ VectorAI DB writes data changes to disk asynchronously for performance. Flushing
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 
 async def main():
     async with AsyncVectorAIClient("localhost:6574") as client:
@@ -135,7 +135,7 @@ Optimization compacts storage and reclaims space from deleted vectors.
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 
 async def main():
     async with AsyncVectorAIClient("localhost:6574") as client:
@@ -175,7 +175,7 @@ Use `rebuild_index()` for a simple rebuild. It returns `true` when the server ac
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 
 async def main():
     async with AsyncVectorAIClient("localhost:6574") as client:
@@ -209,7 +209,7 @@ Use `trigger_rebuild(wait=False)` when you need a task ID and progress reporting
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 
 COLLECTION = "large_dataset"
 
@@ -281,7 +281,7 @@ main().catch(console.error);
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 
 async def main():
     async with AsyncVectorAIClient("localhost:6574") as client:
@@ -339,7 +339,7 @@ The following example combines common maintenance operations into one workflow.
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 
 async def maintenance_workflow(client, collection_name):
     print(f"=== Maintenance for '{collection_name}' ===")
