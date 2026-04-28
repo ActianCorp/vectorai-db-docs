@@ -35,30 +35,30 @@ import asyncio
 from sentence_transformers import SentenceTransformer
 
 # Core client, vector config, and distance metrics
-from actian_vectorai_client import (
+from actian_vectorai import (
     AsyncVectorAIClient,
     Distance,
     VectorParams,
 )
 
 # Points and search
-from actian_vectorai_client import (
+from actian_vectorai import (
     PointStruct,
     SearchParams,
     QuantizationSearchParams,
 )
 
 # Filtering
-from actian_vectorai_client import (
+from actian_vectorai import (
     Field,
     FilterBuilder,
 )
 
 # Collection index configuration
-from actian_vectorai_client.models.collections import HnswConfigDiff
+from actian_vectorai.models.collections import HnswConfigDiff
 
 # Payload selector for controlling which fields are returned
-from actian_vectorai_client.models.points import WithPayloadSelector
+from actian_vectorai.models.points import WithPayloadSelector
 
 SERVER = "localhost:6574"
 COLLECTION = "search-fundamentals"
@@ -613,7 +613,7 @@ Beginner points: 3
 `search_batch` sends up to 100 searches in a single gRPC round-trip, which eliminates per-request connection overhead. Run this cell to issue three different queries simultaneously and print their results side by side.
 
 ```python
-from actian_vectorai_client import SearchRequest
+from actian_vectorai import SearchRequest
 
 async def batch_search():
     queries = [
@@ -709,7 +709,7 @@ for r in results:
 Run this cell to retrieve points sorted by the `difficulty` payload field rather than by vector similarity. Passing an `OrderBy` object instead of a vector tells the endpoint to skip similarity computation entirely.
 
 ```python
-from actian_vectorai_client import OrderBy, Direction
+from actian_vectorai import OrderBy, Direction
 
 async def query_ordered():
     async with AsyncVectorAIClient(url=SERVER) as client:
@@ -732,7 +732,7 @@ for r in results:
 Run this cell to run two filtered subsearches in parallel — one for machine learning documents and one for deep learning documents — and then rerank the merged candidate pool with a final similarity query, all in a single round-trip.
 
 ```python
-from actian_vectorai_client import PrefetchQuery
+from actian_vectorai import PrefetchQuery
 
 async def query_prefetch(query: str):
     vec = embed_text(query)

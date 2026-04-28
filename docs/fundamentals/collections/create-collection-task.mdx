@@ -21,7 +21,7 @@ The following example creates a collection named `my_collection` that accepts 12
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
 
 async def main():
     # Connect to VectorAI DB server
@@ -68,7 +68,7 @@ Customize the distance metric and index configuration when creating a collection
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance, HnswConfigDiff
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, HnswConfigDiff
 
 async def main():
     # Connect to VectorAI DB server
@@ -119,7 +119,7 @@ Before creating a collection, verify whether it already exists to avoid errors. 
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
 
 async def main():
     # Connect to VectorAI DB server
@@ -174,7 +174,7 @@ Use `get_or_create()` to ensure a collection exists before your application star
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
 
 async def main():
     # Connect to VectorAI DB server

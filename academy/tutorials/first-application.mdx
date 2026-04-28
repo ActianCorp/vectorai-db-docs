@@ -63,7 +63,7 @@ The following snippet imports every class needed for this tutorial and sets thre
 import asyncio
 from sentence_transformers import SentenceTransformer
 
-from actian_vectorai_client import (
+from actian_vectorai import (
     AsyncVectorAIClient,
     Distance,
     Field,
@@ -71,7 +71,7 @@ from actian_vectorai_client import (
     PointStruct,
     VectorParams,
 )
-from actian_vectorai_client.models.collections import HnswConfigDiff
+from actian_vectorai.models.collections import HnswConfigDiff
 
 # Connection and collection settings
 SERVER = "localhost:6574"

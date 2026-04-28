@@ -62,7 +62,7 @@ This step uses a corpus of 25 technical documents across several topics to demon
 import asyncio
 from sentence_transformers import SentenceTransformer, CrossEncoder
 
-from actian_vectorai_client import (
+from actian_vectorai import (
     AsyncVectorAIClient,
     Distance,
     Field,
@@ -75,12 +75,12 @@ from actian_vectorai_client import (
     reciprocal_rank_fusion,
     distribution_based_score_fusion,
 )
-from actian_vectorai_client.models.collections import (
+from actian_vectorai.models.collections import (
     HnswConfigDiff,
     ScalarQuantization,
     QuantizationConfig,
 )
-from actian_vectorai_client.models.enums import Fusion
+from actian_vectorai.models.enums import Fusion
 
 # Connection and collection settings
 SERVER = "localhost:6574"

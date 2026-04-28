@@ -177,14 +177,14 @@ from pdf2image import convert_from_bytes
 from PIL import Image
 from sentence_transformers import SentenceTransformer
 
-from actian_vectorai_client import (
+from actian_vectorai import (
     AsyncVectorAIClient,
     Distance,
     HnswConfigDiff,
     PointStruct,
     VectorParams,
 )
-from actian_vectorai_client.models.points import ScoredPoint
+from actian_vectorai.models.points import ScoredPoint
 
 SERVER = "localhost:6574"
 COLLECTION = "Multivector-DocIntel"

@@ -11,7 +11,7 @@ This is the fastest search type because it performs only vector similarity compu
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 import random
 
 async def main():
@@ -82,7 +82,7 @@ Use `query()` for standard vector search:
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 import random
 
 async def main():
@@ -152,7 +152,7 @@ Sort results by payload fields without using vectors:
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 
 async def main():
     # Connect to VectorAI DB server
@@ -249,7 +249,7 @@ Execute multiple queries in a single request:
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 import random
 
 async def main():
@@ -335,7 +335,7 @@ Combine vector search with filters and custom ordering:
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, FilterBuilder, Field
+from actian_vectorai import AsyncVectorAIClient, FilterBuilder, Field
 import random
 
 async def main():

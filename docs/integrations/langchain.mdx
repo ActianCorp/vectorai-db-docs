@@ -15,7 +15,7 @@ Install the VectorAI DB vector store integration for LangChain:
 pip install langchain-actian-vectorai
 ```
 
-This package includes `actian_vectorai_client` as a transitive dependency, so you do not need to install it separately.
+This package includes `actian_vectorai` as a transitive dependency, so you do not need to install it separately.
 
 You also need an embedding provider such as `langchain-openai`:
 
@@ -36,7 +36,7 @@ Before using this integration, make sure your environment meets the following pr
 The following example connects to a VectorAI DB server, creates a collection with cosine distance, adds two texts, and runs a similarity search. The `ActianVectorAIVectorStore` handles embedding generation and vector storage automatically. The vector dimension is set to `1536` to match the default `OpenAIEmbeddings` model.
 
 ```python
-from actian_vectorai_client import VectorAIClient, VectorParams, Distance
+from actian_vectorai import VectorAIClient, VectorParams, Distance
 from langchain_actian_vectorai import ActianVectorAIVectorStore
 from langchain_openai import OpenAIEmbeddings
 

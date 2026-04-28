@@ -17,7 +17,7 @@ The `insert()` method is an alias for `upsert()`. A new ID inserts a new point, 
 <CodeGroup>
 ```python Python
 import random
-from actian_vectorai_client import VectorAIClient, PointStruct
+from actian_vectorai import VectorAIClient, PointStruct
 
 DIMENSION = 128
 COLLECTION = "products"
@@ -95,7 +95,7 @@ Batch operations are significantly faster than individual inserts. Use batch siz
 <CodeGroup>
 ```python Python
 import random
-from actian_vectorai_client import VectorAIClient, PointStruct
+from actian_vectorai import VectorAIClient, PointStruct
 
 DIMENSION = 128
 COLLECTION = "products"

@@ -147,7 +147,7 @@ from PIL import Image
 from sentence_transformers import SentenceTransformer
 
 # Actian VectorAI SDK: async client, vector config, point types, and fusion functions
-from actian_vectorai_client import (
+from actian_vectorai import (
     AsyncVectorAIClient,
     Distance,
     PointStruct,
@@ -155,8 +155,8 @@ from actian_vectorai_client import (
     reciprocal_rank_fusion,
     distribution_based_score_fusion,
 )
-from actian_vectorai_client.models.collections import HnswConfigDiff
-from actian_vectorai_client.models.points import ScoredPoint
+from actian_vectorai.models.collections import HnswConfigDiff
+from actian_vectorai.models.points import ScoredPoint
 
 # Server address, collection name, and vector dimensionality used throughout this tutorial
 SERVER = "localhost:6574"
@@ -655,7 +655,7 @@ The hybrid search pipeline produces two separate ranked lists — one from dense
 Both functions accept the same input — a list of `ScoredPoint` lists — and return a single merged and ranked list. The example below shows how to call each one directly:
 
 ```python
-from actian_vectorai_client import reciprocal_rank_fusion, distribution_based_score_fusion
+from actian_vectorai import reciprocal_rank_fusion, distribution_based_score_fusion
 
 # RRF: weights=[0.7, 0.3] gives 70% influence to dense results, 30% to sparse
 fused = reciprocal_rank_fusion([dense_results, sparse_results], limit=10, weights=[0.7, 0.3])

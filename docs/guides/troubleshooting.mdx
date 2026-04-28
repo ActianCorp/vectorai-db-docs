@@ -106,7 +106,7 @@ The following table lists checks to perform when a search returns no results.
 Use the following code to inspect the current state of a collection, including point count, indexed vector count, and status:
 
 ```python
-from actian_vectorai_client import VectorAIClient
+from actian_vectorai import VectorAIClient
 
 with VectorAIClient("localhost:6574") as client:
     info = client.collections.get_info("my-collection")
@@ -130,7 +130,7 @@ Expand each section for details on how to tune search parameters and verify your
     `hnsw_ef` controls how many candidates the HNSW graph explores during search. Increase it to trade speed for better recall:
 
     ```python
-    from actian_vectorai_client import SearchParams
+    from actian_vectorai import SearchParams
 
     results = client.points.search(
         "my-collection",

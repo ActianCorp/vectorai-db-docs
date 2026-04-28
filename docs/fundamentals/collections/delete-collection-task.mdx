@@ -17,7 +17,7 @@ Use the following code to permanently remove a collection and all its data.
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient
+from actian_vectorai import AsyncVectorAIClient
 
 async def main():
     # Connect to VectorAI DB server
@@ -55,7 +55,7 @@ To reset a collection to an empty state, delete and recreate it with the same na
 <CodeGroup>
 ```python Python
 import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance
 
 async def main():
     # Connect to VectorAI DB server

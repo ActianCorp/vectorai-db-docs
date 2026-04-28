@@ -82,7 +82,7 @@ import asyncio
 import math
 from datetime import datetime, timezone
 
-from actian_vectorai_client import (
+from actian_vectorai import (
     AsyncVectorAIClient,
     ConnectionPool,       # production connection pool
     PoolConfig,           # pool configuration settings
@@ -102,19 +102,19 @@ from actian_vectorai_client import (
     Direction,            # sort direction (Asc / Desc)
     is_null,
 )
-from actian_vectorai_client.models.collections import (
+from actian_vectorai.models.collections import (
     HnswConfigDiff,
     WalConfigDiff,          # Write-Ahead Log durability tuning
     OptimizersConfigDiff,   # background optimization control
 )
-from actian_vectorai_client.models.points import ScoredPoint
-from actian_vectorai_client.models.vde import (
+from actian_vectorai.models.points import ScoredPoint
+from actian_vectorai.models.vde import (
     RebuildDataSourceConfig,  # source data for index rebuild
     RebuildTargetConfig,      # target index type for rebuild
     RebuildRunConfig,         # batch size and runtime settings
     CompactOptions,           # fine-grained compaction control
 )
-from actian_vectorai_client.models.enums import (
+from actian_vectorai.models.enums import (
     RebuildDataSourceType,   # enum: current index, storage, snapshot
     RebuildTargetIndexType,  # enum: HNSW, flat, auto
 )
