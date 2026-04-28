@@ -25,12 +25,14 @@ Download and run the VectorAI DB Docker container.
 
 ```bash
 docker pull actian/vectorai:latest
-docker run -p 6573-6575:6573-6575 \
-  -v ./data:/var/lib/actian-vectorai \
+docker run -d --name vectorai \
+  -v ./local_data:/var/lib/actian-vectorai \
+  -p 6573-6575:6573-6575 \
+  -e ACTIAN_VECTORAI_ACCEPT_EULA=YES \
   actian/vectorai:latest
 ```
 
-The REST API runs on `localhost:6573`, gRPC runs on `localhost:6574`, and LocalUI runs on `localhost:6575`.
+The REST API runs on `localhost:6573`, gRPC runs on `localhost:6574`, and Local UI runs on `localhost:6575`.
 
 ## Create a collection
 

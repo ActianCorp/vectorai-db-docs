@@ -60,7 +60,11 @@ Before diving into the tasks, understand these key concepts:
 - VectorAI DB running and accessible. To start a local instance:
 
   ```bash
-  docker run -p 6574:6574 actian/vectorai-db
+  docker run -d --name vectorai \
+  -v ./local_data:/var/lib/actian-vectorai \
+  -p 6573-6575:6573-6575 \
+  -e ACTIAN_VECTORAI_ACCEPT_EULA=YES \
+  actian/vectorai:latest
   ```
 
   The SDK connects over gRPC on port `6574` by default. If your instance uses a different host or port, replace `localhost:6574` in the examples below.
@@ -425,7 +429,12 @@ The following accordions cover common errors and how to resolve them.
  <Accordion title="Connection refused">
  **Cause**: VectorAI DB server not running.
  
- **Solution**: Start the server with `docker run -p 6573-6575:6573-6575 actian/vectorai:latest`
+ **Solution**: Start the server with 
+ docker run -d --name vectorai \
+  -v ./local_data:/var/lib/actian-vectorai \
+  -p 6573-6575:6573-6575 \
+  -e ACTIAN_VECTORAI_ACCEPT_EULA=YES \
+  actian/vectorai:latest
  </Accordion>
  
  <Accordion title="Dimension mismatch">

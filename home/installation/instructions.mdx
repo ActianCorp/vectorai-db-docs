@@ -26,7 +26,7 @@ Pull and run the VectorAI DB Docker container:
 ```bash
 docker pull actian/vectorai:latest
 docker run -d --name vectorai \
-  -v ./data:/var/lib/actian-vectorai \
+  -v ./local_data:/var/lib/actian-vectorai \
   -p 6573-6575:6573-6575 \
   -e ACTIAN_VECTORAI_ACCEPT_EULA=YES \
   actian/vectorai:latest
@@ -40,7 +40,7 @@ To persist your data between container restarts:
 
 ```bash
 docker run -d --name vectorai \
-  -v ./data:/var/lib/actian-vectorai \
+  -v ./local_data:/var/lib/actian-vectorai \
   -p 6573-6575:6573-6575 \
   -e ACTIAN_VECTORAI_ACCEPT_EULA=YES \
   actian/vectorai:latest

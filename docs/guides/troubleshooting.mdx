@@ -266,7 +266,11 @@ Ensure a volume is mounted to the data directory. Without a volume, all data is 
 
 ```bash
 # Correct — data persists on the host
-docker run -v /path/to/host/data:/app/data actian/vectorai:latest
+docker run -d --name vectorai \
+  -v ./local_data:/var/lib/actian-vectorai \
+  -p 6573-6575:6573-6575 \
+  -e ACTIAN_VECTORAI_ACCEPT_EULA=YES \
+  actian/vectorai:latest
 
 # Incorrect — data lost on container removal
 docker run actian/vectorai:latest
