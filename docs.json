@@ -36,6 +36,25 @@
             ]
           },
           {
+            "group": "SDKs",
+            "pages": [
+              {
+                "group": "Python",
+                "pages": [
+                  "sdks/python/installation",
+                  "sdks/python/reference"
+                ]
+              },
+              {
+                "group": "JavaScript",
+                "pages": [
+                  "sdks/javascript/installation",
+                  "sdks/javascript/reference"
+                ]
+              }
+            ]
+          },
+          {
             "group": "Guides",
             "pages": [
               "docs/guides/error-handling",
@@ -167,19 +186,8 @@
         ]
       },
       {
-        "tab": "Developer Tools",
+        "tab": "API",
         "groups": [
-          {
-            "group": "SDKs",
-            "pages": [
-              "sdks/python/installation",
-              "sdks/python/quickstart",
-              "sdks/python/reference",
-              "sdks/javascript/installation",
-              "sdks/javascript/quickstart",
-              "sdks/javascript/reference"
-            ]
-          },
           {
             "group": "REST API",
             "pages": [

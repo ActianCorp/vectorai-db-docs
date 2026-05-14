@@ -1,5 +1,5 @@
 ---
-title: "Docker setup for Python"
+title: "Docker setup"
 description: "Get VectorAI DB running locally using Docker in just a few minutes."
 ---
 
@@ -14,12 +14,10 @@ Before installing, ensure you have:
 </Warning>
 
 <Tip>
-For best performance, use the recommended configuration.
+For best performance, use the recommended configuration outlined above.
 </Tip>
 
 ## Pull and run VectorAI DB
-
-### Option 1: Quickstart (single command)
 
 Pull and run the VectorAI DB Docker container:
 
@@ -32,21 +30,9 @@ docker run -d --name vectorai \
   actian/vectorai:latest
 ```
 
-For this and other options, the gRPC server is available at `localhost:6574`. The Local UI is available at `localhost:6575`.
+The gRPC server is available at `localhost:6574`. The Local UI is available at `localhost:6575`.
 
-### Option 2: With data persistence
-
-To persist your data between container restarts:
-
-```bash
-docker run -d --name vectorai \
-  -v ./local_data:/var/lib/actian-vectorai \
-  -p 6573-6575:6573-6575 \
-  -e ACTIAN_VECTORAI_ACCEPT_EULA=YES \
-  actian/vectorai:latest
-```
-
-### Option 3: Using Docker Compose
+## Using Docker Compose
 
 Create a `docker-compose.yml` file:
 
@@ -57,7 +43,7 @@ services:
     container_name: vectorai
     ports:
       - "6573:6573"
-	  - "6574:6574"
+      - "6574:6574"
       - "6575:6575"
     volumes:
       - ./local_data:/var/lib/actian-vectorai
@@ -81,21 +67,17 @@ docker-compose down
 ## Verify installation
 
 <Warning>
-**Python SDK Required**: To verify your installation, you need to have the VectorAI Python SDK installed. Install it using `pip install actian-vectorai-client` or follow the [Python SDK quickstart](/sdks/python/quickstart).
+**Python SDK Required**: To verify your installation, you need to have the VectorAI Python SDK installed. Install it using `pip install actian-vectorai-client` or follow the [Python SDK installation guide](/sdks/python/installation).
 </Warning>
 
 Test your installation by checking the server health:
 
 ```python
-import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
+from actian_vectorai import VectorAIClient
 
-async def main():
-    async with AsyncVectorAIClient("localhost:6574") as client:
-        info = await client.health_check()
-        print(f"Connected to {info['title']} v{info['version']}")
-
-asyncio.run(main())
+with VectorAIClient("localhost:6574") as client:
+    info = client.health_check()
+    print(f"Connected to {info['title']} v{info['version']}")
 ```
 
 ## Troubleshooting
@@ -135,7 +117,7 @@ docker logs -f <container-id>
   <Card title="Core Concepts" icon="book-open" href="/docs/fundamentals">
     Learn about vector databases and embeddings
   </Card>
-  <Card title="Python SDK" icon="code" href="/sdks/python/quickstart">
+  <Card title="Python SDK" icon="code" href="/sdks/python/installation">
     Get started with the Python SDK
   </Card>
 </CardGroup>
