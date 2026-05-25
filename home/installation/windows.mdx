@@ -1,1 +1,87 @@
+---
+title: "Windows Platforms"
+description: "Installing VectorAI DB locally on Windows."
+---
 
+## Prerequisites
+
+Before installing, ensure you have:
+- At least 8 GB RAM (16 GB+ recommended)
+- 10 GB disk space (100 GB+ recommended)
+
+# Installing a Zen Server on Windows
+
+You must install **Zen Enterprise Server** or **Cloud Server** locally on the Windows server itself. You cannot install it remotely from a client machine.
+
+After you run the installer, you can find the installation log file in the Windows `%Temp%` directory. This log may be useful if the installation fails.
+
+### To install on Windows
+
+1.  **Launch the installer** from your Windows machine.
+2.  In the installer selection list, click **Enterprise Server** or **Cloud Server** to install the components appropriate for your 32- or 64-bit Windows system.
+3.  In the Welcome screen, click **Next**.
+4.  On the **License Agreement** page, read and accept the Software License Agreement, then click **Next**.
+5.  To choose different installation locations, click **Change** for any of the directories listed. When you have made your choices, click **OK**.
+6.  Click **Next** to continue.
+7.  Click **Install** to begin the installation.
+8.  Once the installation is complete, the wizard indicates that it was successful. The product has been installed with a **trial key** that expires at the end of its trial period.
+9.  **Enter your license key** and click the button to authorize the key.
+10. A message box displays the status of the authorization action. Perform one of the following actions depending on the status:
+    * If the authorization status message is **“key is authorized,”** click **OK**, then click **Finish** to complete the installation.
+    * If the authorization status message reports an error or warning, click **OK**, and repeat the step to enter a valid license key.
+11. We recommend that you **register your product** as explained in the Registration page that opens.
+
+> [!IMPORTANT]
+> If you are prompted to restart your system, please do so to ensure proper operation of your installation.
+
+
+## Verify installation
+
+<Warning>
+**Python SDK Required**: To verify your installation, you need to have the VectorAI Python SDK installed. Install it using `pip install actian-vectorai-client` or follow the [Python SDK quickstart](/sdks/python/quickstart).
+</Warning>
+
+Test your installation by checking the server health:
+
+```python
+import asyncio
+from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
+
+async def main():
+    async with AsyncVectorAIClient("localhost:6574") as client:
+        info = await client.health_check()
+        print(f"Connected to {info['title']} v{info['version']}")
+
+asyncio.run(main())
+```
+
+## Troubleshooting
+
+### Common issues
+
+The table below lists common installation issues and their solutions.
+
+| Issue                | Solution                                                        |
+|----------------------|-----------------------------------------------------------------|
+| Connection failed    | Ensure Docker container is running: `docker ps` |
+| Port already in use  | Stop services using port 6574 or use a different port: `-p 6576:6574` |
+| Permission denied    | Run Docker commands with appropriate permissions or add user to docker group |
+| Container exits      | Check logs: `docker logs <container-id>` |
+
+### View logs
+
+Check logs for errors:
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/home/quickstart/quickstart">
+    Follow the quickstart guide to create your first collection
+  </Card>
+  <Card title="Core Concepts" icon="book-open" href="/docs/fundamentals">
+    Learn about vector databases and embeddings
+  </Card>
+  <Card title="Python SDK" icon="code" href="/sdks/python/quickstart">
+    Get started with the Python SDK
+  </Card>
+</CardGroup>
