@@ -34,12 +34,31 @@ scrape_configs:
 ```
 
 <Info>
-  The `/metrics` endpoint does not require authentication. If you expose it on a public network, restrict access with a firewall rule or reverse proxy.
+ The `/metrics` endpoint does not require authentication. If you expose it on a public network, restrict access with a firewall rule or reverse proxy.
 </Info>
 
 ## Available metrics
 
-The following sections describe every metric exposed by the `/metrics` endpoint, grouped by category.
+The following sections describe every metric exposed by the `/metrics` endpoint, grouped by category. All metrics use the prefix **`actian_vectorai_`**. The full metric name is `actian_vectorai_<name>`. For example, `actian_vectorai_collections_total`, `actian_vectorai_rest_responses_total`.
+
+### Label Keys
+
+| Concept | Label key |
+|---|---|
+| Collection name | `collection` |
+| Named vector space | `vector_name` |
+| HTTP or gRPC route | `endpoint` |
+| HTTP verb | `method` |
+| HTTP or gRPC status code (string) | `status` |
+| App name | `name` |
+| App version | `version` |
+
+### Prometheus Naming Rules Applied
+
+- Counters end in `_total`.
+- Duration histograms end in `_duration_seconds` (base unit: seconds).
+- Memory gauges end in `_bytes`.
+- Boolean state gauges have a descriptive suffix (`_running`, `_mode`).
 
 ### Application info
 
@@ -47,21 +66,22 @@ These metrics expose application identity and operational state.
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `app_info` | Info | `name`, `version` | Application name and version. Set once when the process starts from built-in metadata. |
-| `app_status_recovery_mode` | Gauge | — | `1` if the engine is in recovery mode, `0` otherwise. Changed whenever the engine enters or exits recovery mode. |
+| `app_info` | Gauge | `name`, `version` | Application identity as name and version. Set once when the process starts from built-in metadata. |
+| `app_status_recovery_mode` | Gauge | — | `1` if the engine is in recovery mode, `0` otherwise. Changes whenever the engine enters or exits recovery mode. |
 
 ### Collection metrics
 
-These metrics provide visibility into collection sizes, vector counts, and optimization state.
+These metrics provide visibility into collection sizes, vector counts, point counts, and optimization state.
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `collections_total` | Gauge | — | Total number of collections (both loaded in memory and present on disk). Increased on creation and decreased on removal. |
-| `collections_vector_total` | Gauge | — | Total number of vectors across all collections. Recomputed whenever any collection's vector count changes. |
-| `collection_points` | Gauge | `collection` | Number of points in a collection. Taken from the count of external identifiers the collection tracks. |
-| `collection_vectors` | Gauge | `collection`, `vector_name` | Number of vectors in a collection across all vector spaces. Calculated by summing vector counts per space; updated on inserts, deletes, and rebuilds. |
+| `collections_total` | Gauge | — | Total number of collection, both loaded in memory and present on disk. Increased on creation and decreased on removal. |
+| `collections_vector_total` | Gauge | — | Aggregate vector count across all collections. Recomputed whenever any collection's vector count changes. |
+| `collection_point_total` | Gauge | — | Aggregate point count across all collections. |
+| `collection_points` | Gauge | `collection` | Live point count in a named collection. Taken from the count of external identifiers the collection tracks. |
+| `collection_vectors` | Gauge | `collection`, `vector_name` | Vector count per named vector space. Calculated by summing vector counts per space; updated on inserts, deletes, and rebuilds. |
+| `collection_indexed_only_excluded_vectors` | Gauge | `collection`, `vector_name` | Number of vectors excluded from the indexed-only search (for example, deleted or hidden points). |
 | `collection_running_optimizations` | Gauge | `collection` | `1` if the collection is undergoing a rebuild or optimization, `0` if idle. Set when a rebuild task begins and cleared when it ends. |
-| `collection_indexed_only_excluded_points` | Gauge | `collection` | Number of points excluded from the indexed-only view (for example, deleted or hidden points). |
 
 ### Rebuild metrics
 
@@ -69,72 +89,79 @@ These metrics track index rebuild operations across all collections.
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `rebuild_running` | Gauge | — | `1` if at least one rebuild is in progress, `0` otherwise. Reset to `0` when the last active rebuild finishes. |
-| `rebuild_triggered_total` | Counter | — | Cumulative count of rebuild tasks submitted. Incremented each time a rebuild request is accepted. |
-| `rebuild_success_total` | Counter | — | Cumulative count of rebuilds that completed successfully. |
-| `rebuild_failed_total` | Counter | — | Cumulative count of rebuilds that failed or were cancelled. |
-| `rebuild_duration_seconds` | Histogram | — | Total rebuild durations, measured from start to finish and recorded in predefined time buckets. |
-| `rebuild_vectors_processed_total` | Counter | — | Total vectors processed across all rebuilds (read or written). |
-| `rebuild_vectors_skipped_total` | Counter | — | Total vectors skipped during rebuilds because they were already up to date. |
-| `rebuild_vectors_deleted_total` | Counter | — | Total vectors deleted as part of rebuilds. |
-| `rebuild_phase_duration_seconds` | Histogram | `phase` | Duration of individual rebuild phases (for example, initialization, population, finalization). |
+| `rebuild_running` | Gauge | `collection` | `1` if at least one rebuild is in progress, `0` otherwise. Reset to `0` when the last active rebuild finishes. |
+| `rebuild_triggered_total` | Counter | `collection` | Cumulative count of rebuild tasks submitted. Incremented each time a rebuild request is accepted. |
+| `rebuild_success_total` | Counter | `collection` | Cumulative count of rebuilds that finished successfully. |
+| `rebuild_failed_total` | Counter | `collection` | Cumulative count of rebuilds that failed or were cancelled. |
+| `rebuild_duration_seconds` | Histogram | `collection` | Total rebuild durations, measured from start to finish and recorded in predefined time buckets. |
+| `rebuild_vectors_processed_total` | Counter | `collection` | Total vectors processed across all rebuilds (read or written). |
+| `rebuild_vectors_skipped_total` | Counter | `collection` | Total vectors skipped during rebuilds because they were already updated. |
+| `rebuild_vectors_deleted_total` | Counter | `collection` | Total vectors deleted across all rebuilds. |
+| `rebuild_phase_duration_seconds` | Histogram | `collection`, `phase` | Duration of individual rebuild phases (for example, initialize, populate, catchup, finalize). |
 
-### Snapshot metrics
+### Snapshot
 
 These metrics track snapshot creation and recovery operations.
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `snapshot_creation_running` | Gauge | `collection` | `1` if a snapshot creation is in progress for a collection, `0` if idle. |
-| `snapshot_recovery_running` | Gauge | `collection` | `1` if a snapshot recovery is in progress for a collection, `0` if idle. |
-| `snapshot_created_total` | Counter | — | Cumulative count of successful snapshot creations. |
+| `snapshot_creation_running` | Gauge | `collection` | `1` while `SaveSnapshot` is executing for a collection, `0` if idle. |
+| `snapshot_recovery_running` | Gauge | `collection` | `1` while `LoadSnapshot` is executing for a collection, `0` if idle. |
+| `snapshot_created_total` | Counter | `collection` | Cumulative count of successful snapshot saves. |
 
-### REST API metrics
+### REST API
 
 These metrics track HTTP request volume and latency across all REST endpoints.
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `rest_responses_total` | Counter | `endpoint`, `method`, `status` | Total number of REST responses. Increased for every response the server sends. |
-| `rest_responses_fail_total` | Counter | `endpoint`, `method`, `status` | REST responses that returned a non-2xx status. |
-| `rest_responses_duration_seconds` | Histogram | `endpoint`, `method`, `status` | REST request latency measured from request arrival to response. |
+| `rest_responses_total` | Counter | `endpoint`, `method`, `status` | Total number of REST responses by route, method, and status code. Increased for every response the server sends. |
+| `rest_responses_fail_total` | Counter | `endpoint`, `method` | REST responses that returned a 5xx status. |
+| `rest_responses_duration_seconds` | Histogram | `endpoint`, `method` | REST request latency per route and method. |
 
 Use `rest_responses_total` to track request rates and error ratios. Use `rest_responses_duration_seconds` to compute percentile latencies (p50, p95, p99) per endpoint.
 
-### gRPC API metrics
+### gRPC API
 
 These metrics track gRPC call volume and latency.
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `grpc_responses_total` | Counter | `method`, `status` | Total number of gRPC responses. Increased for every completed RPC call. |
-| `grpc_responses_fail_total` | Counter | `method`, `status` | gRPC responses that finished with an error status. |
-| `grpc_responses_duration_seconds` | Histogram | `method`, `status` | gRPC call latency measured from call start to final status. |
-
-### Memory metrics
-
-These metrics report on memory usage from the allocator and the operating system.
-
-| Metric | Type | Description |
-|--------|------|-------------|
-| `memory_active_bytes` | Gauge | Current active memory usage reported by the allocator. |
-| `memory_resident_bytes` | Gauge | Resident set size (RSS) of the process, obtained from the OS. |
-| `memory_allocated_bytes` | Gauge | Total memory allocated by the allocator, including memory that has been freed. |
-| `memory_metadata_bytes` | Gauge | Memory used by the allocator for its own bookkeeping structures. |
-| `memory_retained_bytes` | Gauge | Memory retained by the allocator but not currently in use. |
+| `grpc_responses_total` | Counter | `endpoint`, `status` | Total number of gRPC responses by fully qualified method and status. Increased for every completed RPC call. |
+| `grpc_responses_fail_total` | Counter | `endpoint` | gRPC responses with an error status. |
+| `grpc_responses_duration_seconds` | Histogram | `endpoint` | gRPC call latency per fully qualified method, measured from call start to final status. |
 
 ### Process metrics
 
-These metrics report on the operating-system-level health of the VectorAI DB process.
+These metrics report on the health of the VectorAI DB process at the operating system level, including memory usage from the allocator.
 
 | Metric | Type | Description |
 |--------|------|-------------|
-| `process_threads` | Gauge | Number of threads currently running in the process. |
-| `process_open_fds` | Gauge | Number of open file descriptors held by the process. |
-| `process_open_mmaps` | Gauge | Number of memory-mapped regions owned by the process. |
-| `process_minor_page_faults_total` | Counter | Cumulative minor page faults since process start. |
-| `process_major_page_faults_total` | Counter | Cumulative major page faults since process start. Requires disk I/O. |
-| `process_cpu_seconds_total` | Counter | Total CPU time consumed (user + kernel) in seconds. |
+| `memory_active_bytes` | Gauge | jemalloc active memory (or working set on Windows) |
+| `memory_allocated_bytes` | Gauge | jemalloc allocated memory (or private bytes on Windows) |
+| `memory_metadata_bytes` | Gauge | jemalloc metadata overhead (Linux only) |
+| `memory_resident_bytes` | Gauge | Resident set size |
+| `memory_retained_bytes` | Gauge | jemalloc retained unmapped memory (Linux only) |
+| `process_threads` | Gauge | Number of live threads |
+| `process_open_fds` | Gauge | Open file descriptor / handle count |
+| `process_open_mmaps` | Gauge | Open memory-mapped regions |
+| `process_cpu_cores` | Gauge | Logical CPU core count observed by the process |
+| `process_cpu_frequency_hz` | Gauge | Observed CPU frequency (hertz, from `/proc/cpuinfo` or Windows registry) |
+| `process_minor_page_faults_total` | Counter | Minor page faults since start (Linux only) |
+| `process_major_page_faults_total` | Counter | Major page faults since start (Linux only) |
+| `process_cpu_seconds_total` | Counter | Total CPU time consumed (user + kernel) |
+| `process_uptime_seconds` | Gauge | Process uptime in seconds (time since telemetry initialization) |
+| `process_memory_usage_bytes` | Gauge | Total memory currently used by the process (working set/private bytes) |
+| `process_memory_total_bytes` | Gauge | Total physical memory available to the machine |
+| `process_memory_free_bytes` | Gauge | Currently available physical memory observed on the host |
+| `process_disk_usage_bytes` | Gauge | Disk space consumed in the process data path |
+| `process_disk_size_bytes` | Gauge | Total disk capacity reported by `std::filesystem::space()` for the configured VDE data path |
+
+> **Notes:** 
+
+- The `memory_active_bytes`, `memory_allocated_bytes`, `memory_metadata_bytes`, and `memory_retained_bytes` metrics are only registered/emitted when jemalloc is enabled (`VDE_HAVE_JEMALLOC`). They are omitted entirely from builds that don't link jemalloc.
+
+- The metric `process_memory_free_bytes` is sourced directly from the OS (Windows `GlobalMemoryStatusEx`, Linux `sysinfo`). It reflects machine-wide available RAM, independent of the process’s own usage metrics.
 
 <Warning>
   A sustained increase in `process_major_page_faults_total` indicates the system is running low on physical memory and paging to disk, which severely degrades search performance. Consider increasing available memory or reducing the number of loaded collections.
@@ -142,7 +169,7 @@ These metrics report on the operating-system-level health of the VectorAI DB pro
 
 ## Example PromQL queries
 
-The following queries demonstrate common monitoring patterns you can use in Grafana or any Prometheus-compatible dashboard tool.
+The following Prometheus Query Language example queries demonstrate common monitoring patterns that you can use in Grafana or any Prometheus-compatible dashboard tool.
 
 ### REST request rate by endpoint
 
@@ -194,14 +221,14 @@ collections_vector_total
 
 ```promql
 collection_points
-```
-
+``` 
+**???needs label???**
 ### Active rebuilds
 
 ```promql
 rebuild_running
 ```
-
+**???needs label???**
 ### Rebuild success rate
 
 ```promql
