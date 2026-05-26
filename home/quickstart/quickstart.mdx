@@ -82,14 +82,17 @@ Connect to the VectorAI server and create a collection named `products` with dim
   </Tab>
 </Tabs>
 
-## Step 4: Generate sample data
+## Step 4: Insert vectors
 
-Create a function to generate sample product vectors with metadata.
+Generate sample product vectors and insert them into the collection.
 
 ```python
 import random
 from typing import List
-from actian_vectorai import PointStruct
+from actian_vectorai import VectorAIClient, PointStruct
+
+NUM_VECTORS = 100
+DIMENSION = 128
 
 def generate_sample_products(
     num_products: int = 100,
@@ -123,17 +126,6 @@ def generate_sample_products(
         )
 
     return points
-```
-
-## Step 5: Insert vectors
-
-Generate and insert vectors into the collection.
-
-```python
-from actian_vectorai import VectorAIClient
-
-NUM_VECTORS = 100
-DIMENSION = 128
 
 with VectorAIClient("localhost:6574") as client:
     print(f"Inserting {NUM_VECTORS} vectors...")
@@ -147,7 +139,7 @@ with VectorAIClient("localhost:6574") as client:
     print(f"Vector count: {count}")
 ```
 
-## Step 6: Search for similar vectors
+## Step 5: Search for similar vectors
 
 Perform similarity search to find the top five most similar vectors.
 
@@ -187,7 +179,7 @@ Retrieving vector details...
 Top result payload: {'price': 451.6, 'id': 39, 'in_stock': False, 'category': 'electronics'}
 ```
 
-## Step 7: Delete collection
+## Step 6: Delete collection
 
 When you are done, clean up by deleting the collection.
 
