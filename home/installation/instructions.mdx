@@ -92,6 +92,7 @@ The table below lists common installation issues and their solutions.
 | Port already in use  | Stop services using port 6574 or use a different port: `-p 6576:6574` |
 | Permission denied    | Run Docker commands with appropriate permissions or add user to docker group |
 | Container exits      | Check logs: `docker logs <container-id>` |
+| Container exits (Linux / WSL2) | Volume mount permission mismatch: the container runs as UID 999. Run `chown -R 999:999 ./local_data` on the host, then restart the container. |
 
 ### View Docker logs
 
