@@ -17,13 +17,16 @@ The `search()` method returns results ranked by similarity score. Score interpre
 <CodeGroup>
 ```python Python
 import random
-from actian_vectorai import VectorAIClient, PointStruct
+from actian_vectorai import VectorAIClient, PointStruct, VectorParams, Distance
 
 DIMENSION = 384
 COLLECTION = "documents"
 
 # Connect to VectorAI DB server
 with VectorAIClient("localhost:6574") as client:
+    # Create the collection
+    client.collections.create(COLLECTION, vectors_config=VectorParams(size=DIMENSION, distance=Distance.Cosine))
+    
     # Batch insert multiple document vectors
     payloads = [
         {"text": "Machine learning fundamentals", "category": "education"},
@@ -70,6 +73,9 @@ const COLLECTION = 'documents';
 
 async function main() {
   const client = new VectorAIClient('localhost:6574');
+
+  // Create the collection
+  await client.collections.create(COLLECTION, { dimension: DIMENSION, distanceMetric: 'COSINE' });
 
   // Batch insert multiple document vectors
   const payloads = [
