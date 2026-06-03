@@ -39,7 +39,7 @@ scrape_configs:
 
 ## Available metrics
 
-The following sections describe every metric exposed by the `/metrics` endpoint, grouped by category. All metrics use the prefix **`actian_vectorai_`**. The full metric name is `actian_vectorai_<name>`. For example, `actian_vectorai_collections_total`, `actian_vectorai_rest_responses_total`.
+The following sections describe every metric exposed by the `/metrics` endpoint, grouped by category. All metrics use the prefix **`actian_vectorai_`**. The full metric name is `actian_vectorai_<name>`. For example, `actian_vectorai_collections_total`, `actian_vectorai_rest_responses_total`. In tables, the prefix may be omitted from metric names for space considerations.
 
 ### Label Keys
 
@@ -119,7 +119,7 @@ These metrics track HTTP request volume and latency across all REST endpoints.
 | `rest_responses_fail_total` | Counter | `endpoint`, `method` | REST responses that returned a 5xx status. |
 | `rest_responses_duration_seconds` | Histogram | `endpoint`, `method` | REST request latency per route and method. |
 
-Use `rest_responses_total` to track request rates and error ratios. Use `rest_responses_duration_seconds` to compute percentile latencies (p50, p95, p99) per endpoint.
+Use `actian_vectorai_rest_responses_total` to track request rates and error ratios. Use `actian_vectorai_rest_responses_duration_seconds` to compute percentile latencies (p50, p95, p99) per endpoint.
 
 ### gRPC API
 
@@ -131,17 +131,22 @@ These metrics track gRPC call volume and latency.
 | `grpc_responses_fail_total` | Counter | `endpoint` | gRPC responses with an error status. |
 | `grpc_responses_duration_seconds` | Histogram | `endpoint` | gRPC call latency per fully qualified method, measured from call start to final status. |
 
+### Combined API
+
+These metrics track combined requests and latency for REST and gRPC.
+
+| Metric | Type | Description |
+|---|---|---|
+| `api_requests_total` | Counter | Total number of API requests (REST + gRPC) received since the last server start |
+| `api_responses_duration_seconds` | Histogram | Request latency across REST and gRPC, buckets shared with per-API histograms |
+
 ### Process metrics
 
 These metrics report on the health of the VectorAI DB process at the operating system level, including memory usage from the allocator.
 
 | Metric | Type | Description |
 |--------|------|-------------|
-| `memory_active_bytes` | Gauge | jemalloc active memory (or working set on Windows) |
-| `memory_allocated_bytes` | Gauge | jemalloc allocated memory (or private bytes on Windows) |
-| `memory_metadata_bytes` | Gauge | jemalloc metadata overhead (Linux only) |
 | `memory_resident_bytes` | Gauge | Resident set size |
-| `memory_retained_bytes` | Gauge | jemalloc retained unmapped memory (Linux only) |
 | `process_threads` | Gauge | Number of live threads |
 | `process_open_fds` | Gauge | Open file descriptor / handle count |
 | `process_open_mmaps` | Gauge | Open memory-mapped regions |
@@ -157,84 +162,78 @@ These metrics report on the health of the VectorAI DB process at the operating s
 | `process_disk_usage_bytes` | Gauge | Disk space consumed in the process data path |
 | `process_disk_size_bytes` | Gauge | Total disk capacity reported by `std::filesystem::space()` for the configured VDE data path |
 
-> **Notes:** 
-
-- The `memory_active_bytes`, `memory_allocated_bytes`, `memory_metadata_bytes`, and `memory_retained_bytes` metrics are only registered/emitted when jemalloc is enabled (`VDE_HAVE_JEMALLOC`). They are omitted entirely from builds that don't link jemalloc.
-
-- The metric `process_memory_free_bytes` is sourced directly from the OS (Windows `GlobalMemoryStatusEx`, Linux `sysinfo`). It reflects machine-wide available RAM, independent of the process’s own usage metrics.
+- The metric `actian_vectorai_process_memory_free_bytes` is sourced directly from the operating system (Windows `GlobalMemoryStatusEx`, Linux `sysinfo`). It reflects machine-wide available RAM, independent of the process's own usage metrics.
 
 <Warning>
-  A sustained increase in `process_major_page_faults_total` indicates the system is running low on physical memory and paging to disk, which severely degrades search performance. Consider increasing available memory or reducing the number of loaded collections.
+  A sustained increase in `actian_vectorai_process_major_page_faults_total` indicates the system is running low on physical memory and paging to disk, which severely degrades search performance. Consider increasing available memory or reducing the number of loaded collections.
 </Warning>
 
 ## Example PromQL queries
 
-The following Prometheus Query Language example queries demonstrate common monitoring patterns that you can use in Grafana or any Prometheus-compatible dashboard tool.
+The following Prometheus Query Language examples demonstrate common monitoring patterns that you can use in Grafana or any Prometheus-compatible dashboard tool.
 
 ### REST request rate by endpoint
 
 ```promql
-sum by (endpoint) (rate(rest_responses_total[5m]))
+sum by (endpoint) (rate(actian_vectorai_rest_responses_total[5m]))
 ```
 
 ### REST error ratio
 
 ```promql
-sum(rate(rest_responses_fail_total[5m]))
+sum(rate(actian_vectorai_rest_responses_fail_total[5m]))
 /
-sum(rate(rest_responses_total[5m]))
+sum(rate(actian_vectorai_rest_responses_total[5m]))
 ```
 
 ### REST p95 latency per endpoint
 
 ```promql
-histogram_quantile(0.95, sum by (le, endpoint) (rate(rest_responses_duration_seconds_bucket[5m])))
+histogram_quantile(0.95, sum by (le, endpoint) (rate(actian_vectorai_rest_responses_duration_seconds_bucket[5m])))
 ```
 
 ### gRPC request rate by method
 
 ```promql
-sum by (method) (rate(grpc_responses_total[5m]))
+sum by (method) (actian_vectorai_rate(grpc_responses_total[5m]))
 ```
 
 ### gRPC error ratio
 
 ```promql
-sum(rate(grpc_responses_fail_total[5m]))
+sum(rate(actian_vectorai_grpc_responses_fail_total[5m]))
 /
-sum(rate(grpc_responses_total[5m]))
+sum(rate(actian_vectorai_grpc_responses_total[5m]))
 ```
 
 ### Memory usage
 
 ```promql
-memory_resident_bytes
+actian_vectorai_memory_resident_bytes
 ```
 
 ### Total vectors across all collections
 
 ```promql
-collections_vector_total
+actian_vectorai_collections_vector_total
 ```
 
 ### Points per collection
 
 ```promql
-collection_points
+actian_vectorai_collection_points
 ``` 
-**???needs label???**
 ### Active rebuilds
 
 ```promql
-rebuild_running
+actian_vectorai_rebuild_running
 ```
-**???needs label???**
 ### Rebuild success rate
 
 ```promql
-sum(rate(rebuild_success_total[1h]))
+sum(rate(actian_vectorai_rebuild_success_total[1h]))
 /
-sum(rate(rebuild_triggered_total[1h]))
+sum(rate(actian_vectorai_rebuild_triggered_total[1h]))
 ```
 
 ## Recommended alerts
@@ -243,14 +242,14 @@ The following table lists suggested Prometheus alerting rules for production dep
 
 | Alert | Condition | Severity | Description |
 |-------|-----------|----------|-------------|
-| High REST error rate | `sum(rate(rest_responses_fail_total[5m])) / sum(rate(rest_responses_total[5m])) > 0.05` | Warning | More than 5% of REST requests failing |
-| High REST p95 latency | `histogram_quantile(0.95, sum by (le) (rate(rest_responses_duration_seconds_bucket[5m]))) > 2` | Warning | REST p95 latency exceeds 2 seconds |
-| High gRPC error rate | `sum(rate(grpc_responses_fail_total[5m])) / sum(rate(grpc_responses_total[5m])) > 0.05` | Warning | More than 5% of gRPC calls failing |
-| Recovery mode active | `app_status_recovery_mode == 1` | Critical | Engine is in recovery mode |
-| High memory usage | `memory_resident_bytes > 0.8 * <memory_limit>` | Warning | RSS exceeds 80% of available memory |
-| Major page faults rising | `rate(process_major_page_faults_total[5m]) > 10` | Warning | Sustained major page faults indicate memory pressure |
-| File descriptor exhaustion | `process_open_fds > 0.8 * <fd_limit>` | Warning | Open file descriptors approaching system limit |
-| Rebuild failures | `rate(rebuild_failed_total[1h]) > 0` | Warning | One or more index rebuilds have failed |
+| High REST error rate | `sum(rate(actian_vectorai_rest_responses_fail_total[5m])) / sum(rate(actian_vectorai_rest_responses_total[5m])) > 0.05` | Warning | More than 5% of REST requests failing |
+| High REST p95 latency | `histogram_quantile(0.95, sum by (le) (rate(actian_vectorai_rest_responses_duration_seconds_bucket[5m]))) > 2` | Warning | REST p95 latency exceeds 2 seconds |
+| High gRPC error rate | `sum(actian_vectorai_rate(grpc_responses_fail_total[5m])) / sum(rate(actian_vectorai_grpc_responses_total[5m])) > 0.05` | Warning | More than 5% of gRPC calls failing |
+| Recovery mode active | `actian_vectorai_app_status_recovery_mode == 1` | Critical | Engine is in recovery mode |
+| High memory usage | `actian_vectorai_memory_resident_bytes > 0.8 * <memory_limit>` | Warning | RSS exceeds 80% of available memory |
+| Major page faults rising | `rate(actian_vectorai_process_major_page_faults_total[5m]) > 10` | Warning | Sustained major page faults indicate memory pressure |
+| File descriptor exhaustion | `actian_vectorai_process_open_fds > 0.8 * <fd_limit>` | Warning | Open file descriptors approaching system limit |
+| Rebuild failures | `rate(actian_vectorai_rebuild_failed_total[1h]) > 0` | Warning | One or more index rebuilds have failed |
 
 <Info>
   Replace `<memory_limit>` and `<fd_limit>` with the actual limits for your deployment environment.
@@ -266,9 +265,9 @@ groups:
     rules:
       - alert: VectorAIHighErrorRate
         expr: >
-          sum(rate(rest_responses_fail_total[5m]))
+          sum(rate(actian_vectorai_rest_responses_fail_total[5m]))
           /
-          sum(rate(rest_responses_total[5m]))
+          sum(rate(actian_vectorai_rest_responses_total[5m]))
           > 0.05
         for: 5m
         labels:
