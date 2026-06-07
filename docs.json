@@ -336,5 +336,10 @@
       "github": "https://github.com/actiancorp",
       "linkedin": "https://linkedin.com/company/actian"
     }
+  },
+  "integrations": {
+    "ga4": {
+      "measurementId": "G-NHC5CN295F"
+    }
   }
 }
