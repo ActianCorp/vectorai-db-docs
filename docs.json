@@ -280,7 +280,7 @@
               "academy/tutorials/predicate-filters",
               "academy/tutorials/leverage-open-source-embedding-models",
               "academy/tutorials/multimodel-system",
-              "academy/tutorials/re-ranking",
+              "academy/tutorials/reranking",
               "academy/tutorials/retrieval-quality",
               "academy/tutorials/adaptive-rag"
             ]
