@@ -316,7 +316,7 @@
     "primary": {
       "type": "button",
       "label": "Get Started",
-      "href": "https://www.actian.com/support"
+      "href": "/home/quickstart/quickstart"
     }
   },
   "contextual": {
