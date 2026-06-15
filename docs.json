@@ -59,7 +59,8 @@
             "pages": [
               "docs/guides/error-handling",
               "docs/guides/troubleshooting",
-              "docs/guides/gui-interface"
+              "docs/guides/gui-interface",
+              "docs/guides/monitoring-and-logging"
             ]
           },
           {
@@ -315,7 +316,7 @@
     "primary": {
       "type": "button",
       "label": "Get Started",
-      "href": "/home/quickstart/quickstart"
+      "href": "https://www.actian.com/support"
     }
   },
   "contextual": {
