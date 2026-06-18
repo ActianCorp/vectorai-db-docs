@@ -13,8 +13,6 @@ The Python SDK provides synchronous and asynchronous clients for VectorAI DB ove
 
 ## Install the SDK
 
-Install the core SDK from PyPI.
-
 ```bash
 pip install actian-vectorai-client
 ```
@@ -30,28 +28,9 @@ Install extras when your application needs the related integration.
 | Telemetry | `pip install "actian-vectorai-client[telemetry]"` | Enable OpenTelemetry support. |
 | Everything | `pip install "actian-vectorai-client[all]"` | Install all optional runtime extras. |
 
-## Configure the client
-
-The SDK reads `ACTIAN_VECTORAI_*` environment variables and `.env` files automatically. Constructor arguments take precedence over environment values.
-
-| Variable | Default | Description |
-|---|---|---|
-| `ACTIAN_VECTORAI_URL` | `localhost:6574` | gRPC server address. |
-| `ACTIAN_VECTORAI_REST_URL` | `http://localhost:6573` | REST API base URL for auth/admin operations. |
-| `ACTIAN_VECTORAI_ACCESS_TOKEN` | unset | Bearer token for authenticated gRPC and REST requests. |
-| `ACTIAN_VECTORAI_TLS` | `false` | Enable TLS. |
-| `ACTIAN_VECTORAI_TIMEOUT` | `30.0` | Default per-call timeout in seconds. |
-| `ACTIAN_VECTORAI_MAX_RETRIES` | `3` | Retry attempts for transient failures. |
-| `ACTIAN_VECTORAI_POOL_SIZE` | `1` | gRPC connection pool size. |
-| `ACTIAN_VECTORAI_LOG_LEVEL` | `WARNING` | SDK log level. |
-
 ## Verify installation
 
-<Warning>
-**VectorAI DB required**: To verify your installation, run VectorAI DB locally first. Follow the [local installation guide](/home/installation/instructions) if you need a server.
-</Warning>
-
-Run a health check against the default gRPC endpoint.
+Requires VectorAI DB running locally. See the [Docker setup guide](/home/installation/instructions) if you haven't done that yet.
 
 ```python
 from actian_vectorai import VectorAIClient
@@ -60,6 +39,8 @@ with VectorAIClient("localhost:6574") as client:
     info = client.health_check()
     print(f"Server: {info['title']} v{info['version']}")
 ```
+
+For all client configuration options and environment variables, see the [Python SDK reference](/sdks/python/reference).
 
 ## Virtual environments
 

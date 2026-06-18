@@ -15,8 +15,6 @@ The JavaScript SDK provides a TypeScript-first `VectorAIClient` for VectorAI DB 
 
 ## Install the SDK
 
-Add the SDK to your project.
-
 ```bash
 npm install @actian/vectorai-client
 ```
@@ -29,9 +27,7 @@ yarn add @actian/vectorai-client
 
 ## Verify installation
 
-<Warning>
-**VectorAI DB required**: To verify your installation, run VectorAI DB locally first. Follow the [Docker installation guide](/home/installation/instructions) if you need a server.
-</Warning>
+Requires VectorAI DB running locally. See the [Docker setup guide](/home/installation/instructions) if you haven't done that yet.
 
 Save the following as `health.ts` and run it with `npx tsx health.ts`.
 
@@ -48,6 +44,8 @@ try {
 }
 ```
 
+For all client configuration options, see the [JavaScript SDK reference](/sdks/javascript/reference).
+
 ## Project setup
 
 Create a TypeScript project and install the SDK.
@@ -59,21 +57,6 @@ npm init -y
 npm install @actian/vectorai-client
 npm install --save-dev typescript tsx @types/node
 npx tsc --init
-```
-
-## Configure the client
-
-Use constructor options or environment variables for connection settings.
-
-```typescript
-import { VectorAIClient } from '@actian/vectorai-client';
-
-const client = new VectorAIClient('localhost:6574', {
-  accessToken: process.env.ACTIAN_VECTORAI_ACCESS_TOKEN,
-  restUrl: 'http://localhost:6573',
-  timeout: 30,
-  maxRetries: 3,
-});
 ```
 
 ## Troubleshooting

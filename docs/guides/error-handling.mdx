@@ -3,17 +3,9 @@ title: "Error handling"
 description: "Understand error codes and exception types returned by VectorAI DB and how to handle them in your application."
 ---
 
-VectorAI DB uses standard transport status codes and the Python SDK maps them to typed exceptions. Catch specific exceptions when you can, and use `VectorAIError` as the application-level catch-all.
-
-| | |
-|---|---|
-| **SDK exceptions** | `actian_vectorai.exceptions` module |
-| **Base exception** | `VectorAIError` |
-| **Retry helpers** | `is_retryable(error)`, `get_retry_delay(error)` |
+VectorAI DB uses standard transport status codes and the Python SDK maps them to typed exceptions. Catch specific exceptions when you can, and use `VectorAIError` as the application-level catch-all. SDK exceptions are in `actian_vectorai.exceptions`; retry helpers are `is_retryable(error)` and `get_retry_delay(error)`.
 
 ## Python SDK exceptions
-
-The current Python SDK exposes these exception classes for common application handling.
 
 | Exception class | Typical cause | Useful fields |
 |---|---|---|
@@ -27,8 +19,6 @@ The current Python SDK exposes these exception classes for common application ha
 | `VectorAIError` | Base class for SDK errors | `code`, `message`, `details`, `operation` |
 
 ## Catch specific exceptions
-
-Use the namespaced SDK APIs in examples and production code. Collections live under `client.collections`, and vector search lives under `client.points`.
 
 ```python
 from actian_vectorai import (
@@ -84,7 +74,7 @@ with VectorAIClient("localhost:6574") as client:
 
 ## Retry transient failures
 
-Use exponential backoff for retryable errors. The helper functions understand SDK exception types, including `ConnectionError`, `RateLimitError`, and `TimeoutError`.
+The helper functions understand SDK exception types, including `ConnectionError`, `RateLimitError`, and `TimeoutError`.
 
 ```python
 import time
@@ -158,10 +148,10 @@ except VectorAIError as error:
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Troubleshooting" href="/docs/guides/troubleshooting">
+  <Card title="Troubleshooting" icon="wrench" href="/docs/guides/troubleshooting">
     Diagnose connection, search, and startup issues.
   </Card>
-  <Card title="Python SDK" href="/sdks/python/quickstart">
-    Get started with the Python SDK.
+  <Card title="Python SDK" icon="code" href="/sdks/python/installation">
+    Install and configure the Python SDK.
   </Card>
 </CardGroup>

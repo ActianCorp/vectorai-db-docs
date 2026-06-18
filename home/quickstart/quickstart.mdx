@@ -1,15 +1,11 @@
 ---
 title: "Quickstart"
-description: "Guide to help you get started with VectorAI DB in under five minutes."
+description: "Create a collection, insert vectors, and run your first similarity search."
 ---
 
 import Prerequisites from "/snippets/python-prerequisites.mdx";
 
-This short guide shows you how to create a collection, insert vectors, and perform similarity search.
-
-<Warning>
-**VectorAI DB Required**: This quickstart requires VectorAI DB running in a Docker container. Docker deployment is the only supported version at the moment. [Set up VectorAI DB locally](/home/installation/instructions)
-</Warning>
+Before starting, make sure VectorAI DB is running and your SDK is installed. See the [Installation guide](/home/installation/instructions) if you haven't done that yet.
 
 <Tabs>
   <Tab title="Python">
@@ -18,36 +14,9 @@ This short guide shows you how to create a collection, insert vectors, and perfo
 
 <Prerequisites />
 
-## Step 1: Install the SDK
+## Step 1: Create a collection
 
-Install the VectorAI DB Python SDK using pip.
-
-```bash
-pip install actian-vectorai-client
-```
-
-## Step 2: Run the Docker container
-
-Download and run the VectorAI DB Docker container.
-
-```bash
-docker pull actian/vectorai:latest
-docker run -d --name vectorai \
-  -v ./local_data:/var/lib/actian-vectorai \
-  -p 6573-6575:6573-6575 \
-  -e ACTIAN_VECTORAI_ACCEPT_EULA=YES \
-  actian/vectorai:latest
-```
-
-Port 6573 is for the RESTful API, 6574 for gRPC, and 6575 for Local UI. The `/var/lib/actian-vectorai` directory is the container's location for storing Actian VectorAI DB and should be volume-mounted to persist data.
-
-<Note>
-    Want to go further? [Start a free 30-day trial](https://www.actian.com/databases/vectorai-db/community-edition/) and scale to 1 million vectors, fully on your infrastructure, no credit card required.
-</Note>
-
-## Step 3: Create a collection
-
-Connect to the VectorAI server and create a collection named `products` with dimension 128 and cosine distance metric.
+Connect to VectorAI DB and create a collection named `products` with dimension 128 and cosine distance metric.
 
 <Tabs>
   <Tab title="Synchronous">
@@ -86,9 +55,7 @@ Connect to the VectorAI server and create a collection named `products` with dim
   </Tab>
 </Tabs>
 
-## Step 4: Insert vectors
-
-Generate sample product vectors and insert them into the collection.
+## Step 2: Insert vectors
 
 ```python
 import random
@@ -143,9 +110,7 @@ with VectorAIClient("localhost:6574") as client:
     print(f"Vector count: {count}")
 ```
 
-## Step 5: Search for similar vectors
-
-Perform similarity search to find the top five most similar vectors.
+## Step 3: Search for similar vectors
 
 ```python
 from actian_vectorai import VectorAIClient
@@ -168,7 +133,7 @@ with VectorAIClient("localhost:6574") as client:
     print(f"Top result payload: {retrieved[0].payload}")
 ```
 
-If the search succeeds, the output displays the matched results ranked by similarity score.
+Expected output:
 
 ```
 Searching for similar vectors...
@@ -183,9 +148,7 @@ Retrieving vector details...
 Top result payload: {'price': 451.6, 'id': 39, 'in_stock': False, 'category': 'electronics'}
 ```
 
-## Step 6: Delete collection
-
-When you are done, clean up by deleting the collection.
+## Step 4: Delete collection
 
 ```python
 from actian_vectorai import VectorAIClient
@@ -201,35 +164,13 @@ with VectorAIClient("localhost:6574") as client:
 ## Prerequisites
 
 To use the JavaScript SDK, make sure you have:
+
 - Node.js 18 or later
 - npm 9 or later
 
-## Step 1: Install the SDK
+## Step 1: Create a collection
 
-Install the VectorAI DB JavaScript SDK using npm.
-
-```bash
-npm install @actian/vectorai-client
-```
-
-## Step 2: Run the Docker container
-
-Download and run the VectorAI DB Docker container.
-
-```bash
-docker pull actian/vectorai:latest
-docker run -d --name vectorai \
-  -v ./local_data:/var/lib/actian-vectorai \
-  -p 6573-6575:6573-6575 \
-  -e ACTIAN_VECTORAI_ACCEPT_EULA=YES \
-  actian/vectorai:latest
-```
-
-The gRPC server is available at `localhost:6574`. The Local UI is available at `localhost:6575`.
-
-## Step 3: Create a collection
-
-Connect to the VectorAI server and create a collection named `products` with dimension 128 and cosine distance metric. Save each step below to a single file called `quickstart.ts` and run it with `npx tsx quickstart.ts`.
+Connect to VectorAI DB and create a collection named `products` with dimension 128 and cosine distance metric. Save each step below to a single file called `quickstart.ts` and run it with `npx tsx quickstart.ts`.
 
 ```typescript
 import { VectorAIClient } from '@actian/vectorai-client';
@@ -249,7 +190,7 @@ await client.collections.create(COLLECTION, {
 console.log(`Collection '${COLLECTION}' created successfully`);
 ```
 
-## Step 4: Generate sample data
+## Step 2: Generate sample data
 
 Create a helper function to generate sample product vectors with metadata.
 
@@ -269,9 +210,7 @@ function generateSampleProducts(numProducts: number, dimension: number) {
 }
 ```
 
-## Step 5: Insert vectors
-
-Generate and insert vectors into the collection.
+## Step 3: Insert vectors
 
 ```typescript
 const NUM_VECTORS = 100;
@@ -286,9 +225,7 @@ const count = await client.points.count(COLLECTION);
 console.log(`Vector count: ${count}`);
 ```
 
-## Step 6: Search for similar vectors
-
-Perform similarity search to find the top five most similar vectors.
+## Step 4: Search for similar vectors
 
 ```typescript
 console.log('\nSearching for similar vectors...');
@@ -305,7 +242,7 @@ const retrieved = await client.points.get(COLLECTION, [results[0].id]);
 console.log(`Top result payload: ${JSON.stringify(retrieved[0].payload)}`);
 ```
 
-If the search succeeds, the output displays the matched results ranked by similarity score.
+Expected output:
 
 ```
 Searching for similar vectors...
@@ -320,9 +257,7 @@ Retrieving vector details...
 Top result payload: {"price":451.6,"id":39,"in_stock":false,"category":"electronics"}
 ```
 
-## Step 7: Delete collection
-
-When you are done, clean up by deleting the collection and closing the connection.
+## Step 5: Delete collection
 
 ```typescript
 await client.collections.delete(COLLECTION);
@@ -336,19 +271,20 @@ client.close();
 
 ## Next steps
 
-Now that you have completed the quickstart, explore these resources to build further.
-
 <CardGroup cols={2}>
-  <Card title="Fundamentals" icon="book-open" href="/docs/fundamentals/index">
-    Learn collections, points, vectors, search, and filtering
+  <Card title="Core concepts" icon="book-open" href="/home/getting-started/overview">
+    Understand the data model, architecture, and how search works.
   </Card>
-  <Card title="Python reference" icon="code" href="/sdks/python/reference">
-    Review Python SDK namespaces and configuration
+  <Card title="Python SDK reference" icon="code" href="/sdks/python/reference">
+    Namespaces, configuration, filters, and error handling.
   </Card>
-  <Card title="JavaScript reference" icon="code" href="/sdks/javascript/reference">
-    Review JavaScript SDK namespaces and configuration
+  <Card title="JavaScript SDK reference" icon="code" href="/sdks/javascript/reference">
+    Client setup, namespaces, and TypeScript types.
   </Card>
   <Card title="Integrations" icon="plug" href="/docs/integrations/index">
-    Connect with LangChain and LlamaIndex
+    Connect VectorAI DB to LangChain and LlamaIndex.
+  </Card>
+  <Card title="Academy" icon="graduation-cap" href="/academy/tutorials">
+    Tutorials for semantic search, hybrid search, RAG, and more.
   </Card>
 </CardGroup>
