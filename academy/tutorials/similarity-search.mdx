@@ -7,7 +7,7 @@ This tutorial covers the core vector similarity search workflow with Actian Vect
 
 - Store and retrieve vectors using `PointStruct`, `points.upsert`, and `points.search`.
 - Control search behaviour with distance metrics, score thresholds, `SearchParams`, and pagination.
-- Fetch, count, and batch-search points using `points.get`, `points.count`, and `search_batch`.
+- Fetch and count points using `points.get` and `points.scroll`.
 
 Similarity search is the foundation of every vector database application. Instead of matching exact keywords, it finds items that are semantically close to a query. For example, "affordable flights to Europe" retrieves results about "cheap airfare to Paris" even though no words overlap.
 
@@ -45,7 +45,6 @@ from actian_vectorai import (
 from actian_vectorai import (
     PointStruct,
     SearchParams,
-    QuantizationSearchParams,
 )
 
 # Filtering
@@ -177,6 +176,15 @@ async def ingest():
 
 asyncio.run(ingest())
 ```
+
+#### How it works
+
+The ingestion pipeline converts raw text into vectors and stores them with metadata in a single batch operation.
+
+1. `embed_texts()` converts each document's text into a 384-dimensional float vector using `all-MiniLM-L6-v2`.
+2. `PointStruct(id, vector, payload)` packages the ID, vector, and metadata together.
+3. `points.upsert()` inserts (or updates) the points in the collection.
+4. `vde.flush()` persists vectors to disk immediately.
 
 #### How it works
 
@@ -378,24 +386,7 @@ All fields are optional. Omitting `SearchParams` entirely uses the collection's 
 
 #### Quantization-aware search
 
-When a collection uses scalar or product quantization, use `QuantizationSearchParams` to control how quantized vectors are used during the search. The following example enables rescoring, which reranks the initial candidates using the original full-precision vectors for higher accuracy.
-
-```python
-params = SearchParams(
-    hnsw_ef=128,
-    quantization=QuantizationSearchParams(
-        ignore=False,       # Use quantized vectors for the initial candidate pass
-        rescore=True,       # Rerank the top candidates with full-precision vectors
-        oversampling=2.0,   # Retrieve 2x candidates before rescoring
-    ),
-)
-```
-
-| Parameter | Effect |
-|-----------|--------|
-| `ignore=False` | Use quantized vectors for initial search (fast) |
-| `rescore=True` | Rerank candidates with original full-precision vectors |
-| `oversampling=2.0` | Retrieve 2x candidates before rescoring for higher recall |
+When a collection uses scalar or product quantization, `QuantizationSearchParams` controls how quantized vectors are used during the search.
 
 ## Step 7: Score threshold — filter low-confidence results
 
@@ -456,37 +447,32 @@ Threshold 0.7: 2 results
   id=6  score=0.7102  Transformers use self-attention mechanisms to process sequen...
 ```
 
-## Step 8: Pagination with offset and limit
+## Step 8: Pagination
 
 For large result sets, use `offset` and `limit` to retrieve results one page at a time. Run this cell to walk through three pages of results for a programming query, with three results per page.
 
 ```python
-async def paginated_search(query: str, page_size: int = 3):
-    query_vector = embed_text(query)
+PAGE_SIZE = 3
 
+async def paginated_search(query: str):
+    """Fetch results in pages using client-side slicing."""
+    vec = embed_text(query)
+    # Fetch enough results to fill multiple pages
     async with AsyncVectorAIClient(url=SERVER) as client:
-        page = 0
-        while True:
-            results = await client.points.search(
-                COLLECTION,
-                vector=query_vector,
-                limit=page_size,
-                offset=page * page_size,
-                with_payload=True,
-            ) or []
+        all_results = await client.points.search(
+            COLLECTION, vector=vec, limit=PAGE_SIZE * 3, with_payload=True,
+        ) or []
 
-            if not results:
-                break
+    for page in range(3):
+        start = page * PAGE_SIZE
+        chunk = all_results[start:start + PAGE_SIZE]
+        if not chunk:
+            break
+        print(f"--- Page {page + 1} ---")
+        for r in chunk:
+            print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('text','')[:60]}...")
 
-            print(f"--- Page {page + 1} (offset={page * page_size}) ---")
-            for r in results:
-                print(f"  id={r.id}  score={r.score:.4f}  topic={r.payload.get('topic')}")
-
-            page += 1
-            if page >= 3:
-                break
-
-asyncio.run(paginated_search("programming and software development"))
+asyncio.run(paginated_search("programming languages and frameworks"))
 ```
 
 #### How pagination works
@@ -499,7 +485,7 @@ Each call advances the window by incrementing `offset` by `limit`. Results are a
 | Page 2 | 3 | 3 | Results 4–6 |
 | Page 3 | 6 | 3 | Results 7–9 |
 
-`offset` skips the first N results and `limit` controls how many are returned per page.
+Results are always ranked by similarity score before the window is applied. Slice the result list on the client side to retrieve different pages.
 
 #### Expected output
 
@@ -564,28 +550,24 @@ The three requested points are returned with their payload metadata. No vector d
 
 ## Step 10: Count points
 
-`points.count` returns the number of points in a collection, with an option to apply a filter. Run this cell to count the total collection, an approximate count, and two filtered subsets.
+The following snippet counts the total number of points in the collection, then counts filtered subsets by topic and difficulty.
 
 ```python
 async def count_examples():
     async with AsyncVectorAIClient(url=SERVER) as client:
-        # Exact count — slower but precise
-        total = await client.points.count(COLLECTION, exact=True)
+        # Total count via vde.get_vector_count
+        total = await client.vde.get_vector_count(COLLECTION)
         print(f"Total points: {total}")
 
-        # Approximate count — faster, suitable for dashboards
-        approx = await client.points.count(COLLECTION, exact=False)
-        print(f"Approximate count: {approx}")
+        # Filtered counts — scroll all points and count in Python
+        all_pts, _ = await client.points.scroll(
+            COLLECTION, limit=1000, with_payload=True, with_vectors=False,
+        )
 
-        # Filtered count — only deep learning points
-        f = FilterBuilder().must(Field("topic").eq("deep_learning")).build()
-        dl_count = await client.points.count(COLLECTION, filter=f, exact=True)
-        print(f"Deep learning points: {dl_count}")
-
-        # Filtered count — only beginner difficulty points
-        f = FilterBuilder().must(Field("difficulty").eq("beginner")).build()
-        beginner = await client.points.count(COLLECTION, filter=f, exact=True)
-        print(f"Beginner points: {beginner}")
+    dl_count  = sum(1 for p in all_pts if p.payload.get("topic") == "deep_learning")
+    beginner  = sum(1 for p in all_pts if p.payload.get("difficulty") == "beginner")
+    print(f"Deep learning points: {dl_count}")
+    print(f"Beginner points: {beginner}")
 
 asyncio.run(count_examples())
 ```
@@ -602,62 +584,35 @@ The `exact` flag trades speed for accuracy. Choose based on whether the count ne
 Both the exact and approximate counts return 10 for this small collection. The filtered counts confirm there are two deep learning documents and three beginner-level documents.
 
 ```text
-Total points: 10
-Approximate count: 10
-Deep learning points: 2
-Beginner points: 3
+Total: 10  deep_learning: 2  beginner: 3
 ```
 
-## Step 11: Batch search — multiple queries in one call
+## Step 11: Running multiple searches
 
-`search_batch` sends up to 100 searches in a single gRPC round-trip, which eliminates per-request connection overhead. Run this cell to issue three different queries simultaneously and print their results side by side.
+When you need to run multiple queries against the same collection, run them sequentially within a single client connection to minimise connection overhead.
 
 ```python
-from actian_vectorai import SearchRequest
-
-async def batch_search():
+async def multi_search():
     queries = [
         "What is machine learning?",
         "How do containers work?",
         "Explain vector databases",
     ]
 
-    # Build typed SearchRequest objects — required by the SDK
-    searches = [
-        SearchRequest(vector=embed_text(q), limit=3, with_payload=True)
-        for q in queries
-    ]
-
     async with AsyncVectorAIClient(url=SERVER) as client:
-        batch_results = await client.points.search_batch(
-            COLLECTION,
-            searches=searches,
-        )
+        for q in queries:
+            vec = embed_text(q)
+            results = await client.points.search(
+                COLLECTION, vector=vec, limit=3, with_payload=True,
+            ) or []
+            print(f"\nQuery: {q}")
+            for r in results:
+                print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('text')[:60]}...")
 
-    for query, results in zip(queries, batch_results):
-        print(f"\nQuery: {query}")
-        for r in results:
-            print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('text')[:60]}...")
-
-asyncio.run(batch_search())
+asyncio.run(multi_search())
 ```
 
-#### Why batch search matters
-
-Sending multiple searches in a single call eliminates per-request connection overhead and reduces total latency significantly at scale.
-
-| Approach | Network round-trips | Overhead |
-|----------|-------------------|----------|
-| 3 separate `search()` calls | 3 | 3x connection overhead |
-| 1 `search_batch()` call | 1 | Minimal overhead |
-
-Each search in the batch can have its own `vector`, `limit`, `filter`, `params`, `score_threshold`, `using`, and `offset`. The results are returned in the same order as the input queries.
-
-Maximum batch size: 100 searches per call.
-
 #### Expected output
-
-All three queries return results in a single round-trip, each with its own ranked list.
 
 ```text
 Query: What is machine learning?
@@ -705,6 +660,8 @@ for r in results:
 ```
 
 ### Payload-sorted retrieval
+
+Run this cell to retrieve points sorted by the `difficulty` payload field rather than by vector similarity. Passing an `OrderBy` object instead of a vector tells the endpoint to skip similarity computation entirely.
 
 Run this cell to retrieve points sorted by the `difficulty` payload field rather than by vector similarity. Passing an `OrderBy` object instead of a vector tells the endpoint to skip similarity computation entirely.
 
@@ -791,7 +748,7 @@ async def search_with_vectors(query: str, top_k: int = 3):
 results = asyncio.run(search_with_vectors("machine learning"))
 print("=== Search with vectors ===")
 for r in results:
-    vec = r.vector if isinstance(r.vector, list) else []
+    vec = r.vectors if isinstance(r.vectors, list) else []
     print(f"  id={r.id}  score={r.score:.4f}  dim={len(vec)}  topic={r.payload.get('topic')}")
     if vec:
         print(f"    first 5 values: {[round(v, 4) for v in vec[:5]]}")
@@ -830,12 +787,12 @@ Each result includes the full 384-dimensional vector. The dimensionality confirm
 
 ```text
 === Search with vectors ===
-  id=1  score=0.8200  dim=384  topic=machine_learning
-    first 5 values: [0.0234, -0.0891, 0.0456, 0.0123, -0.0345]
-  id=8  score=0.6500  dim=384  topic=machine_learning
-    first 5 values: [0.0189, -0.0734, 0.0512, 0.0098, -0.0412]
-  id=2  score=0.5800  dim=384  topic=deep_learning
-    first 5 values: [0.0312, -0.0923, 0.0389, 0.0156, -0.0278]
+  id=1  score=0.5571  dim=384  topic=machine_learning
+    first 5 values: [-0.0868, -0.0287, 0.0288, 0.055, 0.0628]
+  id=2  score=0.3018  dim=384  topic=deep_learning
+    first 5 values: [-0.0417, -0.0558, 0.0347, -0.0, 0.017]
+  id=8  score=0.2997  dim=384  topic=machine_learning
+    first 5 values: [-0.0462, -0.0039, 0.0141, 0.0305, -0.0195]
 ```
 
 ## Step 14: Combine search with filters
@@ -882,13 +839,12 @@ The first search returns only machine learning documents, and the second returns
 
 ```text
 === Filtered: topic=machine_learning ===
-  id=1  score=0.7200  topic=machine_learning  Machine learning algorithms learn patterns from data to mak...
-  id=8  score=0.5800  topic=machine_learning  Gradient descent optimizes model parameters by iteratively ...
+  id=1  score=0.4123  topic=machine_learning  Machine learning algorithms learn patterns from data to mak...
+  id=8  score=0.2867  topic=machine_learning  Gradient descent optimizes model parameters by iteratively ...
 
-=== Filtered: difficulty=beginner ===
-  id=0  score=0.6800  difficulty=beginner  Python is a high-level programming language known for its r...
-  id=7  score=0.5400  difficulty=beginner  REST APIs use HTTP methods to create, read, update, and del...
-  id=4  score=0.3200  difficulty=beginner  SQL databases store data in structured tables with rows and...
+=== Filtered: topic=deep_learning ===
+  id=6  score=0.1779  topic=deep_learning  Transformers use self-attention mechanisms to process seque...
+  id=2  score=0.0689  topic=deep_learning  Neural networks are composed of layers of interconnected no...
 ```
 
 For a deep dive into all available filter types, see the [Predicate filters](/academy/tutorials/predicate-filters) tutorial.
@@ -933,7 +889,7 @@ The primary methods for running vector similarity searches are listed below.
 | Method | Purpose |
 |--------|---------|
 | `points.search(vector, limit, ...)` | Find nearest vectors by similarity |
-| `points.search_batch(searches)` | Run up to 100 searches in one call |
+| `points.search_batch(searches)` | Run multiple searches in one call |
 | `points.query(query, ...)` | Universal endpoint: search, order, fuse, sample, prefetch |
 | `points.query_batch(queries)` | Run up to 100 queries in one call |
 
@@ -944,7 +900,7 @@ The following methods fetch points by ID and count collection contents.
 | Method | Purpose |
 |--------|---------|
 | `points.get(ids, ...)` | Retrieve specific points by ID |
-| `points.count(filter, exact)` | Count points, optionally filtered |
+| `vde.get_vector_count()` + `points.scroll()` | Count total and filtered points |
 
 ### Search parameters
 
@@ -957,7 +913,6 @@ All search methods accept the following parameters to control retrieval behaviou
 | `filter` | `Filter` | Payload filter conditions |
 | `params` | `SearchParams` | HNSW ef, exact mode, quantization |
 | `score_threshold` | `float` | Minimum score cutoff |
-| `offset` | `int` | Skip first N results (pagination) |
 | `using` | `str` | Named vector to search |
 | `with_payload` | `bool \| WithPayloadSelector` | Control payload in response |
 | `with_vectors` | `bool` | Control vectors in response |
@@ -977,17 +932,7 @@ The metric must be set at collection creation time and cannot be changed afterwa
 
 Now that you can embed, store, search, and tune vector queries, explore the following tutorials to add more capabilities to your search pipeline.
 
-<CardGroup cols={2}>
-  <Card title="Predicate filters" href="/academy/tutorials/predicate-filters">
-    Combine similarity search with structured payload constraints
-  </Card>
-  <Card title="Reranking search results" href="/academy/tutorials/re-ranking">
-    Improve relevance with cross-encoder and reciprocal rank fusion reranking
-  </Card>
-  <Card title="Retrieval quality" href="/academy/tutorials/retrieval-quality">
-    Measure and optimize search accuracy using precision, recall, and MRR
-  </Card>
-  <Card title="Open-source embedding models" href="/academy/tutorials/leverage-open-source-embedding-models">
-    Integrate open-source models like Sentence Transformers and BGE
-  </Card>
-</CardGroup>
+- [Predicate filters](/academy/tutorials/predicate-filters) — Master the full Filter DSL with all field types and operators.
+- [Similarity search fundamentals](/academy/tutorials/similarity-search) — Explore search parameters, score thresholds, and pagination.
+- [Use open-source embedding models](/academy/tutorials/leverage-open-source-embedding-models) — Choose the right model for production.
+- [Optimizing retrieval quality](/academy/tutorials/retrieval-quality) — Tune HNSW parameters and search settings.
