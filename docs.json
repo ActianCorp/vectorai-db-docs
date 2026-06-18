@@ -65,9 +65,7 @@
             "group": "Guides",
             "pages": [
               "docs/guides/error-handling",
-              "docs/guides/troubleshooting",
-              "docs/guides/gui-interface",
-              "docs/guides/monitoring-and-logging"
+              "docs/guides/troubleshooting"
             ]
           },
           {
