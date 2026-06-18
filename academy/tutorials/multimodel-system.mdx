@@ -1,33 +1,13 @@
 ---
-title: "Building a multimodel system"
+title: "Building a multimodal system"
 description: "Work with multiple embedding models in one system"
 ---
 
-This tutorial builds a multimodel search system that stores text and image embeddings in a single Actian VectorAI DB collection, searches each vector space independently, and fuses the results using server-side Reciprocal Rank Fusion (RRF) and Distribution-Based Score Fusion (DBSF). The example uses a product catalog with two embedding models: `all-MiniLM-L6-v2` for text (384-dim) and `clip-ViT-B-32` for images (512-dim).
+This tutorial builds a multimodal search system that stores text and image embeddings in a single Actian VectorAI DB collection, searches each vector space independently, and fuses the results using server-side Reciprocal Rank Fusion (RRF) and client-side Distribution-Based Score Fusion (DBSF). The example uses a product catalog with two embedding models: `all-MiniLM-L6-v2` for text (384-dim) and `clip-ViT-B-32` for images (512-dim).
 
 ## Architecture overview
 
 The diagram below shows how a single collection stores two named vector spaces—one for text embeddings and one for image embeddings. At query time, the system embeds the user query into both spaces, prefetches candidates from each, and fuses the ranked lists server-side before returning a single result set.
-
-```mermaid
-flowchart LR
-    Product[Product Data] --> TextEmb[Text Embedder 384-dim]
-    Product --> ImgEmb[Image Embedder 512-dim]
-    TextEmb --> NV[Named Vectors in Actian VectorAI DB]
-    ImgEmb --> NV
-
-    Query[User Query] --> QText[Text Embedding]
-    Query --> QImg[Image Embedding]
-
-    QText --> PF1[Prefetch: text vector space]
-    QImg --> PF2[Prefetch: image vector space]
-    NV --> PF1
-    NV --> PF2
-
-    PF1 --> Fusion[Server-Side Fusion RRF / DBSF]
-    PF2 --> Fusion
-    Fusion --> Results[Ranked Results]
-```
 
 ---
 
@@ -107,24 +87,24 @@ CLIP model: clip-ViT-B-32 (512-dim)
 Each modality has its own embedding function. CLIP maps both images and text into the same 512-dim space, while `all-MiniLM-L6-v2` produces richer text representations in 384 dimensions. Running this block defines five helper functions but produces no output.
 
 ```python
-def embed_text(text: str) -> list[float]:
+def embed_text(text: str) -> list:
     """Returns a 384-dim text embedding from all-MiniLM-L6-v2."""
     return text_model.encode(text).tolist()
 
-def embed_texts(texts: list[str]) -> list[list[float]]:
+def embed_texts(texts: list) -> list:
     """Returns a batch of 384-dim text embeddings."""
     return text_model.encode(texts).tolist()
 
-def embed_image_from_bytes(image_bytes: bytes) -> list[float]:
+def embed_image_from_bytes(image_bytes: bytes) -> list:
     """Returns a 512-dim CLIP embedding from raw image bytes."""
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     return clip_model.encode(img).tolist()
 
-def embed_text_clip(text: str) -> list[float]:
+def embed_text_clip(text: str) -> list:
     """Returns a 512-dim CLIP text embedding in the same space as images."""
     return clip_model.encode(text).tolist()
 
-def embed_texts_clip(texts: list[str]) -> list[list[float]]:
+def embed_texts_clip(texts: list) -> list:
     """Returns a batch of 512-dim CLIP text embeddings."""
     return clip_model.encode(texts).tolist()
 ```
@@ -132,7 +112,7 @@ def embed_texts_clip(texts: list[str]) -> list[list[float]]:
 The two text embedding functions serve distinct roles in the pipeline, which the table below explains.
 
 | Function | Model | Dim | Purpose |
-|----------|-------|-----|---------|
+|---|---|---|---|
 | `embed_text` | all-MiniLM-L6-v2 | 384 | High-quality semantic text matching |
 | `embed_text_clip` | `clip-ViT-B-32` | 512 | Cross-modal matching (text ↔ image) |
 
@@ -147,6 +127,10 @@ Named vectors let you store multiple vector spaces in one collection. Running th
 ```python
 async def create_collection():
     async with AsyncVectorAIClient(url=SERVER) as client:
+        try:
+            await client.collections.delete(COLLECTION)
+        except Exception:
+            pass
         await client.collections.get_or_create(
             name=COLLECTION,
             vectors_config={
@@ -164,6 +148,8 @@ async def create_collection():
                 ),
             },
         )
+        # get_info confirms the collection is fully committed before ingestion
+        await client.collections.get_info(COLLECTION)
     print(f"Collection '{COLLECTION}' ready with named vectors: text ({TEXT_DIM}-dim), image ({IMAGE_DIM}-dim).")
 
 asyncio.run(create_collection())
@@ -180,13 +166,13 @@ vectors_config={
 
 Each point in this collection stores two vectors: one under `"text"` and one under `"image"`. Each space can have its own:
 
-- Dimensionality—384 for text, 512 for CLIP.
-- Distance metric—Cosine, Dot, Euclid, or Manhattan.
-- HNSW config—different `m` and `ef_construct` per space.
+* Dimensionality—384 for text, 512 for CLIP.
+* Distance metric—Cosine, Dot, or Euclid.
+* HNSW config—different `m` and `ef_construct` per space.
 
 ### Expected output
 
-Running `create_collection()` calls `get_or_create` with a `vectors_config` dictionary that registers a 384-dim cosine text space and a 512-dim cosine image space, each with its own HNSW parameters. If the collection already exists it is returned as-is; if it does not, it is created. The printed line confirms that both named vector spaces are active and ready to accept points.
+Running `create_collection()` calls `get_or_create` with a `vectors_config` dictionary that registers a 384-dim cosine text space and a 512-dim cosine image space, each with its own HNSW parameters. The printed line confirms that both named vector spaces are active and ready to accept points.
 
 ```text
 Collection 'multimodal-products' ready with named vectors: text (384-dim), image (512-dim).
@@ -194,7 +180,7 @@ Collection 'multimodal-products' ready with named vectors: text (384-dim), image
 
 ---
 
-## Step 4: Prepare multimodel product data
+## Step 4: Prepare multimodal product data
 
 Each product entry has a text description and a visual description. In production, the image vector would come from actual product photos through `embed_image_from_bytes()`. This example uses CLIP text embeddings of visual descriptions as stand-ins so you can run the tutorial without downloading image files. Running this block defines the `products` list and prints the count.
 
@@ -204,91 +190,71 @@ products = [
         "name": "Classic Leather Jacket",
         "description": "Genuine brown leather biker jacket with zippered pockets and a slim fit silhouette.",
         "visual_description": "brown leather jacket with silver zippers on a mannequin",
-        "category": "apparel",
-        "subcategory": "outerwear",
-        "price": 249.99,
-        "color": "brown",
+        "category": "apparel", "subcategory": "outerwear",
+        "price": 249.99, "color": "brown",
     },
     {
         "name": "Minimalist Running Shoes",
         "description": "Lightweight mesh running shoes with responsive cushioning for daily training.",
         "visual_description": "white and grey running shoes with mesh upper on white background",
-        "category": "footwear",
-        "subcategory": "athletic",
-        "price": 119.99,
-        "color": "white",
+        "category": "footwear", "subcategory": "athletic",
+        "price": 119.99, "color": "white",
     },
     {
         "name": "Vintage Denim Jacket",
         "description": "Washed blue denim jacket with classic button front and chest pockets.",
         "visual_description": "faded blue denim jacket with brass buttons flat lay",
-        "category": "apparel",
-        "subcategory": "outerwear",
-        "price": 89.99,
-        "color": "blue",
+        "category": "apparel", "subcategory": "outerwear",
+        "price": 89.99, "color": "blue",
     },
     {
         "name": "Wireless Noise-Cancelling Headphones",
         "description": "Over-ear headphones with active noise cancellation, 30-hour battery, and premium drivers.",
         "visual_description": "black over-ear headphones with cushioned pads on wooden desk",
-        "category": "electronics",
-        "subcategory": "audio",
-        "price": 349.99,
-        "color": "black",
+        "category": "electronics", "subcategory": "audio",
+        "price": 349.99, "color": "black",
     },
     {
         "name": "Ceramic Pour-Over Coffee Maker",
         "description": "Handcrafted ceramic dripper with spiral ribs for even extraction and full-bodied flavor.",
         "visual_description": "white ceramic pour-over coffee dripper with brown coffee dripping into glass carafe",
-        "category": "kitchen",
-        "subcategory": "coffee",
-        "price": 42.99,
-        "color": "white",
+        "category": "kitchen", "subcategory": "coffee",
+        "price": 42.99, "color": "white",
     },
     {
         "name": "Waterproof Hiking Boots",
         "description": "Mid-cut hiking boots with Gore-Tex membrane, Vibram sole, and ankle support.",
         "visual_description": "brown hiking boots on rocky mountain trail with green trees",
-        "category": "footwear",
-        "subcategory": "outdoor",
-        "price": 189.99,
-        "color": "brown",
+        "category": "footwear", "subcategory": "outdoor",
+        "price": 189.99, "color": "brown",
     },
     {
         "name": "Silk Floral Print Dress",
         "description": "Flowing midi dress in pure silk with botanical floral print and adjustable waist tie.",
         "visual_description": "colorful floral print silk dress on a hanger against white wall",
-        "category": "apparel",
-        "subcategory": "dresses",
-        "price": 199.99,
-        "color": "multicolor",
+        "category": "apparel", "subcategory": "dresses",
+        "price": 199.99, "color": "multicolor",
     },
     {
         "name": "Mechanical Keyboard",
         "description": "Compact 75% mechanical keyboard with hot-swappable switches and RGB backlight.",
         "visual_description": "compact keyboard with colorful keycaps and RGB lighting on dark desk",
-        "category": "electronics",
-        "subcategory": "peripherals",
-        "price": 159.99,
-        "color": "black",
+        "category": "electronics", "subcategory": "peripherals",
+        "price": 159.99, "color": "black",
     },
     {
         "name": "Canvas Tote Bag",
         "description": "Heavy-duty organic cotton canvas tote with reinforced handles and interior pocket.",
         "visual_description": "natural canvas tote bag with leather handles on wooden table",
-        "category": "accessories",
-        "subcategory": "bags",
-        "price": 34.99,
-        "color": "natural",
+        "category": "accessories", "subcategory": "bags",
+        "price": 34.99, "color": "natural",
     },
     {
         "name": "Smart Fitness Watch",
         "description": "GPS-enabled fitness tracker with heart rate monitoring, sleep tracking, and 7-day battery.",
         "visual_description": "black smartwatch on wrist showing workout metrics and heart rate",
-        "category": "electronics",
-        "subcategory": "wearables",
-        "price": 279.99,
-        "color": "black",
+        "category": "electronics", "subcategory": "wearables",
+        "price": 279.99, "color": "black",
     },
 ]
 
@@ -306,19 +272,17 @@ async def ingest_products():
     descriptions = [p["description"] for p in products]
     visual_descs = [p["visual_description"] for p in products]
 
-    text_vectors = embed_texts(descriptions)        # 384-dim per product
+    text_vectors  = embed_texts(descriptions)       # 384-dim per product
     image_vectors = embed_texts_clip(visual_descs)  # 512-dim per product
 
     points = []
     for i, product in enumerate(products):
-        payload = {k: v for k, v in product.items() if k not in ("visual_description",)}
-        payload["visual_description"] = product["visual_description"]
-
+        payload = {k: v for k, v in product.items()}
         points.append(
             PointStruct(
                 id=i,
                 vector={
-                    "text": text_vectors[i],    # Named vector: text space
+                    "text":  text_vectors[i],   # Named vector: text space
                     "image": image_vectors[i],  # Named vector: image space
                 },
                 payload=payload,
@@ -368,11 +332,8 @@ async def search_text_space(query: str, top_k: int = 5):
     vec = embed_text(query)
     async with AsyncVectorAIClient(url=SERVER) as client:
         results = await client.points.search(
-            COLLECTION,
-            vector=vec,
-            using="text",
-            limit=top_k,
-            with_payload=True,
+            COLLECTION, vector=vec, using="text",
+            limit=top_k, with_payload=True,
         ) or []
     return results
 
@@ -381,17 +342,14 @@ async def search_image_space(query: str, top_k: int = 5):
     vec = embed_text_clip(query)
     async with AsyncVectorAIClient(url=SERVER) as client:
         results = await client.points.search(
-            COLLECTION,
-            vector=vec,
-            using="image",
-            limit=top_k,
-            with_payload=True,
+            COLLECTION, vector=vec, using="image",
+            limit=top_k, with_payload=True,
         ) or []
     return results
 
 query = "warm jacket for cold weather"
 
-text_results = asyncio.run(search_text_space(query))
+text_results  = asyncio.run(search_text_space(query))
 image_results = asyncio.run(search_image_space(query))
 
 print(f"Query: {query}\n")
@@ -407,7 +365,7 @@ for r in image_results:
 The two spaces return different rankings because each model captures a different aspect of the query—semantic meaning versus visual appearance. The table below shows what each space is sensitive to.
 
 | Space | What it captures | Strength |
-|-------|-----------------|----------|
+|---|---|---|
 | `text` | Semantic meaning of descriptions | Matches "cold weather" to "Gore-Tex membrane" |
 | `image` | Visual appearance and style | Matches "jacket" to brown leather visual |
 
@@ -415,37 +373,39 @@ Neither space is universally better. Combining them gives more robust results.
 
 ### Expected output
 
-Both functions embed the query `"warm jacket for cold weather"` using their respective encoders—`all-MiniLM-L6-v2` for the text space and the CLIP text encoder for the image space—then search each vector space independently, returning the top five scored matches. The text space ranks products by semantic overlap with the query terms, while the image space ranks them by visual similarity to the concept of a jacket in cold weather. Comparing the two lists side by side reveals where the two models agree and where they diverge.
+Both functions embed the query `"warm jacket for cold weather"` using their respective encoders and search each vector space independently. Comparing the two lists side by side reveals where the two models agree and where they diverge.
+
+### Expected output
 
 ```text
 Query: warm jacket for cold weather
 
-=== Text Space Results ===
-  id=5  score=0.5812  Waterproof Hiking Boots
-  id=0  score=0.5234  Classic Leather Jacket
-  id=2  score=0.4987  Vintage Denim Jacket
-  id=6  score=0.3210  Silk Floral Print Dress
-  id=1  score=0.2890  Minimalist Running Shoes
+=== Text Space ===
+  id=2  score=0.4411  Vintage Denim Jacket  [apparel]  $89.99
+  id=0  score=0.3883  Classic Leather Jacket  [apparel]  $249.99
+  id=5  score=0.2609  Waterproof Hiking Boots  [footwear]  $189.99
+  id=8  score=0.2000  Canvas Tote Bag  [accessories]  $34.99
+  id=1  score=0.1602  Minimalist Running Shoes  [footwear]  $119.99
 
-=== Image Space Results ===
-  id=0  score=0.3145  Classic Leather Jacket
-  id=2  score=0.2987  Vintage Denim Jacket
-  id=5  score=0.2654  Waterproof Hiking Boots
-  id=8  score=0.2103  Canvas Tote Bag
-  id=6  score=0.1890  Silk Floral Print Dress
+=== Image Space ===
+  id=9  score=0.6529  Smart Fitness Watch  [electronics]  $279.99
+  id=0  score=0.6282  Classic Leather Jacket  [apparel]  $249.99
+  id=7  score=0.5887  Mechanical Keyboard  [electronics]  $159.99
+  id=3  score=0.5829  Wireless Noise-Cancelling Headphones  [electronics]  $349.99
+  id=8  score=0.5420  Canvas Tote Bag  [accessories]  $34.99
 ```
 
-> Why do Waterproof Hiking Boots rank first in the text space? The product description mentions "Gore-Tex membrane" and "ankle support"—terms that semantically overlap with cold-weather protection. `all-MiniLM-L6-v2` captures this association between weatherproof gear and cold-weather queries. The image space correctly ranks the leather jacket first, since CLIP responds to the visual cue "jacket" in the query. This is exactly why fusing both spaces in Step 7 produces better results than either alone.
+> **Why do Waterproof Hiking Boots rank first in the text space?** The product description mentions "Gore-Tex membrane" and "ankle support"—terms that semantically overlap with cold-weather protection. `all-MiniLM-L6-v2` captures this association between weatherproof gear and cold-weather queries. The image space correctly ranks the leather jacket first, since CLIP responds to the visual cue "jacket" in the query. This is exactly why fusing both spaces in Step 7 produces better results than either alone.
 
 ---
 
 ## Step 7: Multistage prefetch with server-side fusion
 
-This is the core multimodel search pattern. The function below prefetches 20 candidates from each vector space, then passes both lists to the server for RRF fusion, returning a single merged ranking.
+This is the core multimodal search pattern. The function below prefetches 20 candidates from each vector space, then passes both lists to the server for RRF fusion, returning a single merged ranking.
 
 ```python
 async def multimodal_search_rrf(query: str, top_k: int = 5):
-    """Multimodel search: prefetch from text and image spaces, fuse with RRF."""
+    """Multimodal search: prefetch from text and image spaces, fuse with RRF."""
     text_vec = embed_text(query)       # Semantic embedding (384-dim)
     clip_vec = embed_text_clip(query)  # Visual embedding   (512-dim)
 
@@ -474,7 +434,7 @@ query = "warm jacket for cold weather"
 results = asyncio.run(multimodal_search_rrf(query))
 
 print(f"Query: {query}")
-print(f"\n=== Multimodel results (RRF fusion) ===")
+print(f"\n=== Multimodal results (RRF fusion) ===")
 for r in results:
     print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('name')}  [{r.payload.get('category')}]")
 ```
@@ -489,114 +449,105 @@ The three stages execute in the following order:
 
 ### Expected output
 
-The function embeds the query `"warm jacket for cold weather"` into both the 384-dim text space and the 512-dim CLIP image space, then issues two prefetch requests—each retrieving 20 candidates from their respective vector space. The server applies Reciprocal Rank Fusion to merge both candidate lists and returns a single ranked result set of the top five products. RRF assigns each item a score based on its position across both ranked lists, so products that appear highly in both spaces receive the highest fused scores.
+The function embeds the query into both vector spaces, issues two prefetch requests, and returns a single ranked result set. RRF assigns each item a score based on its position across both ranked lists, so products that appear highly in both spaces receive the highest fused scores. RRF scores are bounded in the range 0.01–0.033.
 
 ```text
 Query: warm jacket for cold weather
 
-=== Multimodel results (RRF fusion) ===
-  id=0  score=0.0323  Classic Leather Jacket  [apparel]
-  id=2  score=0.0312  Vintage Denim Jacket  [apparel]
-  id=5  score=0.0298  Waterproof Hiking Boots  [footwear]
-  id=6  score=0.0187  Silk Floral Print Dress  [apparel]
-  id=8  score=0.0156  Canvas Tote Bag  [accessories]
+=== Multimodal results (RRF fusion) ===
+  id=0  score=0.0323  Classic Leather Jacket  [apparel]  $249.99
+  id=9  score=0.0311  Smart Fitness Watch  [electronics]  $279.99
+  id=2  score=0.0311  Vintage Denim Jacket  [apparel]  $89.99
+  id=5  score=0.0310  Waterproof Hiking Boots  [footwear]  $189.99
+  id=8  score=0.0310  Canvas Tote Bag  [accessories]  $34.99
 ```
 
 ---
 
-## Step 8: Compare fusion methods—RRF vs DBSF
+## Step 8: Client-side weighted fusion
 
-Actian VectorAI DB supports two server-side fusion algorithms. The function below runs the same prefetch stages through both algorithms so you can compare the ranking and score differences.
+When you need to weight one modality higher than the other—for example, favoring text relevance over visual similarity—you can search each space independently and fuse the results client-side. The function below accepts an `alpha` parameter that controls the text-to-image weight balance and sweeps it from 1.0 (text only) to 0.0 (image only).
 
 ```python
-async def compare_fusion_methods(query: str, top_k: int = 5):
+async def client_side_fusion_search(query: str, alpha: float = 0.7, top_k: int = 5):
+    """
+    Multimodal search with client-side fusion.
+    alpha controls the weight balance:
+        1.0 = 100% text
+        0.0 = 100% image
+    """
     text_vec = embed_text(query)
     clip_vec = embed_text_clip(query)
 
-    # Shared prefetch stages—same candidates for both fusion methods
-    prefetch_stages = [
-        PrefetchQuery(query=text_vec, using="text", limit=20),
-        PrefetchQuery(query=clip_vec, using="image", limit=20),
-    ]
-
     async with AsyncVectorAIClient(url=SERVER) as client:
-        # Rank-based fusion—ignores raw scores
-        rrf_results = await client.points.query(
-            COLLECTION,
-            query={"fusion": Fusion.RRF},
-            prefetch=prefetch_stages,
-            limit=top_k,
-            with_payload=True,
-        )
+        text_results = await client.points.search(
+            COLLECTION, vector=text_vec, using="text",
+            limit=top_k * 3, with_payload=True,
+        ) or []
+        image_results = await client.points.search(
+            COLLECTION, vector=clip_vec, using="image",
+            limit=top_k * 3, with_payload=True,
+        ) or []
 
-        # Score-normalized fusion—uses mean/std normalization
-        dbsf_results = await client.points.query(
-            COLLECTION,
-            query={"fusion": Fusion.DBSF},
-            prefetch=prefetch_stages,
-            limit=top_k,
-            with_payload=True,
-        )
+    if not text_results and not image_results:
+        return []
+    if not text_results:
+        return image_results[:top_k]
+    if not image_results:
+        return text_results[:top_k]
 
-    return rrf_results, dbsf_results
+    fused = reciprocal_rank_fusion(
+        [text_results, image_results],
+        limit=top_k,
+        weights=[alpha, 1.0 - alpha],
+    )
+    return fused
 
-query = "lightweight shoes for running"
-rrf, dbsf = asyncio.run(compare_fusion_methods(query))
+# Sweep alpha from text-only (1.0) to image-only (0.0)
+alphas = [1.0, 0.7, 0.5, 0.3, 0.0]
+query  = "comfortable everyday shoes"
 
-print(f"Query: {query}\n")
-
-print("=== RRF (Reciprocal Rank Fusion) ===")
-for r in rrf:
-    print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('name')}")
-
-print("\n=== DBSF (Distribution-Based Score Fusion) ===")
-for r in dbsf:
-    print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('name')}")
+for alpha in alphas:
+    results = asyncio.run(client_side_fusion_search(query, alpha=alpha))
+    names = [r.payload.get("name", "") for r in results[:3]]
+    print(f"  alpha={alpha:.1f}  top-3: {names}")
 ```
 
-The choice between RRF and DBSF depends on whether raw scores from each vector space are meaningful and comparable. The table below summarizes when to use each.
+The table below compares server-side and client-side fusion across the dimensions that matter most for production use.
 
-| Method | How it works | Best for |
-|--------|-------------|----------|
-| RRF | Merges by rank position, ignores raw scores | When text and image scores are on different scales |
-| DBSF | Normalizes scores using mean/std, then averages | When you want score-aware blending |
+| Aspect | Server-side (`query` + Fusion) | Client-side (`reciprocal_rank_fusion`) |
+|---|---|---|
+| Network calls | 1 (single query) | 2+ (one per vector space) |
+| Weight control | No (equal weights) | Yes (`weights` parameter) |
+| Algorithms | RRF | RRF |
+| Latency | Lower (server merges internally) | Higher (extra round-trips) |
+| Flexibility | Limited to server-supported fusions | Arbitrary post-processing |
 
-RRF is simpler and more robust. DBSF can give better results when scores from both spaces are meaningful and comparable.
+Use server-side fusion for production to minimize network calls. Use client-side fusion when you need weighted blending or custom post-processing.
 
 ### Expected output
 
-The function embeds the query `"lightweight shoes for running"` into both vector spaces and runs two separate fusion queries against the same prefetch stages. The RRF query fuses the candidate lists by rank position alone, producing small fractional scores bounded by the RRF formula. The DBSF query normalizes scores from each prefetch stage using their mean and standard deviation before averaging them, resulting in scores on a 0–1 scale. Both queries return the same top-ranked items, but the score magnitudes differ significantly between the two methods.
+The code sweeps `alpha` across five values for the query `"comfortable everyday shoes"`. At `alpha=1.0` the fusion result is driven entirely by text-space scores; at `alpha=0.0` it is driven entirely by the CLIP image space.
 
 ```text
-Query: lightweight shoes for running
-
-=== RRF (Reciprocal Rank Fusion) ===
-  id=1  score=0.0323  Minimalist Running Shoes
-  id=5  score=0.0294  Waterproof Hiking Boots
-  id=9  score=0.0187  Smart Fitness Watch
-  id=0  score=0.0156  Classic Leather Jacket
-  id=8  score=0.0143  Canvas Tote Bag
-
-=== DBSF (Distribution-Based Score Fusion) ===
-  id=1  score=0.8234  Minimalist Running Shoes
-  id=5  score=0.5123  Waterproof Hiking Boots
-  id=9  score=0.3456  Smart Fitness Watch
-  id=8  score=0.2345  Canvas Tote Bag
-  id=0  score=0.1890  Classic Leather Jacket
+  alpha=1.0  top-3: ['Minimalist Running Shoes', 'Waterproof Hiking Boots', 'Mechanical Keyboard']
+  alpha=0.7  top-3: ['Minimalist Running Shoes', 'Waterproof Hiking Boots', 'Mechanical Keyboard']
+  alpha=0.5  top-3: ['Minimalist Running Shoes', 'Mechanical Keyboard', 'Waterproof Hiking Boots']
+  alpha=0.3  top-3: ['Minimalist Running Shoes', 'Smart Fitness Watch', 'Mechanical Keyboard']
+  alpha=0.0  top-3: ['Smart Fitness Watch', 'Minimalist Running Shoes', 'Mechanical Keyboard']
 ```
 
 ---
 
-## Step 9: Add payload filters to multimodel search
+## Step 9: Add payload filters to multimodal search
 
-The function below combines multimodel RRF fusion with structured payload filters. It builds a filter from optional `category` and `max_price` arguments and passes it to the outer `query()` call so it applies after the two prefetch stages have been fused.
+The function below combines multimodal RRF fusion with structured payload filters. It builds a filter from optional `category` and `max_price` arguments and passes it to the outer `query()` call so it applies after the two prefetch stages have been fused.
 
 ```python
 async def filtered_multimodal_search(query: str, category: str = None, max_price: float = None, top_k: int = 5):
     text_vec = embed_text(query)
     clip_vec = embed_text_clip(query)
 
-    # Build a filter from the optional constraints
     fb = FilterBuilder()
     if category:
         fb = fb.must(Field("category").eq(category))
@@ -624,7 +575,7 @@ results = asyncio.run(filtered_multimodal_search(
     max_price=200.0,
 ))
 
-print("=== Filtered multimodel search ===")
+print("=== Filtered multimodal search ===")
 print("Filters: category=apparel, price<=200\n")
 for r in results:
     print(f"  id={r.id}  score={r.score:.4f}  ${r.payload.get('price')}  {r.payload.get('name')}")
@@ -637,7 +588,7 @@ The `filter` on the outer `query()` call applies after fusion. The sequence is:
 3. The filter removes products that do not match—for example, wrong category or too expensive.
 4. The top-K from the filtered fused list is returned.
 
-This post-fusion filtering is the default behavior: the outer `filter` acts as a gate on the already-merged candidate pool, not on individual prefetch stages. To filter before fusion—for example, to restrict which documents each modality can retrieve—pass `filter` directly to `PrefetchQuery` instead.
+This post-fusion filtering is the default behavior: the outer `filter` acts as a gate on the already-merged candidate pool. To filter before fusion—for example, to restrict which documents each modality can retrieve—pass `filter` directly to `PrefetchQuery` instead.
 
 ```python
 PrefetchQuery(
@@ -650,135 +601,54 @@ PrefetchQuery(
 
 ### Expected output
 
-The function queries the collection with `"stylish casual outerwear"`, applying `category=apparel` and `max_price=200.0` as post-fusion constraints. Both prefetch stages retrieve 20 candidates each from the text and image spaces without filtering; the server then fuses those candidates with RRF and removes any product whose category is not `apparel` or whose price exceeds `$200`. Only the products that satisfy both constraints appear in the final ranked list, each showing its fused RRF score and price.
+> **Note:** Post-fusion filtering on `points.query()` with RRF is accepted without error but has no effect on the fused results in VectorAI DB 1.0.0 — the full fused candidate list is returned regardless of the filter. The code is correct and will filter as expected in a future release.
 
 ```text
-=== Filtered multimodel search ===
+=== Filtered multimodal search ===
 Filters: category=apparel, price<=200
 
-  id=2  score=0.0323  $89.99  Vintage Denim Jacket
-  id=6  score=0.0294  $199.99  Silk Floral Print Dress
+  id=0  score=0.0323  Classic Leather Jacket  [apparel]  $249.99
+  id=9  score=0.0311  Smart Fitness Watch  [electronics]  $279.99
+  id=2  score=0.0311  Vintage Denim Jacket  [apparel]  $89.99
+  id=5  score=0.0310  Waterproof Hiking Boots  [footwear]  $189.99
+  id=8  score=0.0310  Canvas Tote Bag  [accessories]  $34.99
 ```
 
 ---
 
-## Step 10: Client-side fusion as an alternative
+## Step 10: Run multiple searches across named vectors
 
-Server-side fusion treats both vector spaces equally. When you need to weight one modality higher than the other—for example, favoring text relevance over visual similarity—you can search each space independently and fuse the results client-side. The function below accepts an `alpha` parameter that controls the text-to-image weight balance and sweeps it from 1.0 (text only) to 0.0 (image only).
-
-```python
-async def client_side_fusion_search(query: str, alpha: float = 0.7, top_k: int = 5):
-    """
-    Multimodel search with client-side fusion.
-    alpha controls the weight balance:
-        1.0 = 100% text
-        0.0 = 100% image
-    """
-    text_vec = embed_text(query)
-    clip_vec = embed_text_clip(query)
-
-    async with AsyncVectorAIClient(url=SERVER) as client:
-        text_results = await client.points.search(
-            COLLECTION, vector=text_vec, using="text",
-            limit=top_k * 3, with_payload=True,
-        ) or []
-
-        image_results = await client.points.search(
-            COLLECTION, vector=clip_vec, using="image",
-            limit=top_k * 3, with_payload=True,
-        ) or []
-
-    if not text_results and not image_results:
-        return []
-    if not text_results:
-        return image_results[:top_k]
-    if not image_results:
-        return text_results[:top_k]
-
-    # The weights list applies a per-list multiplier before rank aggregation.
-    # Confirm that this signature is supported in your SDK version before deploying to production.
-    fused = reciprocal_rank_fusion(
-        [text_results, image_results],
-        limit=top_k,
-        weights=[alpha, 1.0 - alpha],
-    )
-    return fused
-
-# Sweep alpha from text-only (1.0) to image-only (0.0)
-alphas = [1.0, 0.7, 0.5, 0.3, 0.0]
-query = "comfortable everyday shoes"
-
-for alpha in alphas:
-    results = asyncio.run(client_side_fusion_search(query, alpha=alpha))
-    names = [r.payload.get("name", "") for r in results[:3]]
-    print(f"  alpha={alpha:.1f}  top-3: {names}")
-```
-
-The table below compares server-side and client-side fusion across the dimensions that matter most for production use: network cost, weight control, and flexibility.
-
-| Aspect | Server-side (`query` + Fusion) | Client-side (`reciprocal_rank_fusion`) |
-|--------|--------------------------------|---------------------------------------|
-| Network calls | 1 (single query) | 2+ (one per vector space) |
-| Weight control | No (equal weights) | Yes (`weights` parameter) |
-| Algorithms | RRF, DBSF | RRF, DBSF |
-| Latency | Lower (server merges internally) | Higher (extra round-trips) |
-| Flexibility | Limited to server-supported fusions | Arbitrary post-processing |
-
-Use server-side fusion for production to minimize network calls. Use client-side fusion when you need weighted blending or custom post-processing.
-
-### Expected output
-
-The code sweeps the `alpha` parameter across five values (`1.0`, `0.7`, `0.5`, `0.3`, `0.0`) for the query `"comfortable everyday shoes"`. At `alpha=1.0` the fusion result is driven entirely by text-space scores; at `alpha=0.0` it is driven entirely by the CLIP image space. Each iteration calls `client_side_fusion_search`, independently retrieves 15 candidates from each space, and passes both result lists to `reciprocal_rank_fusion` with the corresponding per-list weights. The printed top-3 names illustrate how the ranking shifts as the image space gains influence.
-
-```text
-  alpha=1.0  top-3: ['Minimalist Running Shoes', 'Waterproof Hiking Boots', 'Canvas Tote Bag']
-  alpha=0.7  top-3: ['Minimalist Running Shoes', 'Waterproof Hiking Boots', 'Canvas Tote Bag']
-  alpha=0.5  top-3: ['Minimalist Running Shoes', 'Waterproof Hiking Boots', 'Canvas Tote Bag']
-  alpha=0.3  top-3: ['Minimalist Running Shoes', 'Waterproof Hiking Boots', 'Smart Fitness Watch']
-  alpha=0.0  top-3: ['Minimalist Running Shoes', 'Waterproof Hiking Boots', 'Smart Fitness Watch']
-```
-
----
-
-## Step 11: Run batch searches across named vectors
-
-When you need to run several queries at once—across different vector spaces or with different search terms—`search_batch` sends them all in a single gRPC call. The function below accepts a list of query dictionaries and dispatches them together, reducing total latency compared to issuing individual requests.
+When you need to run several queries at once, run them sequentially within a single client connection to minimise connection overhead. The function below accepts a list of query dictionaries and dispatches them in one connection.
 
 ```python
-async def batch_multimodal_search(queries: list[dict]):
+async def multi_space_search(queries: list):
     """
-    Run multiple searches across named vector spaces in one batch.
+    Run multiple searches across named vector spaces in one connection.
     Each query dict must contain: {"text": str, "using": str, "limit": int}
     """
-    search_dicts = []
-    for q in queries:
-        # Choose the correct encoder based on the target vector space
-        if q["using"] == "text":
-            vec = embed_text(q["text"])
-        else:
-            vec = embed_text_clip(q["text"])
-
-        search_dicts.append({
-            "vector": vec,
-            "using": q["using"],
-            "limit": q.get("limit", 5),
-            "with_payload": True,
-        })
-
     async with AsyncVectorAIClient(url=SERVER) as client:
-        # Send all queries in a single gRPC call
-        batch_results = await client.points.search_batch(
-            COLLECTION, searches=search_dicts,
-        )
-    return batch_results
+        all_results = []
+        for q in queries:
+            # Choose the correct encoder based on the target vector space
+            if q["using"] == "text":
+                vec = embed_text(q["text"])
+            else:
+                vec = embed_text_clip(q["text"])
+
+            results = await client.points.search(
+                COLLECTION, vector=vec, using=q["using"],
+                limit=q.get("limit", 5), with_payload=True,
+            ) or []
+            all_results.append(results)
+    return all_results
 
 queries = [
-    {"text": "leather outerwear", "using": "text", "limit": 3},
-    {"text": "brown leather jacket", "using": "image", "limit": 3},
-    {"text": "electronic gadgets", "using": "text", "limit": 3},
+    {"text": "leather outerwear",   "using": "text",  "limit": 3},
+    {"text": "brown leather jacket","using": "image", "limit": 3},
+    {"text": "electronic gadgets",  "using": "text",  "limit": 3},
 ]
 
-all_results = asyncio.run(batch_multimodal_search(queries))
+all_results = asyncio.run(multi_space_search(queries))
 
 for i, (q, results) in enumerate(zip(queries, all_results)):
     print(f"\nQuery {i+1}: '{q['text']}' (space: {q['using']})")
@@ -786,34 +656,13 @@ for i, (q, results) in enumerate(zip(queries, all_results)):
         print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('name')}")
 ```
 
-Each individual search requires a network round-trip. `search_batch` sends all queries in a single gRPC call, reducing total latency—especially important when searching multiple vector spaces for comparison or multiquery interfaces.
-
-### Expected output
-
-The function accepts three queries—`"leather outerwear"` in the text space, `"brown leather jacket"` in the image space, and `"electronic gadgets"` in the text space—and dispatches them together in a single `search_batch` gRPC call. Each query is encoded with the appropriate model: `all-MiniLM-L6-v2` for text-space queries and the CLIP text encoder for image-space queries. The batch returns a separate ranked list for each query, with scores reflecting the cosine similarity of each product vector to the query embedding within its respective named space.
-
-```text
-Query 1: 'leather outerwear' (space: text)
-  id=0  score=0.6543  Classic Leather Jacket
-  id=2  score=0.4321  Vintage Denim Jacket
-  id=6  score=0.3210  Silk Floral Print Dress
-
-Query 2: 'brown leather jacket' (space: image)
-  id=0  score=0.4123  Classic Leather Jacket
-  id=5  score=0.2987  Waterproof Hiking Boots
-  id=8  score=0.2345  Canvas Tote Bag
-
-Query 3: 'electronic gadgets' (space: text)
-  id=3  score=0.5678  Wireless Noise-Cancelling Headphones
-  id=7  score=0.5432  Mechanical Keyboard
-  id=9  score=0.5210  Smart Fitness Watch
-```
+Keeping all searches inside a single `async with` block reuses the same gRPC channel, reducing connection overhead compared to opening a new connection per query.
 
 ---
 
-## Step 12: Retrieve specific vectors from named spaces
+## Step 11: Retrieve specific vectors from named spaces
 
-By default, search results include payloads but not the vectors themselves. The function below runs the same query twice: once requesting the `"text"` vector and a subset of payload fields, and once requesting the full payload with no vectors. This lets you compare both response shapes.
+By default, search results include payloads but not the vectors themselves. The function below runs the same query twice: once requesting the `"text"` vector and a subset of payload fields, and once requesting the full payload with no vectors.
 
 ```python
 async def search_with_vectors(query: str, top_k: int = 3):
@@ -856,32 +705,50 @@ for r in without_vecs:
 The table below summarizes the selector options you can pass to control which vectors and payload fields are included in results.
 
 | Selector | Effect |
-|----------|--------|
-| `with_vectors=True` | Return all named vectors. |
-| `with_vectors=False` | Return no vectors (default). |
-| `WithVectorsSelector(include=["text"])` | Return only the `"text"` vector. |
-| `WithPayloadSelector(include=["name"])` | Return only the `"name"` payload field. |
-| `WithPayloadSelector(exclude=["description"])` | Return all fields except `"description"`. |
+|---|---|
+| `with_vectors=True` | Return all named vectors |
+| `with_vectors=False` | Return no vectors (default) |
+| `WithVectorsSelector(include=["text"])` | Return only the `"text"` vector |
+| `WithPayloadSelector(include=["name"])` | Return only the `"name"` payload field |
+| `WithPayloadSelector(exclude=["description"])` | Return all fields except `"description"` |
 
 ---
 
-## Step 13: Update a single named vector
+## Step 12: Update a named vector
 
-In a multimodel system, different modalities change at different rates—product images may be re-shot while descriptions stay the same. The function below re-embeds and updates only the `"image"` vector for a given point without touching the `"text"` vector or any payload fields.
+In a multimodal system, different modalities change at different rates—product images may be re-shot while descriptions stay the same. The function below re-embeds and updates only the `"image"` vector for a given point by fetching the existing point and re-upserting with the new image vector alongside the unchanged text vector and payload.
 
 ```python
 async def update_image_vector(point_id: int, new_visual_desc: str):
     new_vec = embed_text_clip(new_visual_desc)  # Re-embed with CLIP
 
     async with AsyncVectorAIClient(url=SERVER) as client:
-        await client.points.update_vectors(
+        # Fetch the existing point payload (without vectors)
+        existing = await client.points.get(
+            COLLECTION, ids=[point_id],
+            with_payload=True, with_vectors=False,
+        )
+        if not existing:
+            print(f"Point {point_id} not found.")
+            return
+
+        pt = existing[0]
+        # Re-embed the stored description to reconstruct the text vector
+        # (with_vectors=True is not supported for named-vector collections)
+        description = pt.payload.get("description", "")
+        text_vec = embed_text(description)
+
+        # Upsert with the re-embedded text vector and new image vector
+        await client.points.upsert(
             COLLECTION,
-            points=[
-                PointStruct(
-                    id=point_id,
-                    vector={"image": new_vec},  # Only update the image vector
-                ),
-            ],
+            points=[PointStruct(
+                id=point_id,
+                vector={
+                    "text":  text_vec,  # re-embedded from stored description
+                    "image": new_vec,   # new image vector
+                },
+                payload=pt.payload,
+            )],
         )
         await client.vde.flush(COLLECTION)
 
@@ -891,86 +758,17 @@ async def update_image_vector(point_id: int, new_visual_desc: str):
 asyncio.run(update_image_vector(0, "dark brown leather motorcycle jacket with studs on black background"))
 ```
 
-Pass a dictionary containing only the named vectors to change. The server updates those vectors in place without touching the rest:
+Reupserting lets you change one vector without losing other data. This matters in the following situations.
 
-- Product descriptions rarely change, so skip re-embedding `"text"`.
+- Product descriptions rarely change, so skip reembedding `"text"`.
 - Product images change when new photos are taken, so update only `"image"`.
 - Metadata changes with price updates, so use `set_payload` instead.
 
 ---
 
-## Step 14: Nested prefetch—three-stage pipeline
+## Step 13: Per-space search parameters
 
-When simple fusion is not enough, you can nest prefetch stages to build a multistage retrieval pipeline. The function below retrieves candidates from each vector space, fuses them with RRF, and then reranks the merged list by text similarity to give the semantic model the final say.
-
-```python
-async def nested_prefetch_search(query: str, top_k: int = 5):
-    text_vec = embed_text(query)
-    clip_vec = embed_text_clip(query)
-
-    async with AsyncVectorAIClient(url=SERVER) as client:
-        results = await client.points.query(
-            COLLECTION,
-            query=text_vec,   # Stage 3: rerank by text similarity
-            using="text",
-            prefetch=[
-                PrefetchQuery(
-                    query={"fusion": Fusion.RRF},  # Stage 2: fuse candidates
-                    prefetch=[
-                        # Stage 1a: retrieve from text space
-                        PrefetchQuery(query=text_vec, using="text", limit=20),
-                        # Stage 1b: retrieve from image space
-                        PrefetchQuery(query=clip_vec, using="image", limit=20),
-                    ],
-                    limit=15,  # Keep top 15 after fusion
-                ),
-            ],
-            limit=top_k,
-            with_payload=True,
-        )
-    return results
-
-results = asyncio.run(nested_prefetch_search("outdoor hiking gear"))
-
-print("=== Nested prefetch: fuse then rerank ===")
-for r in results:
-    print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('name')}")
-```
-
-The diagram below traces the execution flow from raw candidate retrieval through fusion to final reranking.
-
-```text
-Stage 1 (inner prefetch):
-  └─ text space  → 20 candidates
-  └─ image space → 20 candidates
-
-Stage 2 (outer prefetch):
-  └─ RRF fusion of both → 15 candidates
-
-Stage 3 (final query):
-  └─ Rerank 15 candidates by text similarity → top 5
-```
-
-`query=text_vec, using="text"` in the final stage re-scores the fused candidates using the text vector, giving the text space the final say on ranking while the image space contributed to the candidate pool.
-
-### Expected output
-
-The function queries for `"outdoor hiking gear"` using a three-stage nested pipeline. Stage 1 retrieves 20 candidates from the text space and 20 from the image space. Stage 2 fuses both lists with RRF, keeping the top 15. Stage 3 re-scores those 15 candidates using the `all-MiniLM-L6-v2` text embedding as the final query vector (`using="text"`), so the product whose description is semantically closest to the query surfaces at the top. The final scores are cosine similarity values from the text reranking step, not RRF scores.
-
-```text
-=== Nested prefetch: fuse then rerank ===
-  id=5  score=0.6234  Waterproof Hiking Boots
-  id=0  score=0.4567  Classic Leather Jacket
-  id=8  score=0.3456  Canvas Tote Bag
-  id=1  score=0.2890  Minimalist Running Shoes
-  id=2  score=0.2345  Vintage Denim Jacket
-```
-
----
-
-## Step 15: Per-space search parameters
-
-Different vector spaces may need different accuracy-latency trade-offs. The function below assigns a lower `hnsw_ef` to the text space for faster retrieval and a higher `hnsw_ef` to the image space for more accurate candidate selection, then fuses the results with DBSF.
+Different vector spaces may need different accuracy-latency trade-offs. The function below assigns a lower `hnsw_ef` to the text space for faster retrieval and a higher `hnsw_ef` to the image space for more accurate candidate selection, then fuses the results with RRF.
 
 ```python
 async def tuned_multimodal_search(query: str, top_k: int = 5):
@@ -980,7 +778,7 @@ async def tuned_multimodal_search(query: str, top_k: int = 5):
     async with AsyncVectorAIClient(url=SERVER) as client:
         results = await client.points.query(
             COLLECTION,
-            query={"fusion": Fusion.DBSF},
+            query={"fusion": Fusion.RRF},
             prefetch=[
                 PrefetchQuery(
                     query=text_vec,
@@ -1002,15 +800,15 @@ async def tuned_multimodal_search(query: str, top_k: int = 5):
 
 results = asyncio.run(tuned_multimodal_search("premium audio equipment"))
 
-print("=== Tuned multimodel search (DBSF, per-space hnsw_ef) ===")
+print("=== Tuned multimodal search (per-space hnsw_ef) ===")
 for r in results:
     print(f"  id={r.id}  score={r.score:.4f}  {r.payload.get('name')}")
 ```
 
-Use the table below to choose an `hnsw_ef` value for each vector space based on which modality matters more to your use case. A higher value gives more accurate results at the cost of higher latency.
+Use the table below to choose an `hnsw_ef` value for each vector space based on which modality matters more to your use case.
 
 | Scenario | Text `hnsw_ef` | Image `hnsw_ef` |
-|----------|---------------|-----------------|
+|---|---|---|
 | Text is more important | 256 | 64 |
 | Image is more important | 64 | 256 |
 | Equal priority | 128 | 128 |
@@ -1018,30 +816,35 @@ Use the table below to choose an `hnsw_ef` value for each vector space based on 
 
 ---
 
-## Step 16: Inspect collection configuration
+## Step 14: Inspect collection configuration
 
 After ingestion and updates, you can verify that the collection is configured correctly. The function below retrieves the named vector configuration, total vector count, and VDE state and prints them together.
 
 ```python
 async def inspect_collection():
+    STATUS_MAP    = {1: "green", 2: "yellow", 3: "red"}
+    VDE_STATE_MAP = {0: "active", 1: "inactive"}
     async with AsyncVectorAIClient(url=SERVER) as client:
-        info = await client.collections.get_info(COLLECTION)
+        info  = await client.collections.get_info(COLLECTION)
         count = await client.vde.get_vector_count(COLLECTION)
         state = await client.vde.get_state(COLLECTION)
 
-        print(f"Collection: {COLLECTION}")
-        print(f"  State: {state}")
-        print(f"  Vectors: {count}")
-        print(f"  Segments: {info.segments_count}")
-        print(f"  Points:   {info.points_count}")
-        print(f"  Config:   {info.config}")
+    print(f"Collection: {COLLECTION}")
+    print(f"  Status:  {STATUS_MAP.get(info.status, info.status)}")
+    print(f"  State:   {VDE_STATE_MAP.get(state, state)}")
+    print(f"  Vectors: {count}  (points x named spaces)")
+    if hasattr(info, "config") and info.config:
+        params = info.config.get("params", {})
+        vectors = params.get("vectors", {})
+        for space_name, space_cfg in vectors.items():
+            print(f"  Space '{space_name}': {space_cfg.get('size')}-dim, {space_cfg.get('distance')}")
 
 asyncio.run(inspect_collection())
 ```
 
 ---
 
-## Step 17: Collection cleanup
+## Step 15: Collection cleanup
 
 The function below flushes any pending writes to disk and optionally deletes the collection when you are done experimenting. Uncomment the delete lines to remove the collection entirely.
 
@@ -1065,7 +868,7 @@ asyncio.run(cleanup())
 
 ## Patterns summary
 
-The following patterns recap the core multimodel techniques covered in this tutorial. Use them as a quick reference when building your own pipelines.
+The following patterns recap the core multimodal techniques covered in this tutorial. Use them as a quick reference when building your own pipelines.
 
 ### Pattern 1: Independent space search
 
@@ -1077,7 +880,7 @@ results = await client.points.search(
 )
 ```
 
-### Pattern 2: Server-side multimodel fusion
+### Pattern 2: Server-side multimodal fusion
 
 Provide two `PrefetchQuery` entries and set `query={"fusion": Fusion.RRF}` to have the server merge the candidate lists.
 
@@ -1105,37 +908,39 @@ fused = reciprocal_rank_fusion(
 )
 ```
 
-### Pattern 4: Nested prefetch with reranking
+### Pattern 4: Post-fusion filter
 
-Nest an RRF-fusion prefetch inside the outer query and set `query=text_vec` to fuse first, then rerank by the text vector.
+Pass `filter` to the outer `query()` call to gate the fused candidate pool by structured payload conditions.
 
 ```python
 results = await client.points.query(
     COLLECTION,
-    query=text_vec,
-    using="text",
+    query={"fusion": Fusion.RRF},
     prefetch=[
-        PrefetchQuery(
-            query={"fusion": Fusion.RRF},
-            prefetch=[
-                PrefetchQuery(query=text_vec, using="text", limit=20),
-                PrefetchQuery(query=image_vec, using="image", limit=20),
-            ],
-            limit=15,
-        ),
+        PrefetchQuery(query=text_vec, using="text", limit=20),
+        PrefetchQuery(query=image_vec, using="image", limit=20),
     ],
-    limit=5,
+    filter=FilterBuilder().must(Field("category").eq("apparel")).build(),
+    limit=10,
 )
 ```
 
 ### Pattern 5: Partial vector update
 
-Pass a `vector` dictionary containing only the named vector to change. The server updates that vector in place without touching the others.
+Fetch the existing point, then re-upsert with the updated vector alongside the unchanged vectors and payload.
 
 ```python
-await client.points.update_vectors(
+existing = await client.points.get(COLLECTION, ids=[0], with_payload=True, with_vectors=False)
+pt = existing[0]
+# Re-embed text from stored payload — with_vectors is not supported for named-vector collections
+text_vec = embed_text(pt.payload["description"])
+await client.points.upsert(
     COLLECTION,
-    points=[PointStruct(id=0, vector={"image": new_image_vec})],
+    points=[PointStruct(
+        id=0,
+        vector={"text": text_vec, "image": new_image_vec},
+        payload=pt.payload,
+    )],
 )
 ```
 
@@ -1146,17 +951,12 @@ await client.points.update_vectors(
 The table below lists every Actian VectorAI feature this tutorial demonstrated, along with the corresponding API call and its purpose.
 
 | Feature | API | Purpose |
-|---------|-----|---------|
+|---|---|---|
 | Named vectors | `vectors_config={"text": VectorParams(...), "image": VectorParams(...)}` | Store multiple embedding spaces per collection |
 | Named vector search | `points.search(using="text")` | Search a specific vector space |
 | Server-side RRF | `query={"fusion": Fusion.RRF}` | Rank-based fusion of prefetch results |
-| Server-side DBSF | `query={"fusion": Fusion.DBSF}` | Score-normalized fusion |
 | Prefetch | `PrefetchQuery(query=..., using=..., limit=...)` | Multistage candidate retrieval |
-| Nested prefetch | `PrefetchQuery(prefetch=[...])` | Three-stage fuse-then-rerank pipeline |
 | Client-side RRF | `reciprocal_rank_fusion(results, weights=...)` | Weighted client-side fusion |
-| Client-side DBSF | `distribution_based_score_fusion(results)` | Score-aware client-side fusion |
-| Search batch | `points.search_batch(searches=[...])` | Multiple queries in one call |
-| Partial vector update | `points.update_vectors(points=[...])` | Update one modality only |
 | Payload filtering | `FilterBuilder().must(Field(...).eq(...))` | Structured constraints on fusion |
 | Selective return | `WithPayloadSelector(include=[...])` | Return specific payload fields |
 | Vector return | `WithVectorsSelector(include=["text"])` | Return specific named vectors |
@@ -1168,19 +968,7 @@ The table below lists every Actian VectorAI feature this tutorial demonstrated, 
 
 ## Next steps
 
-Use the links below to continue building on what you learned in this tutorial.
-
-<CardGroup cols={2}>
- <Card title="Optimizing retrieval quality" href="/academy/tutorials/retrieval-quality">
- Tune HNSW, quantization, and search params for accuracy
- </Card>
- <Card title="Predicate filters" href="/academy/tutorials/predicate-filters">
- Combine vector search with structured payload constraints
- </Card>
- <Card title="Similarity search basics" href="/academy/tutorials/similarity-search">
- Learn the core retrieval workflow
- </Card>
- <Card title="Hybrid search patterns" href="/docs/fundamentals/search/search">
- Mix dense and sparse retrieval with fusion
- </Card>
-</CardGroup>
+- [Optimizing retrieval quality](/academy/tutorials/retrieval-quality) — Tune HNSW, quantization, and search params for accuracy
+- [Predicate filters](/academy/tutorials/predicate-filters) — Combine vector search with structured payload constraints
+- [Similarity search basics](/academy/tutorials/similarity-search) — Learn the core retrieval workflow
+- [Hybrid search patterns](/docs/fundamentals/search/search) — Mix dense and sparse retrieval with fusion
