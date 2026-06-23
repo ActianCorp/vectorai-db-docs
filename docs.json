@@ -68,7 +68,8 @@
             "pages": [
               "docs/integrations/index",
               "docs/integrations/langchain",
-              "docs/integrations/llama-index"
+              "docs/integrations/llama-index",
+              "docs/integrations/scalekit"
             ]
           },
           {
