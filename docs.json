@@ -32,6 +32,7 @@
             "pages": [
               "home/getting-started/overview",
               "home/installation/instructions",
+              "home/getting-started/license-activation",
               "home/quickstart/quickstart"
             ]
           },
@@ -60,7 +61,8 @@
               "docs/guides/error-handling",
               "docs/guides/troubleshooting",
               "docs/guides/gui-interface",
-              "docs/guides/monitoring-and-logging"
+              "docs/guides/monitoring-and-logging",
+              "docs/guides/license-and-upgrade"
             ]
           },
           {
