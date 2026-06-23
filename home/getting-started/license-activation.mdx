@@ -3,19 +3,19 @@ title: "Activating a license"
 description: "Upgrade from the Community edition to a licensed instance using the Local UI or a direct API call."
 ---
 
-VectorAI DB runs in Community mode by default, with a cap of **5,000 vectors**. A product key increases the cap for the duration of your license.
+VectorAI DB runs in Community mode by default, with a cap of **5,000 vectors**. A license key increases the cap for the duration of your license.
 
 | Edition | Max vectors | Notes |
 |---|---|---|
 | Community | 5,000 | Default, no key required |
-| Licensed | 1,000,000+ | Requires a valid product key |
+| Licensed | 1,000,000+ | Requires a valid license key |
 
 <Note>
   Don't have a key yet? [Start a free 30-day trial](https://www.actian.com/databases/vectorai-db/community-edition/) and scale to 1 million vectors, fully on your infrastructure, no credit card required.
 </Note>
 
 <Tip>
-Your product key is delivered by email when you start a trial or purchase a subscription. If you haven't received one, contact [Actian support](https://www.actian.com/support).
+Your license key is delivered by email when you start a trial or purchase a subscription. If you haven't received one, contact [Actian support](https://www.actian.com/support).
 </Tip>
 
 ---
@@ -29,8 +29,8 @@ Your product key is delivered by email when you start a trial or purchase a subs
   <Step title="Open the License Manager">
     Click **License Manager** in the navigation.
   </Step>
-  <Step title="Enter your product key">
-    Paste your product key into the input field and click **Activate**.
+  <Step title="Enter your license key">
+    Paste your license key into the input field and click **Activate**.
   </Step>
   <Step title="Confirm activation">
     The page updates and displays your new license status: edition, vector cap, and expiry date.
@@ -59,7 +59,7 @@ Response on a Community instance:
 }
 ```
 
-### Apply a product key
+### Apply a license key
 
 ```bash
 curl -X POST http://localhost:6575/api/actian/licenses/add \
