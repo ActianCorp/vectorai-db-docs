@@ -59,7 +59,8 @@
             "pages": [
               "docs/guides/error-handling",
               "docs/guides/troubleshooting",
-              "docs/guides/gui-interface"
+              "docs/guides/gui-interface",
+              "docs/guides/monitoring-and-logging"
             ]
           },
           {
@@ -335,6 +336,11 @@
       "x": "https://x.com/actiancorp",
       "github": "https://github.com/actiancorp",
       "linkedin": "https://linkedin.com/company/actian"
+    }
+  },
+  "integrations": {
+    "ga4": {
+      "measurementId": "G-NHC5CN295F"
     }
   }
 }
