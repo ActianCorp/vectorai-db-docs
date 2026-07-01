@@ -11,16 +11,14 @@ VectorAI DB runs in Community mode by default, with a cap of **5,000 vectors**. 
 | Licensed | 1,000,000+ | Requires a valid license key |
 
 <Note>
-  Your key is emailed when you start a trial or purchase a subscription. Don't have one yet? [Start a free 30-day trial](https://www.actian.com/databases/vectorai-db/community-edition/), no credit card required. If you haven't received your key, contact [Actian support](https://www.actian.com/support).
+  Your key is emailed when you [start a trial](https://www.actian.com/databases/vectorai-db/community-edition/) or purchase a subscription. If you haven't received your key, contact [Actian support](https://www.actian.com/support).
 </Note>
-
----
 
 ## Activate via the Local UI
 
 <Steps>
   <Step title="Open the Local UI">
-    Navigate to `http://localhost:6575` in your browser. If your instance is running on a remote server, replace `localhost` with the server's IP address.
+    Navigate to `http://localhost:6575` in your browser. If your instance is running on a remote server, replace `localhost` with the server's IP address. The [Local UI](/docs/guides/gui-interface) is a browser-based console for managing collections, running searches, and configuring VectorAI DB.
   </Step>
   <Step title="Open the License Manager">
     Click **License Manager** in the navigation.
@@ -33,11 +31,9 @@ VectorAI DB runs in Community mode by default, with a cap of **5,000 vectors**. 
   </Step>
 </Steps>
 
----
-
 ## Activate headlessly
 
-Use the license API on port **6575** to activate without a browser.
+Use the license API on port **6575** to activate without a browser. Port 6575 is the Local UI and its API proxy — separate from the REST API on port 6573 and the gRPC server on port 6574. Make sure it is reachable from wherever you run the activation command.
 
 ### Check current status
 
@@ -73,12 +69,6 @@ On success:
 }
 ```
 
-<Note>
-Port 6575 is the Local UI and its API proxy. It is separate from the VectorAI DB REST API on port 6573 and the gRPC server on port 6574. Make sure port 6575 is reachable from wherever you run the activation command.
-</Note>
-
----
-
 ## License persistence
 
 The license state is written to the persistent data volume at `/var/lib/actian-vectorai` and survives container restarts. You only need to activate once per installation.
@@ -86,8 +76,6 @@ The license state is written to the persistent data volume at `/var/lib/actian-v
 <Warning>
 Recreating the container without mounting the same volume will clear the license state. You will need to reactivate.
 </Warning>
-
----
 
 ## Next steps
 
@@ -100,6 +88,9 @@ Recreating the container without mounting the same volume will clear the license
   </Card>
   <Card title="Licensing model" icon="rectangle-list" href="/docs/guides/license-and-upgrade">
     Understand capacity increments, key states, compliance enforcement, and the license API
+  </Card>
+  <Card title="Free trial" icon="gift" href="https://www.actian.com/databases/vectorai-db/community-edition/">
+    Start a free 30-day trial — no credit card required
   </Card>
 </CardGroup>
  
