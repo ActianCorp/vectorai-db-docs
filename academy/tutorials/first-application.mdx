@@ -412,9 +412,9 @@ The `search` call accepts three key parameters that control what is returned.
 | `limit=5` | Top 5 results | Number of results to return. |
 | `with_payload=True` | Include metadata | Returns title, genre, year, and other fields with each result. |
 
-### Expected output
+### Example output
 
-The results are ranked by cosine similarity score. The embedding model surfaces space-themed films even when the exact query words do not appear in their plot descriptions.
+The following output is an example. Your scores will vary. The embedding model surfaces space-themed films even when the exact query words do not appear in their plot descriptions.
 
 ```text
 Query: "a suspenseful movie set in outer space"
@@ -468,9 +468,9 @@ for r in results:
     print(f"  {r.score:.4f}  {p['title']} ({p['year']})")
 ```
 
-#### Expected output
+#### Example output
 
-Only sci-fi movies are scored and returned. Non-matching genres are excluded before ranking, so the similarity scores reflect distance within the sci-fi subset only.
+The following output is an example. Your scores will vary. Only sci-fi movies are scored and returned. Non-matching genres are excluded before ranking.
 
 ```text
 Genre filter: sci-fi
@@ -516,9 +516,9 @@ for r in results:
     print(f"  {r.score:.4f}  {p['title']} — ★{p['rating']}")
 ```
 
-#### Expected output
+#### Example output
 
-Only movies with a rating of `8.8` or above are included. The results are still ordered by semantic similarity to the query, not by rating.
+The following output is an example. Your scores will vary. Only movies with a rating of 8.8 or above are included. Results are ordered by semantic similarity, not by rating.
 
 ```text
 Filter: rating >= 8.8
@@ -578,9 +578,9 @@ for r in results:
     print(f"  {r.score:.4f}  {p['title']} ({p['year']}) — {p['genre']} — ★{p['rating']}")
 ```
 
-### Expected output
+### Example output
 
-All three conditions are applied simultaneously. Only films released after 2000, rated at least 8.5, and not in the drama genre are considered for ranking.
+The following output is an example. Your scores will vary. All three conditions are applied simultaneously. Only films released after 2000, rated at least 8.5, and not in the drama genre are considered for ranking.
 
 ```text
 Filters: year >= 2000, rating >= 8.5, NOT drama
@@ -955,9 +955,9 @@ asyncio.run(recommend_movies(
 ))
 ```
 
-### Expected output
+### Example output
 
-Three calls are made with different queries and filter combinations. Each block shows the active filters and how many results matched before the ranked list is printed.
+The following output is an example. Your scores will vary. Three calls are made with different queries and filter combinations.
 
 ```text
   Query: "a mind-bending sci-fi movie"

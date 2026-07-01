@@ -1,6 +1,6 @@
 ---
 title: "Quickstart"
-description: "Guide to help you get started with VectorAI DB in under five minutes."
+description: "Guide to help you get started with VectorAI DB."
 ---
 
 import Prerequisites from "/snippets/python-prerequisites.mdx";
@@ -168,7 +168,7 @@ with VectorAIClient("localhost:6574") as client:
     print(f"Top result payload: {retrieved[0].payload}")
 ```
 
-If the search succeeds, the output displays the matched results ranked by similarity score.
+The following output is an example. Your scores will vary.
 
 ```
 Searching for similar vectors...
@@ -305,7 +305,7 @@ const retrieved = await client.points.get(COLLECTION, [results[0].id]);
 console.log(`Top result payload: ${JSON.stringify(retrieved[0].payload)}`);
 ```
 
-If the search succeeds, the output displays the matched results ranked by similarity score.
+The following output is an example. Your scores will vary.
 
 ```
 Searching for similar vectors...

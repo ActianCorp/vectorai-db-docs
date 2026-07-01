@@ -3,6 +3,10 @@ title: "Error handling"
 description: "Understand error codes and exception types returned by VectorAI DB and how to handle them in your application."
 ---
 
+<Note>
+This page covers the Python SDK. For REST error codes, see [Error Codes](/api-reference/error-codes).
+</Note>
+
 VectorAI DB uses standard transport status codes and the Python SDK maps them to typed exceptions. Catch specific exceptions when you can, and use `VectorAIError` as the application-level catch-all.
 
 | | |

@@ -32,7 +32,8 @@
             "pages": [
               "home/getting-started/overview",
               "home/installation/instructions",
-              "home/quickstart/quickstart"
+              "home/quickstart/quickstart",
+              "home/getting-started/architecture"
             ]
           },
           {
@@ -120,9 +121,7 @@
             "group": "Payload",
             "pages": [
               "docs/fundamentals/payload/payload",
-              "docs/fundamentals/payload/create-payload-task",
-              "docs/fundamentals/payload/update-payload-task",
-              "docs/fundamentals/payload/filter-payload-task"
+              "docs/fundamentals/payload/update-payload-task"
             ]
           },
           {
@@ -130,7 +129,6 @@
             "pages": [
               "docs/fundamentals/search/search",
               "docs/fundamentals/search/basic-search-task",
-              "docs/fundamentals/search/filtered-search-task",
               "docs/fundamentals/search/search-with-payload-task",
               "docs/fundamentals/search/search-with-vectors-task"
             ]
@@ -161,8 +159,7 @@
             "pages": [
               "docs/fundamentals/hybrid-search/hybrid-search",
               "docs/fundamentals/hybrid-search/hybrid-rag-task",
-              "docs/fundamentals/hybrid-search/rrf-fusion-task",
-              "docs/fundamentals/hybrid-search/dbsf-fusion-task",
+              "docs/fundamentals/hybrid-search/fusion-methods",
               "docs/fundamentals/hybrid-search/multi-model-fusion-task",
               "docs/fundamentals/hybrid-search/query-variation-task",
               "docs/fundamentals/hybrid-search/performance-benchmark-task"
