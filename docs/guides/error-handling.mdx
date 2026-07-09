@@ -18,7 +18,7 @@ VectorAI DB uses standard transport status codes and the Python SDK maps them to
 | `UnimplementedError` | The server does not implement the operation | `operation`, `code`, `message` |
 | `VectorAIError` | Base class for SDK errors | `code`, `message`, `details`, `operation` |
 
-## Catch specific exceptions
+## Catch exceptions by type
 
 ```python
 from actian_vectorai import (
