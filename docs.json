@@ -30,6 +30,7 @@
           {
             "group": "Get started",
             "pages": [
+              "index",
               "home/getting-started/overview",
               "home/installation/instructions",
               "home/quickstart/quickstart"
@@ -55,12 +56,16 @@
             ]
           },
           {
+            "group": "Tools",
+            "pages": [
+              "docs/guides/gui-interface"
+            ]
+          },
+          {
             "group": "Guides",
             "pages": [
               "docs/guides/error-handling",
-              "docs/guides/troubleshooting",
-              "docs/guides/gui-interface",
-              "docs/guides/monitoring-and-logging"
+              "docs/guides/troubleshooting"
             ]
           },
           {
@@ -72,12 +77,17 @@
             ]
           },
           {
-            "group": "Reference",
+            "group": "Support",
             "pages": [
               "home/support/faq",
-              "home/support/support",
+              "home/support/support"
+            ]
+          },
+          {
+            "group": "Legal",
+            "pages": [
               "home/support/license",
-			  "home/support/eula"
+              "home/support/eula"
             ]
           }
         ]

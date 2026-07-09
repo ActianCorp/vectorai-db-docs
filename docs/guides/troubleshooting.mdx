@@ -3,8 +3,6 @@ title: "Troubleshooting"
 description: "Identify and fix common operational problems with VectorAI DB using guided diagnostic steps."
 ---
 
-Use this guide to diagnose and resolve issues with VectorAI DB. Start with the quick-reference table to identify your symptom, then follow the detailed steps for your issue.
-
 ## Diagnostic checklist
 
 Before diving into specific issues, verify the following:
@@ -16,11 +14,7 @@ Before diving into specific issues, verify the following:
 - Vector dimensions match query input
 - Logs don't show startup errors
 
-These checks resolve the majority of issues without deeper debugging.
-
 ## Quick reference: common issues
-
-The following table lists common symptoms, their likely causes, and links to the relevant sections in this guide.
 
 | Symptom | Likely cause | Jump to |
 |---------|-------------|---------|
@@ -31,16 +25,12 @@ The following table lists common symptoms, their likely causes, and links to the
 | Slow ingestion | High `hnsw_ef_construction`, insufficient memory | [Performance issues](#performance-issues) |
 | Slow queries | Low `hnsw_ef`, cold index | [Performance issues](#performance-issues) |
 | Container exits immediately | Config error, missing license file | [Startup failures](#startup-failures) |
-| High memory usage | Large number of vectors, high concurrency, indexing workload, insufficient RAM  | [Memory issues](#memory-issues) |
+| High memory usage | Large number of vectors, high concurrency, indexing workload, insufficient RAM | [Memory issues](#memory-issues) |
 | Data lost after restart | No persistent volume mounted | [Data persistence](#data-persistence) |
 
 ## Connection issues
 
-The following sections describe how to diagnose and fix connection failures.
-
 ### Server not reachable
-
-Follow these steps to verify the container is running and reachable.
 
 <Steps>
   <Step title="Confirm the container is running">
@@ -88,11 +78,7 @@ This error indicates the client cannot reach the server. In addition to the step
 
 ## Search issues
 
-The following sections describe how to diagnose and fix problems with search results.
-
 ### Search returns no results
-
-The following table lists checks to perform when a search returns no results.
 
 | Check | Action |
 |-------|--------|
@@ -102,8 +88,6 @@ The following table lists checks to perform when a search returns no results.
 | Collection is still indexing | Check index status in the GUI or via `get_collection_info` |
 
 ### Verify collection state
-
-Use the following code to inspect the current state of a collection, including point count, indexed vector count, and status:
 
 ```python
 from actian_vectorai import VectorAIClient
@@ -115,15 +99,13 @@ with VectorAIClient("localhost:6574") as client:
     print(f"Status:  {info.status}")
 ```
 
-If `indexed_vectors_count` is lower than `points_count`, then the index is still building. Wait for indexing to complete before evaluating search quality.
+If `indexed_vectors_count` is lower than `points_count`, the index is still building. Wait for indexing to complete before evaluating search quality.
 
 ## Search quality
 
-If search returns results but they are inaccurate or irrelevant, then the issue is usually related to index parameters, distance metrics, or embedding configuration.
+If search returns results but they are inaccurate or irrelevant, the issue is usually related to index parameters, distance metrics, or embedding configuration.
 
 ### Poor recall or irrelevant results
-
-Expand each section for details on how to tune search parameters and verify your embedding configuration.
 
 <AccordionGroup>
   <Accordion title="Increase hnsw_ef for higher recall">
@@ -170,11 +152,7 @@ Expand each section for details on how to tune search parameters and verify your
 
 ## Performance issues
 
-The following sections describe how to identify and resolve slow ingestion and slow query performance.
-
 ### Slow ingestion
-
-The following table lists common causes of slow ingestion and recommended solutions.
 
 | Cause | Solution |
 |-------|----------|
@@ -184,8 +162,6 @@ The following table lists common causes of slow ingestion and recommended soluti
 
 ### Slow queries
 
-The following table lists common causes of slow queries and recommended solutions.
-
 | Cause | Solution |
 |-------|----------|
 | High `hnsw_ef` | Lower to 64 for faster queries at slightly lower recall |
@@ -194,17 +170,11 @@ The following table lists common causes of slow queries and recommended solution
 
 ## Startup failures
 
-The following section describes how to diagnose and fix container startup errors.
-
 ### Container exits immediately
-
-Use the following command to check logs for the error.
 
 ```bash
 docker logs <container-id>
 ```
-
-The following table lists common log messages and their fixes.
 
 | Log message | Cause | Fix |
 |-------------|-------|-----|
@@ -223,15 +193,13 @@ Common patterns:
 - `warn` → potential performance or data issues
 - `info` → normal operation (useful for tracing flow)
 
-Example:
-
 ```bash
 docker logs <container-id> | grep -i error
 ```
 
 ## Memory issues
 
-Memory consumption depends on the number of vectors, their dimensionality, concurrency, and the HNSW index configuration. Use the checks below to identify what is driving high usage.
+Memory consumption depends on the number of vectors, their dimensionality, concurrency, and the HNSW index configuration.
 
 ### High memory usage
 
@@ -246,13 +214,9 @@ High memory usage usually becomes more noticeable when:
 
 In an HNSW index, `m` refers to the number of edges each node maintains in the graph.
 
-In practical terms:
-
 - Higher `m` usually improves recall by increasing graph connectivity
 - Higher `m` also increases memory usage and index build cost
 - Lower `m` reduces memory overhead but may lower search quality
-
-In VectorAI DB, `m` should be understood as an index-structure concept rather than a general-purpose tuning setting for all deployments.
 
 For more background, see [Vector index concepts](/docs/fundamentals/indexing/indexing).
 
@@ -262,7 +226,7 @@ By default, Docker containers store data in a writable layer that is discarded w
 
 ### Data lost after container restart
 
-Ensure a volume is mounted to the data directory. Without a volume, all data is stored in the container's writable layer and is lost when the container is removed:
+Ensure a volume is mounted to the data directory:
 
 ```bash
 # Correct — data persists on the host
@@ -284,16 +248,14 @@ docker inspect <container-id> | grep -A 10 Mounts
 
 ## Next steps
 
-Explore these related guides to learn more.
-
 <CardGroup cols={2}>
-  <Card title="Error handling" href="/docs/guides/error-handling">
+  <Card title="Error handling" icon="triangle-exclamation" href="/docs/guides/error-handling">
     Handle specific gRPC error codes in your application code.
   </Card>
-  <Card title="Docker installation" href="/home/installation/instructions">
+  <Card title="Docker setup" icon="docker" href="/home/installation/instructions">
     Container setup, volume mounts, and Docker Compose configuration.
   </Card>
-  <Card title="HNSW indexing" href="/docs/fundamentals/indexing/indexing">
+  <Card title="HNSW indexing" icon="chart-network" href="/docs/fundamentals/indexing/indexing">
     Configure index parameters that affect search quality and performance.
   </Card>
 </CardGroup>
