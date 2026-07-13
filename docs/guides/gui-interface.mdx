@@ -1,29 +1,13 @@
 ---
 title: "Local UI"
-description: "Manage and interact with VectorAI DB through the built-in web interface."
+description: "Explore collections, run searches, and inspect data through the browser-based interface."
 ---
 
-The VectorAI DB Local UI provides a visual interface for managing collections, running queries, and inspecting your data. Access it directly from your browser with no additional tools required.
-
-<Warning>
-**Docker Compose required**: Local UI is available only via the VectorAI DB Docker container. Ensure your stack is up before accessing the interface. [Setup instructions →](/home/installation/instructions)
-</Warning>
-
-## Accessing the Local UI
-
-Once your Docker Compose stack is running, open your browser and navigate to:
-
-```
-http://localhost:6575
-```
-
-You should see the VectorAI DB dashboard load immediately. No login is required for local deployments.
+The Local UI is available at `http://localhost:6575` once the VectorAI DB Docker container is running. No login is required for local deployments. See [Docker setup](/home/installation/instructions) if you need to start the container first.
 
 ![Screen shot showing VectorAI DB dashboard](/images/home/vectorai-db-dashboard.png)
 
-## Overview
-
-The dashboard is divided into two main sections.
+## Dashboard sections
 
 | Section | Description |
 |---|---|
@@ -32,13 +16,11 @@ The dashboard is divided into two main sections.
 
 ## Console
 
-The Console lets you interact with the VectorAI DB REST API directly from the browser. Use it to run ad-hoc requests, test queries, and inspect API responses without leaving the interface.
-
-You can issue requests against any available API endpoint and view the full JSON response alongside HTTP status codes.
+The Console lets you run ad-hoc REST API requests, test queries, and inspect JSON responses alongside HTTP status codes — all from the browser.
 
 ## Collections
 
-The Collections section gives you a visual overview of all collections currently stored in VectorAI DB. From here you can perform the following actions.
+The Collections section gives you a visual overview of all collections in VectorAI DB.
 
 - View all existing collections and their configuration.
 - Inspect vector count, dimension size, and distance metric for each collection.
@@ -48,11 +30,9 @@ The Collections section gives you a visual overview of all collections currently
 
 ### Browsing vectors
 
-Select any collection from the list to open its detail view. The detail view displays a paginated table of all stored vectors along with their payload fields. You can scroll through records or filter by payload values to locate specific entries.
+Select any collection to open its detail view: a paginated table of stored vectors with their payload fields. Filter by payload values to locate specific entries.
 
 ### Running a search
-
-To run a similarity search from the UI:
 
 <Steps>
   <Step title="Open a collection">
@@ -74,19 +54,17 @@ To run a similarity search from the UI:
 
 ## Next steps
 
-Explore these resources to learn more about working with VectorAI DB.
-
 <CardGroup cols={2}>
-  <Card title="Python SDK" icon="code" href="/sdks/python/quickstart">
-    Use the Python SDK for programmatic access to VectorAI DB
+  <Card title="Python SDK" icon="code" href="/sdks/python/installation">
+    Install and configure the Python SDK.
   </Card>
   <Card title="REST API" icon="globe" href="/api-reference/rest">
-    Explore the full REST API reference
+    Explore the full REST API reference.
   </Card>
-  <Card title="Core Concepts" icon="book-open" href="/docs/fundamentals">
-    Learn about collections, vectors, and payloads
+  <Card title="Core concepts" icon="book-open" href="/home/getting-started/overview">
+    Understand the data model, architecture, and how search works.
   </Card>
   <Card title="Troubleshooting" icon="wrench" href="/docs/guides/troubleshooting">
-    Resolve common issues with VectorAI DB
+    Resolve common issues with VectorAI DB.
   </Card>
 </CardGroup>

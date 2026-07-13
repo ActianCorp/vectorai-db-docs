@@ -23,15 +23,15 @@ tags:
     description: Create and manage the admin user, login, and authentication settings.
 
 paths:
-  /auth/access_token:
+  /auth/api_key:
     post:
       tags:
         - Access Tokens
       summary: Create access token
       description: |
-        Creates a new access token with the specified name, description, expiration, and permissions.
+        Creates a new API key with the specified name, description, expiration, and permissions.
 
-        All access-token management endpoints are available only when the server-side `auth_enabled` setting is `true`. If `auth_enabled` is `false`, the server rejects these requests with `403 Forbidden`.
+        **Prerequisite:** Authentication must be enabled before calling this endpoint. Call `PATCH /auth/enabled` with `{"enabled": true}` using an admin JWT first. If `auth_enabled` is `false`, the server rejects this request with `403 Forbidden` and the message `"API key management API requires auth_enabled=true"`.
 
         ## Permission model
 
@@ -111,9 +111,9 @@ paths:
                   description:
                     type: string
                     description: Description of the token's intended use.
-                  token:
+                  api_key:
                     type: string
-                    description: The raw access token value. Store this securely, as it cannot be retrieved after creation.
+                    description: The raw API key value. Store this securely, as it cannot be retrieved after creation.
                   created_at:
                     type: string
                     format: date-time
@@ -135,7 +135,7 @@ paths:
                     id: 12
                     name: "reader-admin-token"
                     description: "Used by the analytics dashboard to run read-only admin checks."
-                    token: "vdai_<newly-generated-token>"
+                    api_key: "vdai_<newly-generated-token>"
                     created_at: "2026-04-02T08:30:00Z"
                     expired_at: "2026-04-03T08:30:00Z"
                     will_expire: true
@@ -150,12 +150,12 @@ paths:
                 auth_disabled:
                   value:
                     status: "error"
-                    message: "Access token API requires auth_enabled=true"
+                    message: "API key management API requires auth_enabled=true"
       x-codeSamples:
         - lang: cURL
           label: Create access token
           source: |
-            curl -X POST http://localhost:6575/auth/access_token \
+            curl -X POST http://localhost:6573/auth/api_key \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -166,7 +166,7 @@ paths:
                 "permission": "read,admin"
               }'
 
-  /auth/access_tokens:
+  /auth/api_keys:
     get:
       tags:
         - Access Tokens
@@ -246,11 +246,11 @@ paths:
         - lang: cURL
           label: List access tokens
           source: |
-            curl -X GET http://localhost:6575/auth/access_tokens \
+            curl -X GET http://localhost:6573/auth/api_keys \
               -H "Accept: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>'
 
-  /auth/access_token/{token_id}:
+  /auth/api_key/{token_id}:
     delete:
       tags:
         - Access Tokens
@@ -317,16 +317,16 @@ paths:
                 auth_disabled:
                   value:
                     status: "error"
-                    message: "Access token API requires auth_enabled=true"
+                    message: "API key management API requires auth_enabled=true"
       x-codeSamples:
         - lang: cURL
           label: Delete access token
           source: |
-            curl -X DELETE http://localhost:6575/auth/access_token/12 \
+            curl -X DELETE http://localhost:6573/auth/api_key/12 \
               -H "Accept: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>'
 
-  /auth/access_token/{token_id}/rotate:
+  /auth/api_key/{token_id}/rotate:
     post:
       tags:
         - Access Tokens
@@ -366,9 +366,9 @@ paths:
                   description:
                     type: string
                     description: Description of the token's intended use.
-                  token:
+                  api_key:
                     type: string
-                    description: The new raw access token value. Store this securely, as it cannot be retrieved after rotation.
+                    description: The new raw API key value. Store this securely, as it cannot be retrieved after rotation.
                   created_at:
                     type: string
                     format: date-time
@@ -390,7 +390,7 @@ paths:
                     id: 12
                     name: "reader-admin-token"
                     description: "Used by the analytics dashboard to run read-only admin checks."
-                    token: "vdai_<newly-generated-token>"
+                    api_key: "vdai_<newly-generated-token>"
                     created_at: "2026-04-02T08:30:00Z"
                     expired_at: "2026-04-03T08:30:00Z"
                     will_expire: true
@@ -416,7 +416,7 @@ paths:
         - lang: cURL
           label: Rotate access token
           source: |
-            curl -X POST http://localhost:6575/auth/access_token/12/rotate \
+            curl -X POST http://localhost:6573/auth/api_key/12/rotate \
               -H "Accept: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>'
 
@@ -480,7 +480,7 @@ paths:
         - lang: cURL
           label: Create admin user
           source: |
-            curl -X POST http://localhost:6575/auth/admin \
+            curl -X POST http://localhost:6573/auth/admin \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -547,7 +547,7 @@ paths:
         - lang: cURL
           label: Reset admin password
           source: |
-            curl -X POST http://localhost:6575/auth/admin/reset-password \
+            curl -X POST http://localhost:6573/auth/admin/reset-password \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
@@ -635,9 +635,8 @@ paths:
         - lang: cURL
           label: Admin login
           source: |
-            curl -X POST http://localhost:6575/auth/admin/login \
+            curl -X POST http://localhost:6573/auth/admin/login \
               -H "Content-Type: application/json" \
-              -H 'Authorization: Bearer <admin-jwt-or-access-token>' \
               -d '{
                 "password": "MyNewSecurePwd!2"
               }'
@@ -688,9 +687,8 @@ paths:
         - lang: cURL
           label: Check admin exists
           source: |
-            curl -X GET http://localhost:6575/auth/admin/exists \
-              -H "Accept: application/json" \
-              -H 'Authorization: Bearer <admin-jwt-or-access-token>'
+            curl -X GET http://localhost:6573/auth/admin/exists \
+              -H "Accept: application/json"
 
   /auth/enabled:
     patch:
@@ -763,7 +761,7 @@ paths:
         - lang: cURL
           label: Enable authentication
           source: |
-            curl -X PATCH http://localhost:6575/auth/enabled \
+            curl -X PATCH http://localhost:6573/auth/enabled \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt>' \
               -d '{
@@ -772,7 +770,7 @@ paths:
         - lang: cURL
           label: Disable authentication
           source: |
-            curl -X PATCH http://localhost:6575/auth/enabled \
+            curl -X PATCH http://localhost:6573/auth/enabled \
               -H "Content-Type: application/json" \
               -H 'Authorization: Bearer <admin-jwt>' \
               -d '{
