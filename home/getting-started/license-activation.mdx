@@ -1,0 +1,96 @@
+---
+title: "Activating a license"
+description: "Upgrade from the Community edition to a licensed instance using the Local UI or a direct API call."
+---
+
+VectorAI DB runs in Community mode by default, with a cap of **5,000 vectors**. A license key increases the cap for the duration of your subscription. Installing multiple keys stacks their capacity; see [Licensing model](/docs/guides/license-and-upgrade#capacity-increments-and-aggregation) for available increments.
+
+| Edition | Max vectors | Notes |
+|---|---|---|
+| Community | 5,000 | Default, no key required |
+| Licensed | 1,000,000+ | Requires a valid license key |
+
+<Note>
+  Your key is emailed when you [start a trial](https://www.actian.com/databases/vectorai-db/community-edition/) or purchase a subscription. If you haven't received your key, contact [Actian support](https://www.actian.com/support).
+</Note>
+
+## Activate via the Local UI
+
+<Steps>
+  <Step title="Open the Local UI">
+    Navigate to `http://localhost:6575` in your browser. If your instance is running on a remote server, replace `localhost` with the server's IP address. The [Local UI](/docs/guides/gui-interface) is a browser-based console for managing collections, running searches, and configuring VectorAI DB.
+  </Step>
+  <Step title="Open the License Manager">
+    Click **License Manager** in the navigation.
+  </Step>
+  <Step title="Enter your license key">
+    Paste your license key into the input field and click **Activate**.
+  </Step>
+  <Step title="Confirm activation">
+    The page updates and displays your new license status: edition, vector cap, and expiry date.
+  </Step>
+</Steps>
+
+## Activate headlessly
+
+Use the license API on port **6575** to activate without a browser. Port 6575 is the Local UI and its API proxy — separate from the REST API on port 6573 and the gRPC server on port 6574. Make sure it is reachable from wherever you run the activation command.
+
+### Check current status
+
+```bash
+curl http://localhost:6575/api/actian/licenses/status
+```
+
+Response on a Community instance:
+
+```json
+{
+  "edition": "community",
+  "max_vectors": 5000,
+  "expires_at": null
+}
+```
+
+### Apply a license key
+
+```bash
+curl -X POST http://localhost:6575/api/actian/licenses/add \
+  -H "Content-Type: application/json" \
+  -d '{"product_key": "YOUR-KEY-HERE"}'
+```
+
+On success:
+
+```json
+{
+  "edition": "licensed",
+  "max_vectors": 1000000,
+  "expires_at": "2026-07-04T00:00:00Z"
+}
+```
+
+## License persistence
+
+The license state is written to the persistent data volume at `/var/lib/actian-vectorai` and survives container restarts. You only need to activate once per installation.
+
+<Warning>
+Recreating the container without mounting the same volume will clear the license state. You will need to reactivate.
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/home/quickstart/quickstart">
+    Create your first collection and run a similarity search
+  </Card>
+  <Card title="Local UI" icon="display" href="/docs/guides/gui-interface">
+    Explore the full web interface for managing collections and running searches
+  </Card>
+  <Card title="Licensing model" icon="rectangle-list" href="/docs/guides/license-and-upgrade">
+    Understand capacity increments, key states, compliance enforcement, and the license API
+  </Card>
+  <Card title="Free trial" icon="gift" href="https://www.actian.com/databases/vectorai-db/community-edition/">
+    Start a free 30-day trial — no credit card required
+  </Card>
+</CardGroup>
+ 
