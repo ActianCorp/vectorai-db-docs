@@ -36,7 +36,8 @@
                 "group": "Installation",
                 "pages": [
                   "home/installation/instructions",
-                  "home/installation/windows"
+                  "home/installation/windows",
+                  "home/installation/linux"
                 ]
               },
               "home/getting-started/license-activation",
