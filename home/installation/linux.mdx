@@ -3,10 +3,6 @@ title: "Linux"
 description: "Get VectorAI DB running on Linux using the installer script."
 ---
 
-<Note>
-Verified on x86-64 (AMD64) only. ARM architecture has not been tested.
-</Note>
-
 ## Prerequisites
 
 - Linux with systemd (Ubuntu 22.04 LTS or later recommended)
@@ -16,50 +12,102 @@ Verified on x86-64 (AMD64) only. ARM architecture has not been tested.
 
 ## Install VectorAI DB
 
-<Steps>
-  <Step title="Download the installer">
-    Download the installer tarball from the link provided on the [Actian VectorAI DB downloads page](https://www.actian.com/databases/vectorai-db/) after signing up.
+<Tabs>
+  <Tab title="x86-64 (AMD/Intel)">
+    <Steps>
+      <Step title="Download the installer">
+        Download the installer tarball from the link provided on the [Actian VectorAI DB downloads page](https://www.actian.com/databases/vectorai-db/) after signing up.
 
-    ```bash
-    wget https://135371550061-vectoraidb-installers.s3.us-east-2.amazonaws.com/Actian-VectorAI-linux-x64-1.0.0.tar.gz
-    ```
-  </Step>
-  <Step title="Extract the tarball">
-    ```bash
-    sudo tar -xzf Actian-VectorAI-linux-x64-1.0.0.tar.gz -C /usr/local
-    ```
+        ```bash
+        cd /root
+        wget https://135371550061-vectoraidb-installers.s3.us-east-2.amazonaws.com/Actian-VectorAI-linux-x64-1.0.0.tar.gz
+        ```
+      </Step>
+      <Step title="Extract the tarball">
+        ```bash
+        tar -xzf Actian-VectorAI-linux-x64-1.0.0.tar.gz -C /usr/local
+        ```
 
-    This creates the following structure:
+        This creates the following structure:
 
-    ```
-    /usr/local/actian-vectorai/install/
-    ├── cortex-core-linux-x64-1.0.0-package.tar.gz
-    ├── cortex.web-linux-x64-nightly-20260425.zip
-    ├── install_actian_vectorai.sh
-    └── uninstall_actian_vectorai.sh
-    ```
-  </Step>
-  <Step title="Run the installer">
-    ```bash
-    cd /usr/local/actian-vectorai/install
-    sudo bash install_actian_vectorai.sh
-    ```
+        ```
+        /usr/local/actian-vectorai/install/
+        ├── cortex-core-linux-x64-1.0.0-package.tar.gz
+        ├── cortex.web-linux-x64-nightly-20260425.zip
+        ├── install_actian_vectorai.sh
+        └── uninstall_actian_vectorai.sh
+        ```
+      </Step>
+      <Step title="Run the installer">
+        ```bash
+        cd /usr/local/actian-vectorai/install
+        sudo bash install_actian_vectorai.sh
+        ```
 
-    The installer prompts you to accept the EULA. Enter `y` to continue.
+        The installer prompts you to accept the EULA. Enter `y` to continue.
 
-    To skip the prompt in automated environments:
+        To skip the prompt in automated environments:
 
-    ```bash
-    sudo ACCEPT_ACTIAN_VECTORAI_EULA=YES bash install_actian_vectorai.sh
-    ```
+        ```bash
+        sudo ACCEPT_ACTIAN_VECTORAI_EULA=YES bash install_actian_vectorai.sh
+        ```
 
-    When complete, the installer prints:
+        When complete, the installer prints:
 
-    ```
-    [timestamp] Install completed successfully
-    ```
-  </Step>
-</Steps>
+        ```
+        [timestamp] Install completed successfully
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="ARM64">
+    <Steps>
+      <Step title="Download the installer">
+        Download the installer tarball from the link provided on the [Actian VectorAI DB downloads page](https://www.actian.com/databases/vectorai-db/) after signing up.
+
+        ```bash
+        cd /root
+        wget https://135371550061-vectoraidb-installers.s3.us-east-2.amazonaws.com/Actian-VectorAI-linux-arm64-1.0.0.tar.gz
+        ```
+      </Step>
+      <Step title="Extract the tarball">
+        ```bash
+        tar -xzf Actian-VectorAI-linux-arm64-1.0.0.tar.gz -C /usr/local
+        ```
+
+        This creates the following structure:
+
+        ```
+        /usr/local/actian-vectorai/install/
+        ├── cortex-core-linux-arm64-1.0.0-package.tar.gz
+        ├── cortex.web-linux-arm64-nightly-20260425.zip
+        ├── install_actian_vectorai.sh
+        └── uninstall_actian_vectorai.sh
+        ```
+      </Step>
+      <Step title="Run the installer">
+        ```bash
+        cd /usr/local/actian-vectorai/install
+        sudo bash install_actian_vectorai.sh
+        ```
+
+        The installer prompts you to accept the EULA. Enter `y` to continue.
+
+        To skip the prompt in automated environments:
+
+        ```bash
+        sudo ACCEPT_ACTIAN_VECTORAI_EULA=YES bash install_actian_vectorai.sh
+        ```
+
+        When complete, the installer prints:
+
+        ```
+        [timestamp] Install completed successfully
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
 
 The REST API is available at `localhost:6573`. The Local UI is available at `localhost:6575`.
 
