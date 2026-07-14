@@ -32,7 +32,13 @@
             "pages": [
               "index",
               "home/getting-started/overview",
-              "home/installation/instructions",
+              {
+                "group": "Installation",
+                "pages": [
+                  "home/installation/instructions",
+                  "home/installation/windows"
+                ]
+              },
               "home/getting-started/license-activation",
               "home/quickstart/quickstart"
             ]
@@ -330,7 +336,7 @@
     "primary": {
       "type": "button",
       "label": "Get Started",
-      "href": "https://www.actian.com/support"
+      "href": "/home/quickstart/quickstart"
     }
   },
   "contextual": {
