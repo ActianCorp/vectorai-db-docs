@@ -1,87 +1,110 @@
 ---
-title: "Windows Platforms"
-description: "Installing VectorAI DB locally on Windows."
+title: "Windows"
+description: "Get VectorAI DB running on Windows using the installer wizard."
 ---
 
 ## Prerequisites
 
-Before installing, ensure you have:
-- At least 8 GB RAM (16 GB+ recommended)
+- Windows 10 or later (64-bit)
+- 8 GB RAM (16 GB+ recommended)
 - 10 GB disk space (100 GB+ recommended)
 
-# Installing a Zen Server on Windows
+## Install VectorAI DB
 
-You must install **Zen Enterprise Server** or **Cloud Server** locally on the Windows server itself. You cannot install it remotely from a client machine.
+<Steps>
+  <Step title="Run the installer">
+    Download the VectorAI DB installer (`ActianVectorAIDB-Setup.exe`) from the [Actian downloads page](https://www.actian.com/databases/vectorai-db/) and double-click it to launch the setup wizard.
 
-After you run the installer, you can find the installation log file in the Windows `%Temp%` directory. This log may be useful if the installation fails.
+    The wizard opens to the license agreement screen.
 
-### To install on Windows
+    ![VectorAI DB installer license agreement screen](/images/installation/windows-installer-license.png)
+  </Step>
+  <Step title="Accept the license agreement">
+    Read the **VectorAI DB License and Support Services Agreement**, then check **I agree to the license terms and conditions**.
 
-1.  **Launch the installer** from your Windows machine.
-2.  In the installer selection list, click **Enterprise Server** or **Cloud Server** to install the components appropriate for your 32- or 64-bit Windows system.
-3.  In the Welcome screen, click **Next**.
-4.  On the **License Agreement** page, read and accept the Software License Agreement, then click **Next**.
-5.  To choose different installation locations, click **Change** for any of the directories listed. When you have made your choices, click **OK**.
-6.  Click **Next** to continue.
-7.  Click **Install** to begin the installation.
-8.  Once the installation is complete, the wizard indicates that it was successful. The product has been installed with a **trial key** that expires at the end of its trial period.
-9.  **Enter your license key** and click the button to authorize the key.
-10. A message box displays the status of the authorization action. Perform one of the following actions depending on the status:
-    * If the authorization status message is **“key is authorized,”** click **OK**, then click **Finish** to complete the installation.
-    * If the authorization status message reports an error or warning, click **OK**, and repeat the step to enter a valid license key.
-11. We recommend that you **register your product** as explained in the Registration page that opens.
+    The **Install** button becomes active once you accept.
+  </Step>
+  <Step title="Choose an install location (optional)">
+    Click **Options** to open the install location dialog. Enter a path directly or click **Browse** to select a folder, then click **OK** to confirm.
 
-> [!IMPORTANT]
-> If you are prompted to restart your system, please do so to ensure proper operation of your installation.
+    ![VectorAI DB installer location dialog](/images/installation/windows-installer-location.png)
 
+    If you skip this step, the installer uses the default path:
+
+    ```
+    C:\Program Files\Actian\VectorAI DB\
+    ```
+
+    Collections, logs, and auth data are always written to:
+
+    ```
+    C:\ProgramData\Actian\VectorAI DB\
+    ```
+  </Step>
+  <Step title="Click Install">
+    Click **Install**. The wizard copies files and registers both Windows services.
+
+    When setup finishes, the wizard shows **Installation Successfully Completed**.
+
+    ![VectorAI DB installer complete screen](/images/installation/windows-installer-complete.png)
+  </Step>
+  <Step title="Click Close">
+    Click **Close** to exit the wizard. Both services start automatically and no reboot is required.
+  </Step>
+</Steps>
+
+The REST API is available at `localhost:6573`. The Local UI is available at `localhost:6575`.
 
 ## Verify installation
 
-<Warning>
-**Python SDK Required**: To verify your installation, you need to have the VectorAI Python SDK installed. Install it using `pip install actian-vectorai-client` or follow the [Python SDK quickstart](/sdks/python/quickstart).
-</Warning>
+<Note>
+The verify commands below use PowerShell. Run them in a PowerShell terminal after installation.
+</Note>
 
-Test your installation by checking the server health:
+```powershell
+Get-Service ActianVectorAIDB
+Get-Service ActianVectorAIDBDashboard
 
-```python
-import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
+Invoke-RestMethod http://localhost:6573/
+Invoke-RestMethod http://localhost:6573/collections
 
-async def main():
-    async with AsyncVectorAIClient("localhost:6574") as client:
-        info = await client.health_check()
-        print(f"Connected to {info['title']} v{info['version']}")
-
-asyncio.run(main())
+Start-Process "http://localhost:6575"
 ```
 
 ## Troubleshooting
 
-### Common issues
+| Issue                                        | Solution                                                                                      |
+|----------------------------------------------|-----------------------------------------------------------------------------------------------|
+| Services not running after install           | Open **Services** (`services.msc`), locate `ActianVectorAIDB` and `ActianVectorAIDBDashboard`, and click **Start** |
+| Port 6573 / 6574 / 6575 already in use       | Find the process: `netstat -ano \| findstr :6573`, then stop it or change the port            |
+| `Invoke-RestMethod` returns a connection error | Wait 10-15 seconds after install for the services to initialize, then retry                 |
+| Engine logs                                  | `C:\ProgramData\Actian\VectorAI DB\logs\actian_vectorai_server.log`                          |
 
-The table below lists common installation issues and their solutions.
+### Check service status
 
-| Issue                | Solution                                                        |
-|----------------------|-----------------------------------------------------------------|
-| Connection failed    | Ensure Docker container is running: `docker ps` |
-| Port already in use  | Stop services using port 6574 or use a different port: `-p 6576:6574` |
-| Permission denied    | Run Docker commands with appropriate permissions or add user to docker group |
-| Container exits      | Check logs: `docker logs <container-id>` |
+```powershell
+Get-Service ActianVectorAIDB | Select-Object Name, Status, StartType
+Get-Service ActianVectorAIDBDashboard | Select-Object Name, Status, StartType
 
-### View logs
+Restart-Service ActianVectorAIDB
+```
 
-Check logs for errors:
+## Uninstall
+
+Go to **Settings > Apps > Installed apps**, find **Actian VectorAI DB**, and select **Uninstall**.
+
+The uninstaller removes the application binaries and stops the services. Data in `C:\ProgramData\Actian\VectorAI DB\` is not removed.
 
 ## Next steps
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/home/quickstart/quickstart">
-    Follow the quickstart guide to create your first collection
+    Create your first collection, insert vectors, and run a search.
   </Card>
-  <Card title="Core Concepts" icon="book-open" href="/docs/fundamentals">
-    Learn about vector databases and embeddings
+  <Card title="Core concepts" icon="book-open" href="/home/getting-started/overview">
+    Understand the data model, architecture, and how search works.
   </Card>
-  <Card title="Python SDK" icon="code" href="/sdks/python/quickstart">
-    Get started with the Python SDK
+  <Card title="Python SDK" icon="code" href="/sdks/python/installation">
+    Install and configure the Python SDK.
   </Card>
 </CardGroup>

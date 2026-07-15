@@ -32,7 +32,14 @@
             "pages": [
               "index",
               "home/getting-started/overview",
-              "home/installation/instructions",
+              {
+                "group": "Installation",
+                "pages": [
+                  "home/installation/instructions",
+                  "home/installation/windows",
+                  "home/installation/linux"
+                ]
+              },
               "home/getting-started/license-activation",
               "home/quickstart/quickstart"
             ]
