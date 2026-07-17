@@ -25,8 +25,6 @@ pip install langchain-openai
 
 ## Requirements
 
-Before using this integration, make sure your environment meets the following prerequisites:
-
 - Python 3.10 or later
 - A running Actian VectorAI DB instance (default endpoint: `localhost:6574`). See [Docker installation](/home/installation/instructions) for setup instructions.
 - An `OPENAI_API_KEY` environment variable set with a valid OpenAI API key, if using `OpenAIEmbeddings` as your embedding provider.
@@ -145,8 +143,6 @@ await store.adelete(ids=["doc1"])
 
 ## Similarity search
 
-The integration provides several similarity search methods, each available in both sync and async variants.
-
 ### Basic search
 
 Use `similarity_search` to return the `k` most similar documents to a query.
@@ -189,15 +185,11 @@ results = await store.asimilarity_search_with_score("hello", k=4)
 
 Max Marginal Relevance (MMR) optimizes for both similarity to the query and diversity among results. This is useful when you want relevant results that cover different aspects of the query rather than returning near-duplicate matches.
 
-The following table describes the MMR-specific parameters.
-
 | Parameter | Description |
 |-----------|-------------|
 | `k` | Number of results to return. |
 | `fetch_k` | Number of candidates to fetch before reranking. Higher values give MMR more candidates to select from. |
 | `lambda_mult` | Balance between relevance and diversity. Values closer to 1.0 favor relevance, values closer to 0.0 favor diversity. |
-
-The following example runs an MMR search that fetches 20 candidates and returns the 4 most relevant yet diverse results. The `lambda_mult` value of `0.5` balances relevance and diversity equally.
 
 ```python
 # Run a sync MMR search.
@@ -234,8 +226,6 @@ docs = await retriever.ainvoke("machine learning")
 
 ## Configuration
 
-The following table lists the parameters you can pass when creating an `ActianVectorAIVectorStore` instance.
-
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `url` | `"localhost:6574"` | VectorAI server gRPC address. |
@@ -247,8 +237,6 @@ The following table lists the parameters you can pass when creating an `ActianVe
 | `force_recreate` | `False` | Recreate collection if it already exists. |
 
 ## API reference
-
-The following table lists all available methods on `ActianVectorAIVectorStore` and their async counterparts.
 
 | Method | Async variant | Description |
 |--------|---------------|-------------|
@@ -264,8 +252,6 @@ The following table lists all available methods on `ActianVectorAIVectorStore` a
 | `get_by_ids()` | `aget_by_ids()` | Retrieve documents by IDs. |
 
 ## Next steps
-
-Explore related topics to continue building with LangChain and VectorAI DB:
 
 - [LlamaIndex](/docs/integrations/llama-index) — Alternative framework for RAG applications.
 - [Search](/docs/fundamentals/search/search) — Understand the underlying vector search operations.
