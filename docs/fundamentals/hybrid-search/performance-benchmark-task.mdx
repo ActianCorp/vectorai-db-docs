@@ -6,7 +6,7 @@ icon: "code"
 
 Hybrid search runs multiple queries and a fusion step, so it takes longer than a single search. Benchmarking helps you understand the latency tradeoff and find the right balance between retrieval quality and speed for your use case.
 
-This example assumes a `documents` collection already exists with indexed points. For collection setup, see [Reciprocal Rank Fusion](/docs/fundamentals/hybrid-search/rrf-fusion-task).
+This example assumes a `documents` collection already exists with indexed points. For collection setup, see [Fusion methods](/docs/fundamentals/hybrid-search/fusion-methods).
 
 The code below runs a single vector search and a hybrid search side by side, measures the execution time of each, and outputs the latency difference and slowdown ratio so you can evaluate the performance tradeoff.
 
