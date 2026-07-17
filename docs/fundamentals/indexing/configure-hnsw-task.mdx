@@ -6,10 +6,6 @@ icon: "code"
 
 Configure HNSW parameters when creating a collection to balance search speed, accuracy, and memory usage. Custom parameters are useful when default settings do not meet your recall or latency requirements.
 
-<Note>
-Before you begin, make sure you have a running VectorAI DB instance. HNSW parameters can only be set at collection creation and cannot be changed afterward.
-</Note>
-
 ## Create a collection with custom parameters
 
 The following example creates a collection with custom `m` and `ef_construct` values inside `HnswConfigDiff`.
