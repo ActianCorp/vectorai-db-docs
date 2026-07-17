@@ -414,7 +414,7 @@ The `search` call accepts three key parameters that control what is returned.
 
 ### Example output
 
-The following output is an example. Your scores will vary. The embedding model surfaces space-themed films even when the exact query words do not appear in their plot descriptions.
+Your scores will vary. The embedding model surfaces space-themed films even when the exact query words do not appear in their plot descriptions.
 
 ```text
 Query: "a suspenseful movie set in outer space"
@@ -470,7 +470,7 @@ for r in results:
 
 #### Example output
 
-The following output is an example. Your scores will vary. Only sci-fi movies are scored and returned. Non-matching genres are excluded before ranking.
+Your scores will vary. Only sci-fi movies are scored and returned. Non-matching genres are excluded before ranking.
 
 ```text
 Genre filter: sci-fi
@@ -518,7 +518,7 @@ for r in results:
 
 #### Example output
 
-The following output is an example. Your scores will vary. Only movies with a rating of 8.8 or above are included. Results are ordered by semantic similarity, not by rating.
+Your scores will vary. Only movies with a rating of 8.8 or above are included. Results are ordered by semantic similarity, not by rating.
 
 ```text
 Filter: rating >= 8.8
@@ -580,7 +580,7 @@ for r in results:
 
 ### Example output
 
-The following output is an example. Your scores will vary. All three conditions are applied simultaneously. Only films released after 2000, rated at least 8.5, and not in the drama genre are considered for ranking.
+Your scores will vary. All three conditions are applied simultaneously. Only films released after 2000, rated at least 8.5, and not in the drama genre are considered for ranking.
 
 ```text
 Filters: year >= 2000, rating >= 8.5, NOT drama
@@ -957,7 +957,7 @@ asyncio.run(recommend_movies(
 
 ### Example output
 
-The following output is an example. Your scores will vary. Three calls are made with different queries and filter combinations.
+Your scores will vary. Three calls are made with different queries and filter combinations.
 
 ```text
   Query: "a mind-bending sci-fi movie"

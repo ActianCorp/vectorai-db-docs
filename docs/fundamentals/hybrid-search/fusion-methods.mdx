@@ -83,7 +83,7 @@ main().catch(console.error);
 
 ## Reciprocal Rank Fusion
 
-The example below runs two searches using different query vectors and fuses them with RRF. The `ranking_constant_k` parameter controls how much weight higher-ranked results receive. The default value of 60 provides balanced fusion for most use cases.
+The following example runs two searches using different query vectors and fuses them with RRF. The `ranking_constant_k` parameter controls how much weight higher-ranked results receive. The default value of 60 provides balanced fusion for most use cases.
 
 <CodeGroup>
 ```python Python
@@ -115,7 +115,7 @@ async def main():
         fused = reciprocal_rank_fusion(
             [results_a, results_b],
             limit=10,
-            ranking_constant_k=60  # Default; confirmed by Cormack et al. (SIGIR 2009)
+            ranking_constant_k=60  # Default value
         )
         for i, point in enumerate(fused[:5], 1):
             print(f"{i}. ID: {point.id}, Fused Score: {point.score:.4f}")
@@ -149,8 +149,7 @@ async function main() {
             console.log(`  id=${r.id}  score=${r.score.toFixed(4)}`);
         });
 
-        // Fuse using RRF
-        // k=60 is the JS SDK default; confirmed by Cormack et al. (SIGIR 2009)
+        // Fuse using RRF (k=60 is the default)
         console.log("\nRRF fusion (k=60)");
         const fused = reciprocalRankFusion(
             [resultsA, resultsB],
@@ -182,7 +181,7 @@ The `ranking_constant_k` parameter affects how scores are distributed:
 
 ## Distribution-Based Score Fusion
 
-The example below runs two searches with different score distributions and fuses them with DBSF. DBSF normalizes each result set before combining, producing balanced rankings when searches use different score ranges.
+The following example runs two searches with different score distributions and fuses them with DBSF. DBSF normalizes each result set before combining, producing balanced rankings when searches use different score ranges.
 
 <CodeGroup>
 ```python Python
