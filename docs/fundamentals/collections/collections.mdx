@@ -26,6 +26,10 @@ Each collection has the following key components:
 | Distance metric | Method used to measure similarity between vectors. |
 | HNSW parameters | Configuration for the HNSW index. |
 
+<Note>
+**Collection naming rules:** Names must match the pattern `^[a-zA-Z_]([a-zA-Z0-9_-]*[a-zA-Z0-9_])?$` and are limited to 64 characters. Names must start with a letter or underscore, and must end with a letter, digit, or underscore.
+</Note>
+
 ## HNSW index parameters
 
 The HNSW parameters control the speed and accuracy tradeoff.

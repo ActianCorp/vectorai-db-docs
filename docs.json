@@ -30,9 +30,20 @@
           {
             "group": "Get started",
             "pages": [
+              "index",
               "home/getting-started/overview",
-              "home/installation/instructions",
-              "home/quickstart/quickstart"
+              {
+                "group": "Installation",
+                "pages": [
+                  "home/installation/instructions",
+                  "home/installation/windows",
+                  "home/installation/linux"
+                ]
+              },
+              "docs/guides/gui-interface",
+              "home/getting-started/license-activation",
+              "home/quickstart/quickstart",
+              "home/getting-started/architecture"
             ]
           },
           {
@@ -59,8 +70,8 @@
             "pages": [
               "docs/guides/error-handling",
               "docs/guides/troubleshooting",
-              "docs/guides/gui-interface",
-              "docs/guides/monitoring-and-logging"
+              "docs/guides/monitoring-and-logging",
+              "docs/guides/license-and-upgrade"
             ]
           },
           {
@@ -72,12 +83,17 @@
             ]
           },
           {
-            "group": "Reference",
+            "group": "Support",
             "pages": [
               "home/support/faq",
-              "home/support/support",
+              "home/support/support"
+            ]
+          },
+          {
+            "group": "Legal",
+            "pages": [
               "home/support/license",
-			  "home/support/eula"
+              "home/support/eula"
             ]
           }
         ]
@@ -120,9 +136,7 @@
             "group": "Payload",
             "pages": [
               "docs/fundamentals/payload/payload",
-              "docs/fundamentals/payload/create-payload-task",
-              "docs/fundamentals/payload/update-payload-task",
-              "docs/fundamentals/payload/filter-payload-task"
+              "docs/fundamentals/payload/update-payload-task"
             ]
           },
           {
@@ -130,7 +144,6 @@
             "pages": [
               "docs/fundamentals/search/search",
               "docs/fundamentals/search/basic-search-task",
-              "docs/fundamentals/search/filtered-search-task",
               "docs/fundamentals/search/search-with-payload-task",
               "docs/fundamentals/search/search-with-vectors-task"
             ]
@@ -161,8 +174,7 @@
             "pages": [
               "docs/fundamentals/hybrid-search/hybrid-search",
               "docs/fundamentals/hybrid-search/hybrid-rag-task",
-              "docs/fundamentals/hybrid-search/rrf-fusion-task",
-              "docs/fundamentals/hybrid-search/dbsf-fusion-task",
+              "docs/fundamentals/hybrid-search/fusion-methods",
               "docs/fundamentals/hybrid-search/multi-model-fusion-task",
               "docs/fundamentals/hybrid-search/query-variation-task",
               "docs/fundamentals/hybrid-search/performance-benchmark-task"

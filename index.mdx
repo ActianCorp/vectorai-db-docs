@@ -1,9 +1,49 @@
 ---
-title: "What is VectorAI DB?"
-description: "VectorAI DB is a modern vector database engine that delivers enterprise-grade AI features."
+title: "Introduction to VectorAI DB"
+description: "On-premises vector database for semantic search, RAG pipelines, and AI agent memory."
 tableOfContents: false
 ---
- 
-import LandingPage from "/snippets/what-is-vectorai-db.mdx";
- 
-<LandingPage />
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/home/installation/instructions">
+    Install VectorAI DB with Docker. Takes about two minutes.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/home/quickstart/quickstart">
+    Create a collection, insert vectors, and run your first similarity search.
+  </Card>
+  <Card title="Core concepts" icon="book-open" href="/home/getting-started/overview">
+    Understand the data model, architecture, and how search works.
+  </Card>
+  <Card title="Academy" icon="graduation-cap" href="/academy/tutorials">
+    Hands-on tutorials for semantic search, RAG, hybrid search, and more.
+  </Card>
+</CardGroup>
+
+## New to VectorAI DB?
+
+Follow this path to get up and running.
+
+<Steps>
+  <Step title="Install">
+    [Set up VectorAI DB](/home/installation/instructions) locally using Docker.
+  </Step>
+  <Step title="Quickstart">
+    [Run the Quickstart](/home/quickstart/quickstart) to create a collection, insert vectors, and run a similarity search.
+  </Step>
+  <Step title="Learn the core concepts">
+    Read the [Overview](/home/getting-started/overview) to understand the data model, architecture, and how a search works. It links into the full reference from there.
+  </Step>
+  <Step title="Build something">
+    Try the [Academy tutorials](/academy/tutorials) for hands-on walkthroughs, or connect to [LangChain or LlamaIndex](/docs/integrations/index).
+  </Step>
+</Steps>
+
+## Use cases
+
+| Use case | Description | Real-world example |
+|----------|-------------|-------------------|
+| **Semantic search** | Find documents, products, or records by meaning rather than exact keywords. Store embeddings from any model and query them with a vector. | A major e-commerce platform processes 216M+ embeddings daily so shoppers can find products by intent, not exact keywords, across millions of storefronts. |
+| **Hybrid search** | Combine dense vector similarity with sparse or keyword scoring using fusion strategies such as RRF or DBSF. | A global travel platform activated over a billion reviews with hybrid retrieval to power its AI trip planner, driving 2–3x more revenue per engaged user. |
+| **RAG pipelines** | Use VectorAI DB as the retrieval layer in LangChain, LlamaIndex, or a custom pipeline. Retrieve the most relevant context chunks before sending to a language model. | A conversational AI platform retrieves from 100M+ vectors across 12,000+ isolated namespaces to power personalized AI agents in under a second. |
+| **Agent memory** | Give AI agents persistent, queryable memory. Store past interactions as vectors and retrieve semantically relevant history at runtime. | A food delivery platform's AI shopping agents use a persistent memory layer that lifted grocery-checkout conversion ~24% and cut intent misreads ~33%. |
+| **Air-gapped / edge deployment** | Run fully on-premises with no outbound network requirements. Suitable for secure or regulated environments. | A defense contractor's AI platform lets U.S. government agencies fine-tune models on classified infrastructure with zero external network connections. |
