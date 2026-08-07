@@ -7,39 +7,22 @@ description: "Scope agent memory to authenticated users by connecting Scalekit i
 
 ## Installation
 
-Install the Actian VectorAI DB client:
+`scalekit-sdk-python` and `actian-vectorai-client` pin overlapping dependencies, so install both from a `requirements.txt` to let pip resolve them together instead of installing separately.
+
+Create a `requirements.txt` with:
+
+```text
+protobuf>=6.31.1,<7.0.0
+grpcio-status>=1.67.0
+scalekit-sdk-python==2.12.0
+actian-vectorai-client
+```
+
+Then install:
 
 ```bash
-pip install actian-vectorai-client
+pip install -r requirements.txt
 ```
-
-### Dependency conflict with scalekit-sdk-python
-
-`scalekit-sdk-python==2.12.0` pins `protobuf<7.0.0`. `actian-vectorai-client` requires `protobuf>=6.31.1`. When pip resolves these together, it downgrades protobuf to a version that causes a runtime import error:
-
-```
-google.protobuf.runtime_version.VersionError: Detected incompatible Protobuf
-Gencode/Runtime versions when loading actian_vectorai_common.proto:
-gencode 6.31.1 runtime 5.29.6.
-```
-
-This is not Python-version-specific. To work around it, install the packages in the following order:
-
-```bash
-# Install everything except scalekit first
-grep -v scalekit-sdk-python requirements.txt > /tmp/req.txt
-pip install -r /tmp/req.txt
-
-# Install scalekit without resolving its declared dependencies
-pip install scalekit-sdk-python==2.12.0 --no-deps
-
-# Reinstate the versions actian-vectorai-client requires
-pip install "protobuf>=6.31.1" "grpcio-status>=1.67.0"
-```
-
-<Warning>
-`scalekit-sdk-python` is pinned to `2.12.0`. Before upgrading to a newer version, manually verify the new version's transitive dependencies against your `requirements.txt`.
-</Warning>
 
 ## Requirements
 
@@ -158,12 +141,6 @@ The following table lists all environment variables used by this integration.
 | `SCALEKIT_MCP_SERVER_URL` | MCP path only | MCP server URL. Printed by `setup_mcp.py` at first-time setup. |
 
 ## Known issues
-
-**Protobuf version conflict**  
-`scalekit-sdk-python==2.12.0` and `actian-vectorai-client` pin incompatible protobuf ranges. Follow the installation order in [Installation](#installation) to avoid a runtime `VersionError`. Upgrading either package requires re-checking transitive dependencies.
-
-**`scalekit-sdk-python` version pin**  
-This integration is verified against `scalekit-sdk-python==2.12.0`. Before upgrading, check whether the new version's dependencies conflict with `actian-vectorai-client`.
 
 **`ScalekitClient.actions` attribute**  
 On some Python versions, `ScalekitClient.actions` is not reliably set as an attribute. Use the defensive access pattern shown in [Graceful degradation](#graceful-degradation) to construct `ActionClient` directly when the attribute is missing.
