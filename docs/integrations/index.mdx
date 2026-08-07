@@ -1,9 +1,11 @@
 ---
 title: "Overview"
-description: "Connect VectorAI DB with embedding providers and AI frameworks to build semantic search, RAG pipelines, and AI-powered applications."
+description: "Connect VectorAI DB with embedding providers, AI frameworks, and auth platforms to build semantic search, RAG pipelines, and AI-powered applications."
 ---
 
-VectorAI DB integrates with popular AI frameworks. Use any supported integration to generate embeddings, store vectors, and run similarity searches with minimal setup.
+VectorAI DB integrates with popular AI frameworks, embedding providers, and identity platforms so you can focus on application logic rather than infrastructure. Use any supported integration to generate embeddings, store vectors, and run similarity searches with minimal setup.
+
+Choose a framework integration like LangChain or LlamaIndex when you want built-in abstractions for RAG pipelines, retriever chains, and document management. Choose an embedding provider directly when you need full control over how vectors are generated and stored using the VectorAI DB client. Use the Scalekit integration when you need agent memory scoped to authenticated users.
 
 ## Frameworks
 
@@ -13,6 +15,16 @@ VectorAI DB integrates with popular AI frameworks. Use any supported integration
   </Card>
   <Card title="LlamaIndex" icon="book" href="/docs/integrations/llama-index">
     Build RAG applications and query engines with VectorAI DB as the storage backend in LlamaIndex.
+  </Card>
+</CardGroup>
+
+## Auth and identity
+
+Scope vector data to authenticated users.
+
+<CardGroup cols={2}>
+  <Card title="Scalekit" icon="key" href="/docs/integrations/scalekit">
+    Connect Scalekit per-user identity to VectorAI DB per-user collections so agent memory is scoped to the authenticated user.
   </Card>
 </CardGroup>
 
@@ -30,3 +42,4 @@ All integrations follow the same pattern:
 |-------------|------|----------|
 | [LangChain](/docs/integrations/langchain) | Framework | RAG pipelines, retriever chains, similarity search with document abstractions |
 | [LlamaIndex](/docs/integrations/llama-index) | Framework | Query engines, data agents, and RAG applications |
+| [Scalekit](/docs/integrations/scalekit) | Auth and identity | Per-user agent memory scoped to authenticated users |

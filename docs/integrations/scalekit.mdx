@@ -1,0 +1,154 @@
+---
+title: "Scalekit"
+description: "Scope agent memory to authenticated users by connecting Scalekit identity with VectorAI DB per-user collections."
+---
+
+[Scalekit](https://scalekit.com/) is an auth and connected accounts platform that manages OAuth token lifecycle and tool access on behalf of your users. This integration covers how to combine Scalekit's per-user identity with VectorAI DB's per-user collection pattern so that an agent's memory is scoped to the authenticated user. Scalekit controls what the agent can do, VectorAI DB controls what it remembers, and the same user identifier links both.
+
+## Installation
+
+`scalekit-sdk-python` and `actian-vectorai-client` pin overlapping dependencies, so install both from a `requirements.txt` to let pip resolve them together instead of installing separately.
+
+Create a `requirements.txt` with:
+
+```text
+protobuf>=6.31.1,<7.0.0
+grpcio-status>=1.67.0
+scalekit-sdk-python==2.12.0
+actian-vectorai-client
+```
+
+Then install:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Requirements
+
+Before using this integration, make sure your environment meets the following prerequisites:
+
+- Python 3.10 or later
+- A running Actian VectorAI DB instance (default endpoint: `localhost:6574`). See [Docker installation](/home/installation/instructions) for setup instructions.
+- A Scalekit account with at least one connected account configured in the Scalekit dashboard.
+
+## Connect user identity to memory
+
+VectorAI DB has no native multi-tenancy. Isolation is enforced at the application layer using one collection per user, named after the Scalekit user identifier.
+
+The following function creates a collection for a user if one does not already exist and returns the collection name. The `user_id` argument must be the same string Scalekit uses as the `identifier` for the connected account. This is the only source of truth for linking auth scope and memory scope.
+
+```python
+from actian_vectorai import VectorAIClient, VectorParams, Distance, CollectionExistsError
+
+client = VectorAIClient("localhost:6574")
+
+def get_or_create_user_collection(user_id: str, dim: int = 384) -> str:
+    """
+    user_id: the same identifier used for the Scalekit connected account.
+    Do not maintain a separate user ID mapping.
+    """
+    name = f"user-{user_id}-memories"
+    try:
+        client.collections.create(
+            name,
+            vectors_config=VectorParams(size=dim, distance=Distance.Cosine),
+        )
+    except CollectionExistsError:
+        pass
+    return name
+```
+
+<Note>
+Using the Scalekit `identifier` directly as the collection name prefix ensures that Scalekit's auth scope and VectorAI DB's memory scope always agree on who the current user is. Do not introduce a separate user ID mapping, as it will diverge.
+</Note>
+
+## Tool access
+
+Scalekit exposes tools through two paths. Use the MCP path when the required environment variables are present. Fall back to the direct LangChain path when they are not.
+
+### MCP path (recommended)
+
+The MCP path mints a short-lived per-user bearer token (60-minute default) and discovers tools dynamically from the MCP server. It requires `SCALEKIT_MCP_CONFIG_ID` and `SCALEKIT_MCP_SERVER_URL`.
+
+Before using this path, create an MCP configuration once:
+
+```bash
+python setup_mcp.py --connection-name github
+# Prints SCALEKIT_MCP_CONFIG_ID and SCALEKIT_MCP_SERVER_URL. Add both to .env
+```
+
+To mint a session token at runtime:
+
+```python
+token = actions.mcp.create_session_token(
+    mcp_config_id=os.environ["SCALEKIT_MCP_CONFIG_ID"],
+    identifier=user_id,
+)
+```
+
+### Direct LangChain path (fallback)
+
+Use this path when the MCP environment variables are absent:
+
+```python
+tools = actions.langchain.get_tools(identifier=user_id)
+```
+
+See [LangChain](/docs/integrations/langchain) for vector store setup using the LangChain adapter.
+
+## Graceful degradation
+
+If Scalekit credentials are not configured, or the user has not completed OAuth, the agent should fall back to memory-only mode. In this mode the agent can still read and write VectorAI DB collections, but has no external tools. This makes local development possible without Scalekit credentials.
+
+```python
+import os
+from scalekit import ScalekitClient
+
+scalekit_client = None
+actions = None
+
+if os.environ.get("SCALEKIT_CLIENT_ID"):
+    scalekit_client = ScalekitClient(
+        env_url=os.environ["SCALEKIT_ENV_URL"],
+        client_id=os.environ["SCALEKIT_CLIENT_ID"],
+        client_secret=os.environ["SCALEKIT_CLIENT_SECRET"],
+    )
+    try:
+        actions = scalekit_client.actions
+    except AttributeError:
+        from scalekit.actions import ActionClient
+        actions = ActionClient(
+            tools=scalekit_client.tools,
+            connected_accounts=scalekit_client.connected_accounts,
+            mcp=scalekit_client.mcp,
+        )
+```
+
+When `actions` is `None`, skip the tool-access section of your agent loop and proceed with VectorAI DB operations only.
+
+## Environment variables
+
+The following table lists all environment variables used by this integration.
+
+| Variable | Required | Description |
+|---|---|---|
+| `SCALEKIT_ENV_URL` | Yes | Your Scalekit environment URL, e.g. `https://your-env.scalekit.com`. |
+| `SCALEKIT_CLIENT_ID` | Yes | Scalekit client ID (`skc_...`). |
+| `SCALEKIT_CLIENT_SECRET` | Yes | Scalekit client secret (`sks_...`). |
+| `SCALEKIT_CONNECTION_NAME` | Yes | Connector slug. Must match the connector name in the Scalekit dashboard exactly. |
+| `SCALEKIT_MCP_CONFIG_ID` | MCP path only | MCP configuration ID. Printed by `setup_mcp.py` at first-time setup. |
+| `SCALEKIT_MCP_SERVER_URL` | MCP path only | MCP server URL. Printed by `setup_mcp.py` at first-time setup. |
+
+## Known issues
+
+**`ScalekitClient.actions` attribute**  
+On some Python versions, `ScalekitClient.actions` is not reliably set as an attribute. Use the defensive access pattern shown in [Graceful degradation](#graceful-degradation) to construct `ActionClient` directly when the attribute is missing.
+
+## Next steps
+
+- [LangChain](/docs/integrations/langchain): Use VectorAI DB as a vector store for tool outputs and RAG pipelines.
+- [Collections](/docs/fundamentals/collections/collections): Understand how collections organize per-user vector data.
+- [Access tokens](/api-reference/access-tokens/create-access-token): Secure your VectorAI DB instance before deploying to production.
+- [Troubleshooting](/docs/guides/troubleshooting): Diagnose connection and persistence issues.
+ 
