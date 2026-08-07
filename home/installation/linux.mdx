@@ -1,121 +1,170 @@
 ---
-title: "Linux Platforms"
-description: "Installing VectorAI DB locally on Linux."
+title: "Linux"
+description: "Get VectorAI DB running on Linux using the installer script."
 ---
 
 ## Prerequisites
 
-Before installing, ensure you have:
-- At least 8 GB RAM (16 GB+ recommended)
+- Linux with systemd (Ubuntu 22.04 LTS or later recommended)
+- `unzip` and `node` installed
+- 8 GB RAM (16 GB+ recommended)
 - 10 GB disk space (100 GB+ recommended)
 
+## Install VectorAI DB
 
-Here are the installation steps:
+<Tabs>
+  <Tab title="x86-64 (AMD/Intel)">
+    <Steps>
+      <Step title="Extract the tarball">
+        Download `Actian-VectorAI-linux-x64-1.0.0.tar.gz` from the [Actian VectorAI DB downloads page](https://www.actian.com/databases/vectorai-db/) after signing up, then run:
 
-Prerequisites - Run on a Linux system with systemd. Ensure Node.js 20+, tar, unzip, and libatomic are installed before running the installer.
+        ```bash
+        tar -xzf Actian-VectorAI-linux-x64-1.0.0.tar.gz -C /usr/local
+        ```
 
-Extract the tarball - Extract Actian-VectorAI-linux-{arch}-{version}.tar.gz to a working directory. The install subdirectory inside contains the installer script and the bundled packages.
+        This creates the following structure:
 
-Run as root or with sudo - The installer must be run as root or with a user account that has sudo access. It will prompt for sudo credentials if not already root:
+        ```
+        /usr/local/actian-vectorai/install/
+        ├── cortex-core-linux-x64-1.0.0-package.tar.gz
+        ├── cortex.web-linux-x64-nightly-20260425.zip
+        ├── install_actian_vectorai.sh
+        └── uninstall_actian_vectorai.sh
+        ```
+      </Step>
+      <Step title="Run the installer">
+        ```bash
+        cd /usr/local/actian-vectorai/install
+        sudo bash install_actian_vectorai.sh
+        ```
 
-sudo bash actian-vectorai/install/install_actian_vectorai.sh
-Accept the EULA - You will be prompted interactively. To skip the prompt (e.g. in automated environments):
+        The installer prompts you to accept the EULA. Enter `y` to continue.
 
-sudo ACCEPT_ACTIAN_VECTORAI_EULA=YES bash actian-vectorai/install/install_actian_vectorai.sh
-Installation target is /usr/local/actian-vectorai - The installer extracts the core engine and web UI to /usr/local/actian-vectorai. This path is fixed and requires write access to /usr/local, which is why a privileged account is needed.
+        To skip the prompt in automated environments:
 
-Data directory defaults to /var/lib/actian-vectorai - Override with ACTIAN_VECTORAI_DATA_DIR=/your/path if needed.
+        ```bash
+        sudo ACCEPT_ACTIAN_VECTORAI_EULA=YES bash install_actian_vectorai.sh
+        ```
 
-Services are registered and started automatically - Two systemd services are installed and enabled: actian-vectorai.service (gRPC engine on port 6573) and actian-vectorai-webui.service (web UI on port 6575).
+        When complete, the installer prints:
 
+        ```
+        [timestamp] Install completed successfully
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="ARM64">
+    <Steps>
+      <Step title="Extract the tarball">
+        Download `Actian-VectorAI-linux-arm64-1.0.0.tar.gz` from the [Actian VectorAI DB downloads page](https://www.actian.com/databases/vectorai-db/) after signing up, then run:
 
-Installing on Linux or Raspbian
+        ```bash
+        tar -xzf Actian-VectorAI-linux-arm64-1.0.0.tar.gz -C /usr/local
+        ```
 
-Follow these command-line instructions to install the Zen Server on Linux-based systems.
+        This creates the following structure:
 
-### Steps to Install
-1.  **Log in** as the `root` user.
-2.  **Change** to the `/usr/local` directory:
-    ```bash
-    cd /usr/local
-    ```
-3.  **Copy the .tar file** to `/usr/local`.  
-    *Example (if downloaded to `/home/bholly`):*
-    ```bash
-    cp /home/bholly/<server_package_name> .
-    ```
-4.  **Unpack the .tar file**:
-    ```bash
-    tar -zxf <server_package_name>
-    ```
-5.  **Navigate** to the installation scripts folder:
-    ```bash
-    cd actianzen/etc
-    ```
-6.  **Run the installation script**:
-    ```bash
-    ./install.sh 
-    ```
-```
+        ```
+        /usr/local/actian-vectorai/install/
+        ├── cortex-core-linux-arm64-1.0.0-package.tar.gz
+        ├── cortex.web-linux-arm64-nightly-20260425.zip
+        ├── install_actian_vectorai.sh
+        └── uninstall_actian_vectorai.sh
+        ```
+      </Step>
+      <Step title="Run the installer">
+        ```bash
+        cd /usr/local/actian-vectorai/install
+        sudo bash install_actian_vectorai.sh
+        ```
+
+        The installer prompts you to accept the EULA. Enter `y` to continue.
+
+        To skip the prompt in automated environments:
+
+        ```bash
+        sudo ACCEPT_ACTIAN_VECTORAI_EULA=YES bash install_actian_vectorai.sh
+        ```
+
+        When complete, the installer prints:
+
+        ```
+        [timestamp] Install completed successfully
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+The REST API is available at `localhost:6573`. The Local UI is available at `localhost:6575`.
 
 ## Verify installation
 
-<Warning>
-**Python SDK Required**: To verify your installation, you need to have the VectorAI Python SDK installed. Install it using `pip install actian-vectorai-client` or follow the [Python SDK quickstart](/sdks/python/quickstart).
-</Warning>
+<Note>
+Run these commands in a terminal after installation completes.
+</Note>
 
-Test your installation by checking the server health:
+```bash
+# Check service status
+systemctl status actian-vectorai
+systemctl status actian-vectorai-webui
 
-```python
-import asyncio
-from actian_vectorai_client import AsyncVectorAIClient, VectorParams, Distance
+# Check the engine API
+curl http://localhost:6573/
 
-async def main():
-    async with AsyncVectorAIClient("localhost:6574") as client:
-        info = await client.health_check()
-        print(f"Connected to {info['title']} v{info['version']}")
+# List collections
+curl http://localhost:6573/collections
+```
 
-asyncio.run(main())
+A successful response from `curl http://localhost:6573/` looks like this:
+
+```json
+{
+  "title": "Actian VectorAI DB",
+  "version": "Actian VectorAI DB 1.0.0 / VDE 1.0.0",
+  "commit": ""
+}
 ```
 
 ## Troubleshooting
 
-### Common issues
+| Issue | Solution |
+|-------|----------|
+| Services not running after install | Run `sudo systemctl start actian-vectorai actian-vectorai-webui` |
+| Port 6573 / 6574 / 6575 already in use | Find the process: `sudo lsof -i :6573`, then stop it or change the port |
+| Missing prerequisites error | Run `sudo apt install -y unzip nodejs` and re-run the installer |
+| Connection refused | Wait a few seconds for the services to initialize, then retry |
+| Engine logs | `journalctl -u actian-vectorai` |
 
-The table below lists common installation issues and their solutions.
-
-| Issue                | Solution                                                        |
-|----------------------|-----------------------------------------------------------------|
-| Connection failed    | Ensure Docker container is running: `docker ps` |
-| Port already in use  | Stop services using port 6574 or use a different port: `-p 6576:6574` |
-| Permission denied    | Run Docker commands with appropriate permissions or add user to docker group |
-| Container exits      | Check logs: `docker logs <container-id>` |
-
-### View Docker logs
-
-Check container logs for errors:
+### Check service status
 
 ```bash
-# List running containers
-docker ps
+systemctl status actian-vectorai
+systemctl status actian-vectorai-webui
 
-# View logs
-docker logs <container-id>
+# Restart a service if needed
+sudo systemctl restart actian-vectorai
+```
 
-# Follow logs in real-time
-docker logs -f <container-id>
+## Uninstall
+
+Run the uninstall script included with the installer:
+
+```bash
+sudo bash /usr/local/actian-vectorai/install/uninstall_actian_vectorai.sh
 ```
 
 ## Next steps
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/home/quickstart/quickstart">
-    Follow the quickstart guide to create your first collection
+    Create your first collection, insert vectors, and run a search.
   </Card>
-  <Card title="Core Concepts" icon="book-open" href="/docs/fundamentals">
-    Learn about vector databases and embeddings
+  <Card title="Core concepts" icon="book-open" href="/home/getting-started/overview">
+    Understand the data model, architecture, and how search works.
   </Card>
-  <Card title="Python SDK" icon="code" href="/sdks/python/quickstart">
-    Get started with the Python SDK
+  <Card title="Python SDK" icon="code" href="/sdks/python/installation">
+    Install and configure the Python SDK.
   </Card>
 </CardGroup>

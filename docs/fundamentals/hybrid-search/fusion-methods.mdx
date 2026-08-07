@@ -1,0 +1,270 @@
+---
+title: "Fusion methods"
+description: "Combine results from multiple vector searches using RRF or DBSF."
+icon: "code"
+---
+
+VectorAI DB provides two client-side SDK utilities for combining results from multiple searches into a single ranked list. Both methods run in the client after your searches complete, not on the server.
+
+- **Reciprocal Rank Fusion (RRF)** scores each result by its rank position across all result lists. Use it when combining searches with different query vectors or embedding models where raw scores are not directly comparable.
+- **Distribution-Based Score Fusion (DBSF)** normalizes scores based on the statistical distribution of each result set before combining them. Use it when your searches have different score ranges or distributions.
+
+## Set up a collection
+
+Run the following setup once before using either fusion method. It creates a collection and inserts 100 sample documents.
+
+<CodeGroup>
+```python Python
+import asyncio
+import random
+from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, PointStruct
+
+COLLECTION = "documents"
+DIMENSION = 128
+
+async def main():
+    async with AsyncVectorAIClient("localhost:6574") as client:
+        if not await client.collections.exists(COLLECTION):
+            await client.collections.create(
+                COLLECTION,
+                vectors_config=VectorParams(size=DIMENSION, distance=Distance.Cosine)
+            )
+
+            points = [
+                PointStruct(
+                    id=i,
+                    vector=[random.gauss(0, 1) for _ in range(DIMENSION)],
+                    payload={
+                        "text": f"Document {i} about {['AI', 'ML', 'NLP', 'CV'][i % 4]}",
+                        "category": ["AI", "ML", "NLP", "CV"][i % 4]
+                    }
+                )
+                for i in range(1, 101)
+            ]
+            await client.points.upsert(COLLECTION, points)
+            print(f"Inserted {len(points)} points")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { VectorAIClient } from '@actian/vectorai-client';
+
+const COLLECTION = "documents";
+const DIMENSION = 128;
+
+async function main() {
+    const client = new VectorAIClient('localhost:6574');
+
+    try {
+        await client.collections.create(COLLECTION, {
+            dimension: DIMENSION,
+            distanceMetric: 'COSINE'
+        });
+
+        const points = Array.from({ length: 100 }, (_, i) => ({
+            id: i + 1,
+            vector: Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1),
+            payload: {
+                text: `Document ${i + 1} about ${['AI', 'ML', 'NLP', 'CV'][i % 4]}`,
+                category: ['AI', 'ML', 'NLP', 'CV'][i % 4]
+            }
+        }));
+        await client.points.upsert(COLLECTION, points, { wait: true });
+        console.log(`Inserted ${points.length} points`);
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Reciprocal Rank Fusion
+
+The following example runs two searches using different query vectors and fuses them with RRF. The `ranking_constant_k` parameter controls how much weight higher-ranked results receive. The default value of 60 provides balanced fusion for most use cases.
+
+<CodeGroup>
+```python Python
+import asyncio
+import random
+from actian_vectorai import AsyncVectorAIClient, reciprocal_rank_fusion
+
+COLLECTION = "documents"
+DIMENSION = 128
+
+async def main():
+    async with AsyncVectorAIClient("localhost:6574") as client:
+        # Two queries from different models or query formulations
+        query_dense = [random.gauss(0, 1) for _ in range(DIMENSION)]
+        query_semantic = [random.gauss(0, 1) for _ in range(DIMENSION)]
+
+        print("Dense search #1")
+        results_a = await client.points.search(COLLECTION, vector=query_dense, limit=20)
+        for r in results_a[:5]:
+            print(f"  id={r.id:3d}  score={r.score:.4f}")
+
+        print("\nDense search #2 (different vector)")
+        results_b = await client.points.search(COLLECTION, vector=query_semantic, limit=20)
+        for r in results_b[:5]:
+            print(f"  id={r.id:3d}  score={r.score:.4f}")
+
+        # Fuse using RRF
+        print("\nRRF fusion (k=60)")
+        fused = reciprocal_rank_fusion(
+            [results_a, results_b],
+            limit=10,
+            ranking_constant_k=60  # Default value
+        )
+        for i, point in enumerate(fused[:5], 1):
+            print(f"{i}. ID: {point.id}, Fused Score: {point.score:.4f}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { VectorAIClient, reciprocalRankFusion } from '@actian/vectorai-client';
+
+const COLLECTION = "documents";
+const DIMENSION = 128;
+
+async function main() {
+    const client = new VectorAIClient('localhost:6574');
+
+    try {
+        // Two queries from different models or query formulations
+        const queryDense = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+        const querySemantic = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+
+        console.log("Dense search #1");
+        const resultsA = await client.points.search(COLLECTION, queryDense, { limit: 20 });
+        resultsA.slice(0, 5).forEach(r => {
+            console.log(`  id=${r.id}  score=${r.score.toFixed(4)}`);
+        });
+
+        console.log("\nDense search #2 (different vector)");
+        const resultsB = await client.points.search(COLLECTION, querySemantic, { limit: 20 });
+        resultsB.slice(0, 5).forEach(r => {
+            console.log(`  id=${r.id}  score=${r.score.toFixed(4)}`);
+        });
+
+        // Fuse using RRF (k=60 is the default)
+        console.log("\nRRF fusion (k=60)");
+        const fused = reciprocalRankFusion(
+            [resultsA, resultsB],
+            { k: 60, limit: 10 }
+        );
+        fused.slice(0, 5).forEach((point, i) => {
+            console.log(`${i + 1}. ID: ${point.id}, Fused Score: ${point.score.toFixed(4)}`);
+        });
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each RRF result includes these fields:
+
+- `id`: The unique identifier of the matching point
+- `score`: Fused score based on rank positions across all result lists
+- `payload`: Metadata object if the original searches included payloads
+
+The `ranking_constant_k` parameter affects how scores are distributed:
+
+- **Lower values** (for example, 10) give significantly more weight to top-ranked results
+- **Default value** (60) provides balanced weight distribution, matching Cormack et al. (SIGIR 2009)
+- **Higher values** (for example, 100) distribute weight more evenly across all ranks
+
+## Distribution-Based Score Fusion
+
+The following example runs two searches with different score distributions and fuses them with DBSF. DBSF normalizes each result set before combining, producing balanced rankings when searches use different score ranges.
+
+<CodeGroup>
+```python Python
+import asyncio
+import random
+from actian_vectorai import AsyncVectorAIClient, distribution_based_score_fusion
+
+COLLECTION = "documents"
+DIMENSION = 128
+
+async def main():
+    async with AsyncVectorAIClient("localhost:6574") as client:
+        # Queries with different score characteristics
+        semantic_query = [random.gauss(0, 1) for _ in range(DIMENSION)]
+        keyword_query = [random.gauss(0.5, 0.8) for _ in range(DIMENSION)]
+
+        semantic_results = await client.points.search(
+            COLLECTION, vector=semantic_query, limit=20
+        )
+        keyword_results = await client.points.search(
+            COLLECTION, vector=keyword_query, limit=20
+        )
+
+        # Fuse using DBSF
+        print("DBSF fusion")
+        fused = distribution_based_score_fusion(
+            [semantic_results, keyword_results],
+            limit=10
+        )
+        for i, point in enumerate(fused[:5], 1):
+            print(f"{i}. ID: {point.id}, Fused Score: {point.score:.4f}")
+            if point.payload:
+                print(f"   Category: {point.payload.get('category', 'N/A')}")
+
+asyncio.run(main())
+```
+
+```javascript JavaScript
+import { VectorAIClient, distributionBasedScoreFusion } from '@actian/vectorai-client';
+
+const COLLECTION = "documents";
+const DIMENSION = 128;
+
+async function main() {
+    const client = new VectorAIClient('localhost:6574');
+
+    try {
+        // Queries with different score characteristics
+        const semanticQuery = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
+        const keywordQuery = Array.from({ length: DIMENSION }, () => (Math.random() * 2 - 1) * 0.8 + 0.5);
+
+        const semanticResults = await client.points.search(COLLECTION, semanticQuery, { limit: 20 });
+        const keywordResults = await client.points.search(COLLECTION, keywordQuery, { limit: 20 });
+
+        // Fuse using DBSF
+        console.log("DBSF fusion");
+        const fused = distributionBasedScoreFusion(
+            [semanticResults, keywordResults],
+            { limit: 10 }
+        );
+        fused.slice(0, 5).forEach((point, i) => {
+            console.log(`${i + 1}. ID: ${point.id}, Fused Score: ${point.score.toFixed(4)}`);
+            if (point.payload) {
+                console.log(`   Category: ${point.payload.category || 'N/A'}`);
+            }
+        });
+    } finally {
+        client.close();
+    }
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+Each DBSF result includes these fields:
+
+- `id`: The unique identifier of the matching point
+- `score`: Normalized fused score based on score distributions
+- `payload`: Metadata object from the matching point
+
+DBSF is particularly effective when:
+
+- Combining searches with different score ranges or distributions
+- One search type consistently produces higher raw scores than another
+- You need normalized scores that reflect relative relevance across search types

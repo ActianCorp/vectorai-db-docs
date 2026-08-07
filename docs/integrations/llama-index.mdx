@@ -23,16 +23,12 @@ pip install llama-index-core llama-index-embeddings-openai
 
 ## Requirements
 
-Before using this integration, make sure your environment meets the following prerequisites:
-
 - Python 3.10–3.12
 - A running Actian VectorAI DB instance (default endpoint: `localhost:6574`)
 
 ## Quickstart
 
 The `ActianVectorAIVectorStore` uses a context manager to handle connection lifecycle automatically. Vector configuration is inferred from the first inserted embedding if not specified.
-
-The following example creates text nodes with embeddings, stores them in VectorAI DB, and performs a similarity search:
 
 ```python
 from llama_index.vector_stores.actian_vectorai import ActianVectorAIVectorStore
@@ -220,8 +216,6 @@ Metadata filters can be used with `query`, `delete_nodes`, and `adelete_nodes` t
 
 ### Supported filter operators
 
-The following operators are supported for metadata filtering:
-
 | Operator | Description |
 |----------|-------------|
 | `EQ` | Exact match (string or numeric). |
@@ -270,8 +264,6 @@ result = vector_store.query(query)
 
 ## Configuration
 
-The following table lists the parameters you can pass when creating an `ActianVectorAIVectorStore` instance.
-
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `url` | `str` | `"localhost:6574"` | Actian VectorAI DB endpoint (`host:port`). Ignored when explicit clients are provided. |
@@ -287,8 +279,6 @@ The following table lists the parameters you can pass when creating an `ActianVe
 
 ## API reference
 
-The following table lists all available methods and their async counterparts.
-
 | Method | Async variant | Description |
 |--------|---------------|-------------|
 | `add()` | `async_add()` | Add nodes to the vector store. |
@@ -301,18 +291,11 @@ The following table lists all available methods and their async counterparts.
 
 ## Limitations
 
-The following limitations apply to the current version of this integration:
-
 - `get_nodes()` and `aget_nodes()` are not implemented (pending scroll API support in the Actian VectorAI client).
 - Only `VectorStoreQueryMode.DEFAULT` (dense vector search) is supported.
 
----
-
 ## Next steps
 
-Explore related topics to get the most out of VectorAI DB with LlamaIndex:
-
 - [LangChain](/docs/integrations/langchain) — Alternative framework for RAG pipelines.
-- [LangChain](/docs/integrations/langchain) — Use VectorAI DB with the LangChain framework.
 - [Search](/docs/fundamentals/search/search) — Understand the underlying vector search operations.
 - [Filtering](/docs/fundamentals/filtering/filtering) — Apply metadata conditions to narrow search results.

@@ -1,13 +1,11 @@
 ---
-title: "Licensing guide"
+title: "Licensing model"
 description: "Understand the VectorAI DB licensing model, key management workflows, compliance enforcement, and API reference for license operations."
 ---
 
-This guide covers system states, key management, compliance enforcement, and the licensing API.
-
 ## Licensing model overview
 
-VectorAI DB uses a vector-count-based licensing system. Your instance starts in a free tier and scales by installing license keys that increase your allowed vector capacity.
+VectorAI DB licenses capacity by vector count. Instances start in the free tier; installing a license key raises the limit.
 
 ### System states
 
@@ -23,7 +21,7 @@ To scale beyond the free tier, install license keys in the following increments.
 - 1 million, 5 million, or 10 million vector keys.
 - Unlimited capacity keys.
 
-Capacity is cumulative. If you install multiple keys simultaneously, then VectorAI DB aggregates the total allowed vector count. For example, activating two one-million vector keys results in a total maximum capacity of two million vectors.
+Capacity is cumulative across all installed keys. For example, two 1M keys give you a 2M total limit.
 
 ## License key specifications
 
@@ -33,15 +31,15 @@ Capacity is cumulative. If you install multiple keys simultaneously, then Vector
 
 ## License key states
 
-While the `GET /licenses/status` endpoint returns a general `Free` or `Licensed` status, individual keys exist in one of three states:
+The `GET /licenses/status` endpoint returns a `Free` or `Licensed` status. Individual keys have one of three states:
 
 - **Active**: The key is valid, unexpired, and matches the current system identifiers.
 - **Expired**: The key has passed its 30-day or one-year validity period.
 - **Non-Compliant**: The key is not expired, but the current machine identifiers differ from those present when the key was originally activated.
 
-## Management operations
+## Key management
 
-Use the following operations to manage your license keys throughout their lifecycle.
+The following operations cover the full key lifecycle.
 
 ### Add and reactivate licenses
 
@@ -59,14 +57,14 @@ Use the `POST /licenses/delete` endpoint to prevent license invalidation during 
 
 ### Repair licenses
 
-If a system change occurs unexpectedly and invalidates a key, then use the Repair function to restore it to an Active state. This re-validates the key against the new system identifiers.
+If an unexpected system change invalidates a key, use the Repair function to restore it to Active. It re-ties the key to the updated machine identifiers.
 
 ## Compliance and enforcement
 
-VectorAI DB runs a background thread that periodically counts the total vectors across all collections and compares the result against your licensed capacity. If the count exceeds the allowed maximum, the system enables a blocking flag on API operations.
+A background check periodically compares your total vector count against your licensed capacity. When the count exceeds the limit, API operations are blocked.
 
-- **API restrictions**: All standard API operations return an error stating that the maximum allowed vector capacity has been exceeded. Delete operations (delete vectors and delete collections) are not blocked, so you can still remove data to reduce your vector count.
-- **Automatic recovery**: After the system enters an exceeded state, the background check runs more frequently (initially every 10 minutes, then every 30 seconds). Once the total vector count drops to or below the licensed maximum, the system automatically restores full API access.
+- **API restrictions**: All standard API operations return an error. Delete operations (delete vectors and delete collections) are not blocked, so you can still remove data to bring the count down.
+- **Automatic recovery**: Once over the limit, the check runs more frequently (every 10 minutes, then every 30 seconds). When the count drops back to or below your limit, API access is restored automatically.
 
 ## API reference summary
 
@@ -77,3 +75,16 @@ VectorAI DB runs a background thread that periodically counts the total vectors 
 | Add license | `POST /licenses/add` | Adds a new key or reactivates a previously deleted, unexpired key. |
 | Delete license | `POST /licenses/delete` | Removes a key from the system to prevent invalidation during maintenance. |
 | Repair license | `POST /licenses/repair` | Attempts to restore a Non-Compliant key to Active status. |
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Activate a license" icon="key" href="/home/getting-started/license-activation">
+    Apply a trial or purchased key via the Local UI or a direct API call
+  </Card>
+  <Card title="Licensing & support" icon="life-ring" href="/home/support/license">
+    Open a support ticket or search the Actian Knowledge Base
+  </Card>
+</CardGroup>

@@ -1,11 +1,15 @@
 ---
 title: "Indexing overview"
-description: "Learn how VectorAI DB uses HNSW indexing for fast approximate nearest neighbor search, including tunable parameters and tradeoffs between speed, accuracy, and memory."
+description: "HNSW and flat index types in VectorAI DB, including tunable parameters and tradeoffs between speed, accuracy, and memory."
 ---
 
-Vector indexing organizes vector embeddings to enable fast data retrieval at scale. VectorAI DB uses the HNSW (Hierarchical Navigable Small World) algorithm to index vectors automatically when you create a collection and insert data.
+Vector indexing organizes vector embeddings to enable fast data retrieval at scale. VectorAI DB supports two index types: HNSW and flat.
 
-Without indexing, searching requires comparing each vector to the query vector through brute force (FLAT indexing). This approach has linear time complexity and becomes impractically slow as the number of vectors grows. Modern AI applications require faster approximate nearest neighbor (ANN) search algorithms.
+## Index types
+
+**HNSW** (Hierarchical Navigable Small World) is the default. VectorAI DB builds an HNSW index automatically when you create a collection and insert data. HNSW uses approximate nearest neighbor (ANN) search, which trades exact precision for speed and scales to large datasets.
+
+**Flat** indexing performs exact brute-force search by comparing every vector to the query. It guarantees perfect recall but has linear time complexity, which becomes impractical as collection size grows. Use flat indexing for small collections where exact results are required.
 
 ![Diagram showing flat indexing where every vector is compared to the query vector one by one](/images/fundamentals/indexing/flat-indexing.png)
 
