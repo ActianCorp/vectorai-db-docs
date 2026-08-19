@@ -3,7 +3,12 @@ title: "Build your first application"
 description: "Step-by-step guide to building a semantic search app with Actian VectorAI DB: install, connect, create collections, embed, store, search, filter, update, and delete."
 ---
 
-In this tutorial, you build a complete application on Actian VectorAI DB from scratch. By the end, you have a working movie recommendation engine that can store movie descriptions as dense vectors, find semantically similar movies using natural language queries, filter results by genre, year, or rating, update movie information after ingestion, delete outdated records, and inspect collection health and statistics.
+In this tutorial, you build a movie recommendation engine on Actian VectorAI DB from scratch. Along the way, you'll:
+
+- Store movie plots as dense vectors and find semantically similar movies with natural-language queries
+- Filter results by genre, year, or minimum rating
+- Update movie metadata after ingestion and delete outdated records
+- Inspect collection health and statistics
 
 No prior vector database experience is required. Each step introduces a concept, explains why it matters, and shows the code you need.
 
@@ -11,7 +16,7 @@ No prior vector database experience is required. Each step introduces a concept,
 
 ## What you build
 
-A user describes what they want to watch in natural language — "a suspenseful space movie" — and the system finds the best matches from the database, optionally filtered by genre, year, or minimum rating. The diagram below shows how data flows from raw movie records through embedding and into a searchable vector store.
+A user describes what they want to watch in natural language, for example "a suspenseful space movie", and the system finds the best matches from the database, optionally filtered by genre, year, or minimum rating. The diagram below shows how data flows from raw movie records through embedding and into a searchable vector store.
 
 ```mermaid
 flowchart LR
@@ -33,8 +38,12 @@ Before starting, make sure the following are in place.
 - `pip` available in your environment (verify with `pip --version`).
 - A virtual environment activated (recommended: `python -m venv .venv && source .venv/bin/activate`).
 - An Actian VectorAI DB server running (default: `localhost:6574`).
-- Internet access on first run — `sentence-transformers` downloads the embedding model (`all-MiniLM-L6-v2`, approximately 90 MB) from Hugging Face when you first call `SentenceTransformer(EMBED_MODEL)`.
+- Internet access on first run: `sentence-transformers` downloads the embedding model (`all-MiniLM-L6-v2`, approximately 90 MB) from Hugging Face when you first call `SentenceTransformer(EMBED_MODEL)`.
 - At least 512 MB of free memory to load the embedding model.
+
+<Note>
+On Windows, the default console codepage cannot render the `★` and `—` characters this script prints. If you see `UnicodeEncodeError` when running it, set `PYTHONIOENCODING=utf-8` before running, for example `set PYTHONIOENCODING=utf-8 && python app.py` (cmd) or `$env:PYTHONIOENCODING="utf-8"; python app.py` (PowerShell).
+</Note>
 
 ---
 
@@ -50,12 +59,14 @@ The two packages serve distinct roles in the application.
 
 | Package | Purpose |
 |---------|---------|
-| `actian-vectorai-client` | Official Python SDK — async/sync clients, Filter DSL, gRPC transport. |
+| `actian-vectorai-client` | Official Python SDK: async/sync clients, Filter DSL, gRPC transport. |
 | `sentence-transformers` | Open-source library for generating text embeddings. |
 
 ---
 
 ## Step 2: Import libraries and configure
+
+Each step below builds on the ones before it: imports, the `model`, the `movies` dataset, and helper functions defined earlier are reused later. By the end you'll have a single runnable file (for example `app.py`). If you'd rather see the whole thing assembled first, jump to the [full example](#full-example) at the end of this page; every snippet below is excerpted directly from it.
 
 The following snippet imports every class needed for this tutorial and sets three constants that identify the server address, collection name, and embedding model. Running it loads the model into memory and prints the resolved configuration so you can confirm the values before proceeding.
 
@@ -77,7 +88,7 @@ from actian_vectorai.models.collections import HnswConfigDiff
 SERVER = "localhost:6574"
 COLLECTION = "Movies"
 
-# Embedding model settings — model name and its output dimension must match
+# Embedding model settings: model name and its output dimension must match
 EMBED_MODEL = "all-MiniLM-L6-v2"
 EMBED_DIM = 384
 
@@ -102,7 +113,7 @@ The table below describes what each import provides.
 
 ### Expected output
 
-The three constants are printed in order — server address, collection name, and the model name with its output dimension.
+The three constants are printed in order: server address, collection name, and the model name with its output dimension.
 
 ```text
 Server:     localhost:6574
@@ -118,7 +129,7 @@ The following snippet opens a gRPC connection to the server, calls `health_check
 
 ```python
 async def check_connection():
-    # async with manages the connection lifecycle — opens on entry, closes on exit
+    # async with manages the connection lifecycle: opens on entry, closes on exit
     async with AsyncVectorAIClient(url=SERVER) as client:
         health = await client.health_check()
         print(f"Server health: {health}")
@@ -172,12 +183,12 @@ The arguments to `get_or_create` define the vector dimension, how similarity is 
 |-----------|-------|---------|
 | `size=384` | Vector dimension | Must match the embedding model's output dimension. |
 | `distance=Distance.Cosine` | Similarity metric | Cosine similarity is ideal for sentence transformers. |
-| `m=16` | HNSW graph connections | Each node connects to 16 neighbours — balances speed and recall. |
+| `m=16` | HNSW graph connections | Each node connects to 16 neighbours, balancing speed and recall. |
 | `ef_construct=128` | Build-time search width | Higher values improve index quality at the cost of build time. |
 
 ### Why use `get_or_create`
 
-`get_or_create` is safe to call repeatedly. When the collection does not yet exist, the SDK creates it and returns `True`. When the collection already exists, the SDK skips creation and returns `False`. This boolean return value lets you log whether a new collection was provisioned, and your scripts become idempotent — safe to re-run without side effects.
+`get_or_create` is safe to call repeatedly. When the collection does not yet exist, the SDK creates it and returns `True`. When the collection already exists, the SDK skips creation and returns `False`. This boolean return value lets you log whether a new collection was provisioned, and your scripts become idempotent, safe to re-run without side effects.
 
 ### Expected output
 
@@ -229,9 +240,9 @@ Batching matters for three reasons.
 
 Each movie becomes a point in the collection. A point has three parts.
 
-- ID — A unique identifier (integer or UUID string).
-- Vector — An embedding of the movie's plot description.
-- Payload — Structured metadata (genre, year, rating, and so on).
+- ID: A unique identifier (integer or UUID string).
+- Vector: An embedding of the movie's plot description.
+- Payload: Structured metadata (genre, year, rating, and so on).
 
 The following list defines ten movies that will be embedded and stored in the next step. Each entry includes a plot description that the embedding model will encode into a 384-dimensional vector.
 
@@ -442,7 +453,7 @@ The following snippet defines a `search_by_genre` function that builds a `must` 
 async def search_by_genre(query: str, genre: str, top_k: int = 5):
     query_vector = embed_text(query)
 
-    # must() applies the condition before vector ranking — only matching points are scored
+    # must() applies the condition before vector ranking: only matching points are scored
     filter_obj = (
         FilterBuilder()
         .must(Field("genre").eq(genre))
@@ -550,7 +561,7 @@ The following snippet chains three conditions: movies released after 2000, with 
 async def advanced_search(query: str, top_k: int = 5):
     query_vector = embed_text(query)
 
-    # Chain multiple must() and must_not() calls — all conditions apply simultaneously
+    # Chain multiple must() and must_not() calls: all conditions apply simultaneously
     filter_obj = (
         FilterBuilder()
         .must(Field("year").gte(2000))
@@ -596,7 +607,7 @@ This query finds mind-bending thrillers released after 2000 with a rating of at 
 
 ## Step 11: Retrieve a specific movie by ID
 
-The following snippet fetches movie ID `0` directly from the collection by passing the integer ID to `points.get()`. No search is performed — the server returns the exact point and its payload.
+The following snippet fetches movie ID `0` directly from the collection by passing the integer ID to `points.get()`. No search is performed: the server returns the exact point and its payload.
 
 ```python
 async def get_movie(movie_id: int):
@@ -628,7 +639,7 @@ ID 0: Interstellar (2014) — sci-fi — ★8.7
   Plot: A team of explorers travel through a wormhole in space to ensure humanity's survival on a dying Earth.
 ```
 
-This code passes a single integer ID to `points.get()` with `with_payload=True`, so the server returns the exact point and its complete metadata without performing any similarity search. The function checks whether any points were returned, then prints the title, year, genre, rating, and full plot description of the matching record.
+If no point has the given ID, `points.get()` returns an empty list rather than raising an exception, which is why the function checks `if not points` before indexing into the result. This matters for IDs that might not exist yet, for example right after a delete.
 
 ---
 
@@ -664,7 +675,7 @@ ID 0: Interstellar (2014) — sci-fi — ★8.8
 `set_payload` merges the provided fields into the existing payload. Three properties define its behaviour.
 
 - Merge behaviour: Only the specified fields are updated. All other fields in the existing payload remain unchanged.
-- No re-embedding: The vector stays the same — only the metadata is modified, so there is no reprocessing cost.
+- No re-embedding: The vector stays the same; only the metadata is modified, so there is no reprocessing cost.
 - Immediate effect: Subsequent searches and retrievals reflect the updated values right away.
 
 ### Add new fields
@@ -686,9 +697,9 @@ asyncio.run(add_tags(0, ["space", "wormhole", "survival", "time-dilation"]))
 asyncio.run(get_movie(0))
 ```
 
-**Expected Output**
+#### Expected output
 
-The follow-up `get_movie(0)` call confirms the new `tags` field was merged into the payload. All previously stored fields — title, plot, genre, year, and rating — remain intact.
+The follow-up `get_movie(0)` call confirms the new `tags` field was merged into the payload. All previously stored fields (title, plot, genre, year, and rating) remain intact.
 
 ```text
 Added tags to movie 0: ['space', 'wormhole', 'survival', 'time-dilation']
@@ -696,7 +707,7 @@ ID 0: Interstellar (2014) — sci-fi — ★8.8
   Plot: A team of explorers travel through a wormhole in space to ensure humanity's survival on a dying Earth.
 ```
 
-This code calls `add_tags` with movie ID `0` and a list of four descriptive tags: `space`, `wormhole`, `survival`, and `time-dilation`. The `set_payload` call merges the new `tags` field into the existing payload for that point, leaving all previously stored fields — title, plot, genre, year, rating, and director — unchanged. The follow-up call to `get_movie(0)` reads the point back from the collection so you can confirm the tags were stored correctly.
+Payloads are schemaless, so `tags` didn't need to be declared anywhere in advance. Any JSON-serializable value works as a new field, which makes `set_payload` a convenient way to enrich points with metadata you didn't anticipate at ingestion time.
 
 ---
 
@@ -727,7 +738,7 @@ The vector count drops from 10 to 9, confirming that movie ID `9` (Blade Runner 
 Deleted movie 9. Remaining: 9
 ```
 
-This code passes ID `9` — corresponding to "Blade Runner 2049", the last movie in the dataset — to `points.delete()`. After the deletion, `vde.get_vector_count` reads the updated total and prints it so you can confirm the point was removed.
+Use `vde.get_vector_count` for a fast unfiltered total, like the one above. Reach for `points.count()` (Step 14) when you need a count that matches a specific filter.
 
 ### Delete by filter
 
@@ -750,7 +761,7 @@ async def delete_low_rated(min_rating: float):
 
     print(f"Deleted movies with rating < {min_rating}. Before: {count_before}, After: {count_after}")
 
-# Uncomment the line below to run — this permanently removes points from the collection
+# Uncomment the line below to run; this permanently removes points from the collection
 # asyncio.run(delete_low_rated(8.6))
 ```
 
@@ -763,77 +774,67 @@ The following snippet counts the total number of points in the collection, then 
 ```python
 async def count_movies():
     async with AsyncVectorAIClient(url=SERVER) as client:
-        # Total count — no filter applied
+        # Total count: no filter applied
         total = await client.vde.get_vector_count(COLLECTION)
         print(f"Total movies: {total}")
 
-        # Filtered counts using exact=True for a precise scan
+        # points.count() always performs a precise scan in the current SDK;
+        # there is no exact/approximate toggle to pass here.
         sci_fi = await client.points.count(
             COLLECTION,
             filter=FilterBuilder().must(Field("genre").eq("sci-fi")).build(),
-            exact=True,
         )
         print(f"Sci-fi movies: {sci_fi}")
 
         highly_rated = await client.points.count(
             COLLECTION,
             filter=FilterBuilder().must(Field("rating").gte(8.8)).build(),
-            exact=True,
         )
         print(f"Movies with rating >= 8.8: {highly_rated}")
 
         nolan = await client.points.count(
             COLLECTION,
             filter=FilterBuilder().must(Field("director").eq("Christopher Nolan")).build(),
-            exact=True,
         )
         print(f"Christopher Nolan movies: {nolan}")
 
 asyncio.run(count_movies())
 ```
 
-The `exact` parameter controls whether the count is precise or approximate. The table below explains the trade-off.
-
-| Value | Behaviour |
-|-------|-----------|
-| `exact=True` | Scans all points and returns the precise count. |
-| `exact=False` | Uses an approximate count from the index (faster for large collections). |
-
-For small collections, always use `exact=True`. For millions of points, `exact=False` avoids a full scan.
-
-<Note>
-`client.points.count()` returns a count response object. The integer count is accessed via the `.count` attribute (for example, `sci_fi.count`). The code samples above print the response object directly for readability; update them to access `.count` if your SDK version returns a structured object rather than a raw integer.
-</Note>
+`points.count()` returns a plain integer: the precise number of points matching the optional `filter`. There is no `exact`/`approximate` toggle in this SDK version; every count is a precise scan.
 
 ### Expected output
 
-Counts reflect the tutorial dataset after the earlier deletion of movie ID `9`.
+Counts reflect the tutorial dataset after the rating update in Step 12 (Interstellar's rating became `8.8`) and the deletion of movie ID `9` in Step 13.
 
 ```text
 Total movies: 9
 Sci-fi movies: 3
-Movies with rating >= 8.8: 5
+Movies with rating >= 8.8: 6
 Christopher Nolan movies: 3
 ```
 
-The code runs four separate counts: one for the full collection and three with filters applied using `exact=True`. The first count returns the total number of points currently in the collection. The second filters by `genre == "sci-fi"`, the third by `rating >= 8.8`, and the fourth by `director == "Christopher Nolan"`. The results reflect the dataset state after movie ID `9` was deleted in Step 13.
+The code runs four separate counts: one for the full collection and three with filters applied. The first count returns the total number of points currently in the collection. The second filters by `genre == "sci-fi"`, the third by `rating >= 8.8`, and the fourth by `director == "Christopher Nolan"`. The `rating >= 8.8` count is `6` rather than `5` because Step 12 raised Interstellar's rating to `8.8`, adding it to the group alongside Inception, The Dark Knight, Pulp Fiction, Forrest Gump, and The Shawshank Redemption. If you run this step against a fresh collection without the Step 12 update applied, expect `5` instead.
 
 ---
 
 ## Step 15: Inspect collection status
 
-The following snippet retrieves the collection's status, configuration, and current VDE lifecycle state, then prints them alongside the vector count. Run this at any point to verify the collection is healthy before running searches.
+The following snippet retrieves the collection's status, size, and current VDE lifecycle state, then prints them alongside the vector count. Run this at any point to verify the collection is healthy before running searches.
 
 ```python
 async def inspect_collection():
     async with AsyncVectorAIClient(url=SERVER) as client:
         info = await client.collections.get_info(COLLECTION)
         print(f"Collection: {COLLECTION}")
-        print(f"  Status: {info.status}")
-        print(f"  Config: {info.config}")
+        print(f"  Status: {info.status.name.lower()}")
+        print(f"  Points: {info.points_count}")
+        print(f"  Vectors: {info.vectors_count} (indexed: {info.indexed_vectors_count})")
+        print(f"  Segments: {info.segments_count}")
+        print(f"  Optimizer OK: {info.optimizer_status.ok}")
 
         state = await client.vde.get_state(COLLECTION)
-        print(f"  VDE state: {state}")
+        print(f"  VDE state: {state.name.lower()}")
 
         count = await client.vde.get_vector_count(COLLECTION)
         print(f"  Vector count: {count}")
@@ -841,19 +842,32 @@ async def inspect_collection():
 asyncio.run(inspect_collection())
 ```
 
+`get_info()` returns a `CollectionInfo` object. `status` and the VDE state are enums, so `.name.lower()` converts them to readable strings (for example `CollectionStatus.Green` becomes `"green"`). The table below describes the fields used above.
+
+| Field | Meaning |
+|-------|---------|
+| `status` | Collection health: `green`, `yellow`, `red`, or `grey` (unknown). |
+| `points_count` | Number of points currently stored. |
+| `vectors_count` / `indexed_vectors_count` | Total vectors and how many are indexed for search. |
+| `segments_count` | Number of storage segments backing the collection. |
+| `optimizer_status.ok` | Whether the background optimizer is running without errors. |
+
 ### Expected output
 
-This code connects to the server, calls `collections.get_info` to retrieve the collection's operational status and vector configuration, then calls `vde.get_state` to read the current VDE lifecycle state, and finally calls `vde.get_vector_count` to confirm the number of stored vectors. A `green` status and `active` VDE state indicate the collection is healthy and ready for searches.
+A `green` status and `ready` VDE state indicate the collection is healthy and ready for searches.
 
 ```text
 Collection: Movies
   Status: green
-  Config: {'params': {'vectors': {'size': 384, 'distance': 'Cosine'}, 'shard_number': 1, 'replication_factor': 1, 'write_consistency_factor': 1, 'on_disk_payload': True}, 'hnsw_config': {'m': 16, 'ef_construct': 128, 'full_scan_threshold': 10000, 'max_indexing_threads': 0, 'on_disk': False}, 'optimizer_config': {'deleted_threshold': 0.2, 'vacuum_min_vector_number': 1000, 'default_segment_number': 0, 'max_segment_size': None, 'memmap_threshold': None, 'indexing_threshold': 20000, 'flush_interval_sec': 5, 'max_optimization_threads': 1}, 'wal_config': {'wal_capacity_mb': 32, 'wal_segments_ahead': 0}, 'quantization_config': None}
-  VDE state: active
+  Points: 9
+  Vectors: 9 (indexed: 9)
+  Segments: 1
+  Optimizer OK: True
+  VDE state: ready
   Vector count: 9
 ```
 
-This code connects to the server, calls `collections.get_info` to retrieve the collection's operational status and vector configuration, then calls `vde.get_state` to read the current VDE lifecycle state, and finally calls `vde.get_vector_count` to confirm the number of stored vectors. All three values are printed together so you can verify the collection is healthy and correctly configured before running searches.
+Call `inspect_collection()` before automated jobs that assume the collection is ready. A status other than `green`, or a VDE state of `rebuilding`, means searches may return stale or incomplete results.
 
 ---
 
@@ -882,11 +896,11 @@ Collections on server (1):
   - Movies
 ```
 
-This code calls `collections.list()`, which returns the names of all collections currently provisioned on the server. The result is printed as a numbered list with the total count shown in the header. In this tutorial only one collection has been created, so the output lists `Movies` as the single entry.
+`collections.list()` takes no arguments and returns every collection on the server, not just ones your client created. That makes it useful for spotting orphaned collections from earlier runs before provisioning a new one.
 
 ---
 
-## Step 17: Put it all together — a complete search function
+## Step 17: Combine everything into a complete search function
 
 The previous steps introduced each operation individually. This section consolidates them into a single reusable `recommend_movies` function that accepts optional filters and applies only the ones provided.
 
@@ -904,7 +918,7 @@ async def recommend_movies(
     """Recommend movies using semantic search with optional filters."""
     query_vector = embed_text(query)
 
-    # Build filters conditionally — only add a condition when the parameter is provided
+    # Build filters conditionally: only add a condition when the parameter is provided
     fb = FilterBuilder()
     if genre:
         fb = fb.must(Field("genre").eq(genre))
@@ -957,42 +971,47 @@ asyncio.run(recommend_movies(
 
 ### Example output
 
-Your scores will vary. Three calls are made with different queries and filter combinations.
+Your scores, result ordering, and result counts will all vary. The `Filters` line always lists conditions in the order `genre`, `year`, `rating`, `NOT <exclude_genre>` (matching the order they're appended in the code above), and the `Results` count depends on how many points in your collection actually satisfy the filter, which can be smaller than `top_k` on a small dataset like this one. Three calls are made below with different queries and filter combinations.
 
 ```text
   Query: "a mind-bending sci-fi movie"
   Filters: none
   Results: 5
 
-    0.7234  The Matrix (1999) — sci-fi — ★8.7
-           A computer hacker discovers that reality is a simulation created by machines and j...
-    0.7012  Inception (2010) — sci-fi — ★8.8
-           A thief who steals corporate secrets through dream-sharing technology is given the...
-    0.5890  Interstellar (2014) — sci-fi — ★8.8
-           A team of explorers travel through a wormhole in space to ensure humanity's surviv...
-    0.4234  The Dark Knight (2008) — action — ★9.0
-           Batman faces the Joker, a criminal mastermind who plunges Gotham City into anarchy...
-    0.3012  Alien (1979) — horror — ★8.5
-           The crew of a commercial spaceship encounters a deadly extraterrestrial creature t...
+    0.3180  The Matrix (1999) — sci-fi — ★8.7
+           A computer hacker discovers that reality is a simulation created by machines and...
+    0.2747  Alien (1979) — horror — ★8.5
+           The crew of a commercial spaceship encounters a deadly extraterrestrial creature...
+    0.2609  Inception (2010) — sci-fi — ★8.8
+           A thief who steals corporate secrets through dream-sharing technology is given t...
+    0.2284  Interstellar (2014) — sci-fi — ★8.8
+           A team of explorers travel through a wormhole in space to ensure humanity's surv...
+    0.2076  The Dark Knight (2008) — action — ★9.0
+           Batman faces the Joker, a criminal mastermind who plunges Gotham City into anarc...
 
   Query: "an intense crime story"
   Filters: rating>=8.8
-  Results: 2
+  Results: 4
 
-    0.6890  Pulp Fiction (1994) — crime — ★8.9
-           The lives of two mob hitmen, a boxer, a gangster, and his wife intertwine in four ...
-    0.4123  The Dark Knight (2008) — action — ★9.0
-           Batman faces the Joker, a criminal mastermind who plunges Gotham City into anarchy...
+    0.4317  Pulp Fiction (1994) — crime — ★8.9
+           The lives of two mob hitmen, a boxer, a gangster, and his wife intertwine in fou...
+    0.3621  The Shawshank Redemption (1994) — drama — ★9.3
+           A banker sentenced to life in prison forms an unlikely friendship and finds hope...
+    0.3185  Forrest Gump (1994) — drama — ★8.8
+           A slow-witted but kind-hearted man from Alabama witnesses and unwittingly influe...
+    0.3180  Inception (2010) — sci-fi — ★8.8
+           A thief who steals corporate secrets through dream-sharing technology is given t...
 
   Query: "a feel-good movie about life"
-  Filters: NOT crime, year>=1990
-  Results: 5
+  Filters: year>=1990, NOT crime
+  Results: 3
 
-    0.6345  Forrest Gump (1994) — drama — ★8.8
-           A slow-witted but kind-hearted man from Alabama witnesses and unwittingly influenc...
-    0.5678  The Shawshank Redemption (1994) — drama — ★9.3
-           A banker sentenced to life in prison forms an unlikely friendship and finds hope t...
-    ...
+    0.3058  The Shawshank Redemption (1994) — drama — ★9.3
+           A banker sentenced to life in prison forms an unlikely friendship and finds hope...
+    0.1866  Forrest Gump (1994) — drama — ★8.8
+           A slow-witted but kind-hearted man from Alabama witnesses and unwittingly influe...
+    0.1822  Interstellar (2014) — sci-fi — ★8.8
+           A team of explorers travel through a wormhole in space to ensure humanity's surv...
 ```
 
 The first call searches without any filters and returns the top five semantically similar movies for "a mind-bending sci-fi movie". The second call applies a `min_rating >= 8.8` filter, narrowing results to only highly rated movies that match "an intense crime story". The third call combines an `exclude_genre="crime"` exclusion with a `min_year=1990` lower bound, so the search for "a feel-good movie about life" returns only non-crime films from 1990 onwards. Each call prints the query, active filters, result count, and ranked movies with truncated plot descriptions.
@@ -1001,7 +1020,7 @@ The first call searches without any filters and returns the top five semanticall
 
 ## Step 18: Cleanup
 
-The following snippet flushes any pending writes to disk and prints the current movie count. The two lines that delete the collection are commented out so the data is preserved by default — uncomment them only when the collection is no longer needed.
+The following snippet flushes any pending writes to disk and prints the current movie count. The two lines that delete the collection are commented out so the data is preserved by default; uncomment them only when the collection is no longer needed.
 
 ```python
 async def cleanup():
@@ -1028,7 +1047,482 @@ Collection 'Movies' contains 9 movies.
 Data flushed to disk.
 ```
 
-This code reads the current vector count from the collection, prints it, then calls `vde.flush` to ensure any pending writes are persisted to disk. The two lines that delete the collection are commented out — they are safe to uncomment when the tutorial data is no longer needed, but the collection is preserved by default so the data remains available for further experimentation.
+This code reads the current vector count from the collection, prints it, then calls `vde.flush` to ensure any pending writes are persisted to disk. The two lines that delete the collection are commented out; they are safe to uncomment when the tutorial data is no longer needed, but the collection is preserved by default so the data remains available for further experimentation.
+
+---
+
+## Full example
+
+Every snippet above is excerpted from the single script below; nothing new is introduced here. Save it as one file (for example `app.py`) and run it with `python app.py` for a single, runnable reference to the whole tutorial.
+
+<Accordion title="See the complete script">
+
+```python
+import asyncio
+from sentence_transformers import SentenceTransformer
+
+from actian_vectorai import (
+    AsyncVectorAIClient,
+    Distance,
+    Field,
+    FilterBuilder,
+    PointStruct,
+    VectorParams,
+)
+from actian_vectorai.models.collections import HnswConfigDiff
+
+# Connection and collection settings
+SERVER = "localhost:6574"
+COLLECTION = "Movies"
+
+# Embedding model settings: model name and its output dimension must match
+EMBED_MODEL = "all-MiniLM-L6-v2"
+EMBED_DIM = 384
+
+# Load the embedding model into memory (downloads on first run)
+model = SentenceTransformer(EMBED_MODEL)
+
+
+async def check_connection():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        health = await client.health_check()
+        print(f"Server health: {health}")
+
+
+async def create_collection():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        created = await client.collections.get_or_create(
+            name=COLLECTION,
+            vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.Cosine),
+            hnsw_config=HnswConfigDiff(m=16, ef_construct=128),
+        )
+        print(f"Collection '{COLLECTION}' {'created' if created else 'already exists'}.")
+
+
+def embed_text(text: str) -> list[float]:
+    """Convert a single text string to a 384-dimensional vector."""
+    return model.encode(text).tolist()
+
+
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    """Convert a batch of text strings to vectors in a single forward pass."""
+    return model.encode(texts).tolist()
+
+
+movies = [
+    {
+        "title": "Interstellar",
+        "plot": "A team of explorers travel through a wormhole in space to ensure humanity's survival on a dying Earth.",
+        "genre": "sci-fi",
+        "year": 2014,
+        "rating": 8.7,
+        "director": "Christopher Nolan",
+    },
+    {
+        "title": "The Shawshank Redemption",
+        "plot": "A banker sentenced to life in prison forms an unlikely friendship and finds hope through acts of common decency.",
+        "genre": "drama",
+        "year": 1994,
+        "rating": 9.3,
+        "director": "Frank Darabont",
+    },
+    {
+        "title": "Inception",
+        "plot": "A thief who steals corporate secrets through dream-sharing technology is given the task of planting an idea in a target's mind.",
+        "genre": "sci-fi",
+        "year": 2010,
+        "rating": 8.8,
+        "director": "Christopher Nolan",
+    },
+    {
+        "title": "The Dark Knight",
+        "plot": "Batman faces the Joker, a criminal mastermind who plunges Gotham City into anarchy and forces the Dark Knight to confront his beliefs.",
+        "genre": "action",
+        "year": 2008,
+        "rating": 9.0,
+        "director": "Christopher Nolan",
+    },
+    {
+        "title": "Pulp Fiction",
+        "plot": "The lives of two mob hitmen, a boxer, a gangster, and his wife intertwine in four tales of violence and redemption.",
+        "genre": "crime",
+        "year": 1994,
+        "rating": 8.9,
+        "director": "Quentin Tarantino",
+    },
+    {
+        "title": "The Matrix",
+        "plot": "A computer hacker discovers that reality is a simulation created by machines and joins a rebellion to free humanity.",
+        "genre": "sci-fi",
+        "year": 1999,
+        "rating": 8.7,
+        "director": "The Wachowskis",
+    },
+    {
+        "title": "Forrest Gump",
+        "plot": "A slow-witted but kind-hearted man from Alabama witnesses and unwittingly influences several historical events in the 20th century.",
+        "genre": "drama",
+        "year": 1994,
+        "rating": 8.8,
+        "director": "Robert Zemeckis",
+    },
+    {
+        "title": "Alien",
+        "plot": "The crew of a commercial spaceship encounters a deadly extraterrestrial creature that begins hunting them one by one.",
+        "genre": "horror",
+        "year": 1979,
+        "rating": 8.5,
+        "director": "Ridley Scott",
+    },
+    {
+        "title": "Goodfellas",
+        "plot": "The story of Henry Hill and his life in the mob, covering his relationship with his wife and his mob partners.",
+        "genre": "crime",
+        "year": 1990,
+        "rating": 8.7,
+        "director": "Martin Scorsese",
+    },
+    {
+        "title": "Blade Runner 2049",
+        "plot": "A young blade runner discovers a long-buried secret that leads him to track down a former blade runner who has been missing for thirty years.",
+        "genre": "sci-fi",
+        "year": 2017,
+        "rating": 8.0,
+        "director": "Denis Villeneuve",
+    },
+]
+
+
+async def ingest_movies():
+    plots = [m["plot"] for m in movies]
+    vectors = embed_texts(plots)
+
+    points = []
+    for i, (movie, vector) in enumerate(zip(movies, vectors)):
+        points.append(PointStruct(
+            id=i,
+            vector=vector,
+            payload={
+                "title": movie["title"],
+                "plot": movie["plot"],
+                "genre": movie["genre"],
+                "year": movie["year"],
+                "rating": movie["rating"],
+                "director": movie["director"],
+            },
+        ))
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        await client.points.upsert(COLLECTION, points=points)
+        await client.vde.flush(COLLECTION)
+        count = await client.vde.get_vector_count(COLLECTION)
+
+    print(f"Stored {len(points)} movies. Total in collection: {count}")
+
+
+async def search_movies(query: str, top_k: int = 5):
+    query_vector = embed_text(query)
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.search(
+            COLLECTION,
+            vector=query_vector,
+            limit=top_k,
+            with_payload=True,
+        ) or []
+
+    return results
+
+
+async def search_by_genre(query: str, genre: str, top_k: int = 5):
+    query_vector = embed_text(query)
+
+    filter_obj = (
+        FilterBuilder()
+        .must(Field("genre").eq(genre))
+        .build()
+    )
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.search(
+            COLLECTION,
+            vector=query_vector,
+            limit=top_k,
+            filter=filter_obj,
+            with_payload=True,
+        ) or []
+
+    return results
+
+
+async def search_highly_rated(query: str, min_rating: float, top_k: int = 5):
+    query_vector = embed_text(query)
+
+    filter_obj = (
+        FilterBuilder()
+        .must(Field("rating").gte(min_rating))
+        .build()
+    )
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.search(
+            COLLECTION,
+            vector=query_vector,
+            limit=top_k,
+            filter=filter_obj,
+            with_payload=True,
+        ) or []
+
+    return results
+
+
+async def advanced_search(query: str, top_k: int = 5):
+    query_vector = embed_text(query)
+
+    filter_obj = (
+        FilterBuilder()
+        .must(Field("year").gte(2000))
+        .must(Field("rating").gte(8.5))
+        .must_not(Field("genre").eq("drama"))
+        .build()
+    )
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.search(
+            COLLECTION,
+            vector=query_vector,
+            limit=top_k,
+            filter=filter_obj,
+            with_payload=True,
+        ) or []
+
+    return results
+
+
+async def get_movie(movie_id: int):
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        points = await client.points.get(
+            COLLECTION,
+            ids=[movie_id],
+            with_payload=True,
+        )
+
+    if not points:
+        print(f"Movie {movie_id} not found.")
+        return None
+
+    p = points[0].payload
+    print(f"ID {movie_id}: {p['title']} ({p['year']}) — {p['genre']} — ★{p['rating']}")
+    print(f"  Plot: {p['plot']}")
+    return points[0]
+
+
+async def update_movie_rating(movie_id: int, new_rating: float):
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        await client.points.set_payload(
+            COLLECTION,
+            payload={"rating": new_rating},
+            ids=[movie_id],
+        )
+
+    print(f"Updated movie {movie_id} rating to ★{new_rating}")
+
+
+async def add_tags(movie_id: int, tags: list[str]):
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        await client.points.set_payload(
+            COLLECTION,
+            payload={"tags": tags},
+            ids=[movie_id],
+        )
+
+    print(f"Added tags to movie {movie_id}: {tags}")
+
+
+async def delete_movie(movie_id: int):
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        await client.points.delete(COLLECTION, ids=[movie_id])
+        count = await client.vde.get_vector_count(COLLECTION)
+
+    print(f"Deleted movie {movie_id}. Remaining: {count}")
+
+
+async def delete_low_rated(min_rating: float):
+    filter_obj = (
+        FilterBuilder()
+        .must(Field("rating").lt(min_rating))
+        .build()
+    )
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        count_before = await client.vde.get_vector_count(COLLECTION)
+        await client.points.delete(COLLECTION, filter=filter_obj)
+        await client.vde.flush(COLLECTION)
+        count_after = await client.vde.get_vector_count(COLLECTION)
+
+    print(f"Deleted movies with rating < {min_rating}. Before: {count_before}, After: {count_after}")
+
+
+async def count_movies():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        total = await client.vde.get_vector_count(COLLECTION)
+        print(f"Total movies: {total}")
+
+        sci_fi = await client.points.count(
+            COLLECTION,
+            filter=FilterBuilder().must(Field("genre").eq("sci-fi")).build(),
+        )
+        print(f"Sci-fi movies: {sci_fi}")
+
+        highly_rated = await client.points.count(
+            COLLECTION,
+            filter=FilterBuilder().must(Field("rating").gte(8.8)).build(),
+        )
+        print(f"Movies with rating >= 8.8: {highly_rated}")
+
+        nolan = await client.points.count(
+            COLLECTION,
+            filter=FilterBuilder().must(Field("director").eq("Christopher Nolan")).build(),
+        )
+        print(f"Christopher Nolan movies: {nolan}")
+
+
+async def inspect_collection():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        info = await client.collections.get_info(COLLECTION)
+        print(f"Collection: {COLLECTION}")
+        print(f"  Status: {info.status.name.lower()}")
+        print(f"  Points: {info.points_count}")
+        print(f"  Vectors: {info.vectors_count} (indexed: {info.indexed_vectors_count})")
+        print(f"  Segments: {info.segments_count}")
+        print(f"  Optimizer OK: {info.optimizer_status.ok}")
+
+        state = await client.vde.get_state(COLLECTION)
+        print(f"  VDE state: {state.name.lower()}")
+
+        count = await client.vde.get_vector_count(COLLECTION)
+        print(f"  Vector count: {count}")
+
+
+async def list_collections():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        names = await client.collections.list()
+
+    print(f"Collections on server ({len(names)}):")
+    for name in names:
+        print(f"  - {name}")
+
+
+async def recommend_movies(
+    query: str,
+    genre: str | None = None,
+    min_year: int | None = None,
+    min_rating: float | None = None,
+    exclude_genre: str | None = None,
+    top_k: int = 5,
+):
+    """Recommend movies using semantic search with optional filters."""
+    query_vector = embed_text(query)
+
+    fb = FilterBuilder()
+    if genre:
+        fb = fb.must(Field("genre").eq(genre))
+    if min_year is not None:
+        fb = fb.must(Field("year").gte(min_year))
+    if min_rating is not None:
+        fb = fb.must(Field("rating").gte(min_rating))
+    if exclude_genre:
+        fb = fb.must_not(Field("genre").eq(exclude_genre))
+    filter_obj = fb.build()
+
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        results = await client.points.search(
+            COLLECTION,
+            vector=query_vector,
+            limit=top_k,
+            filter=filter_obj,
+            with_payload=True,
+        ) or []
+
+    print(f"\n  Query: \"{query}\"")
+    filters_desc = []
+    if genre: filters_desc.append(f"genre={genre}")
+    if min_year is not None: filters_desc.append(f"year>={min_year}")
+    if min_rating is not None: filters_desc.append(f"rating>={min_rating}")
+    if exclude_genre: filters_desc.append(f"NOT {exclude_genre}")
+    print(f"  Filters: {', '.join(filters_desc) or 'none'}")
+    print(f"  Results: {len(results)}\n")
+
+    for r in results:
+        p = r.payload
+        print(f"    {r.score:.4f}  {p['title']} ({p['year']}) — {p['genre']} — ★{p['rating']}")
+        print(f"           {p['plot'][:80]}...")
+    print()
+
+
+async def cleanup():
+    async with AsyncVectorAIClient(url=SERVER) as client:
+        count = await client.vde.get_vector_count(COLLECTION)
+        print(f"Collection '{COLLECTION}' contains {count} movies.")
+
+        await client.vde.flush(COLLECTION)
+        print("Data flushed to disk.")
+
+        # Uncomment the next two lines to permanently delete the collection:
+        # await client.collections.delete(COLLECTION)
+        # print(f"Collection '{COLLECTION}' deleted.")
+
+
+async def main():
+    await check_connection()
+    await create_collection()
+    await ingest_movies()
+
+    results = await search_movies("a suspenseful movie set in outer space")
+    for r in results:
+        p = r.payload
+        print(f"  {r.score:.4f}  {p['title']} ({p['year']}) — {p['genre']} — ★{p['rating']}")
+
+    genre_results = await search_by_genre("an exciting adventure", "sci-fi")
+    for r in genre_results:
+        p = r.payload
+        print(f"  {r.score:.4f}  {p['title']} ({p['year']})")
+
+    rated_results = await search_highly_rated("intense crime story", 8.8)
+    for r in rated_results:
+        p = r.payload
+        print(f"  {r.score:.4f}  {p['title']} — ★{p['rating']}")
+
+    advanced_results = await advanced_search("mind-bending thriller")
+    for r in advanced_results:
+        p = r.payload
+        print(f"  {r.score:.4f}  {p['title']} ({p['year']}) — {p['genre']} — ★{p['rating']}")
+
+    await get_movie(0)
+    await update_movie_rating(0, 8.8)
+    await get_movie(0)
+    await add_tags(0, ["space", "wormhole", "survival", "time-dilation"])
+    await get_movie(0)
+
+    await delete_movie(9)
+    # await delete_low_rated(8.6)  # destructive; uncomment only if you want to prune the dataset
+
+    await count_movies()
+    await inspect_collection()
+    await list_collections()
+
+    await recommend_movies("a mind-bending sci-fi movie")
+    await recommend_movies("an intense crime story", min_rating=8.8)
+    await recommend_movies("a feel-good movie about life", exclude_genre="crime", min_year=1990)
+
+    await cleanup()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+</Accordion>
 
 ---
 
@@ -1053,9 +1547,9 @@ The table below summarises every concept and API used in this tutorial.
 | Update metadata | `points.set_payload(collection, payload={...}, ids=[0])` | Merge new fields into existing payloads. |
 | Delete by ID | `points.delete(collection, ids=[0])` | Remove specific points. |
 | Delete by filter | `points.delete(collection, filter=...)` | Remove points matching conditions. |
-| Count | `points.count(collection, filter=..., exact=True)` | Count matching points. |
+| Count | `points.count(collection, filter=...)` | Count matching points. |
 | Vector count | `vde.get_vector_count(collection)` | Total vectors in the collection. |
-| Collection info | `collections.get_info(collection)` | Status and configuration. |
+| Collection info | `collections.get_info(collection)` | Status, point/vector counts, and segment info. |
 | Collection state | `vde.get_state(collection)` | VDE lifecycle state. |
 | List collections | `collections.list()` | All collection names on the server. |
 | Delete collection | `collections.delete(collection)` | Remove a collection entirely. |
