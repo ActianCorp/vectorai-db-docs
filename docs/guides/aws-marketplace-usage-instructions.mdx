@@ -1,0 +1,107 @@
+---
+title: "AWS Marketplace Usage Instructions"
+description: "AWS Marketplace usage instructions for VectorAI DB."
+---
+
+## Actian VectorAI DB – AWS Marketplace Usage Instructions
+
+### Release notes
+
+This version of Actian VectorAI DB is its initial release on AWS Marketplace. Version updates will be posted here.
+
+### Usage instructions
+
+#### 1. Launch the product
+
+1. Subscribe to **Actian VectorAI DB** on AWS Marketplace and accept the listing's contract subscription. See [AWS Marketplace subscription overview](https://docs.aws.amazon.com/marketplace/latest/buyerguide/buyer-getting-started.html) if you're new to AWS Marketplace.
+2. Launch an EC2 instance from the listing (1-Click or standard EC2 launch), selecting an instance type sized for your expected vector volume. The gRPC API becomes available at port 6574.
+3. **Attach an IAM role granting AWS License Manager access to the instance** — see [Required IAM permissions](#2-required-iam-permissions) below. Attaching a role is required for anything above the Free tier. For  list of tiers, see [Licensing tiers](#3-licensing-tiers).
+4. Wait for the instance to reach the `running` state and pass both EC2 status checks before proceeding. See [Verify the instance is healthy](#5-verify-the-instance-is-healthy) below.
+
+#### 2. Required IAM permissions
+
+VectorAI DB checks out your subscription's entitlement from **AWS License Manager** automatically at startup. For this to succeed, the EC2 instance must run under an IAM role (instance profile) that allows, at minimum, the following AWS License Manager actions:
+
+- `CheckoutLicense`
+- `ExtendLicenseConsumption`
+- `CheckInLicense`
+- `ListReceivedLicenses`
+- `GetLicenseUsage`
+
+Example IAM policy to attach to the instance role:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "VectorAIDBLicenseManagerAccess",
+      "Effect": "Allow",
+      "Action": [
+        "license-manager:CheckoutLicense",
+        "license-manager:ExtendLicenseConsumption",
+        "license-manager:CheckInLicense",
+        "license-manager:ListReceivedLicenses",
+        "license-manager:GetLicenseUsage"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+`"Resource": "*"` is required. License Manager consumption actions do not support resource-level restrictions. Attach this policy to a role, then attach that role as the IAM instance profile. Do this either at launch under **Advanced details > IAM instance profile** or afterward under **Actions > Security > Modify IAM role** in the EC2 console. If you modify the IAM role, then you must restart the instance for the IAM to take effect.
+
+Without this role, the instance cannot use a Starter or Growth entitlement and will run only at the Free tier limit.
+
+#### 3. Licensing tiers
+
+Your AWS Marketplace subscription tier determines your vector capacity:
+
+| Tier | Vector capacity |
+|---|---|
+| Free | 5,000 |
+| Starter | 1,000,000 |
+| Growth | 5,000,000 |
+
+No manual license key or activation step is required. Once the IAM role above is attached, VectorAI DB automatically uses the entitlement for your subscription.
+
+For general product concepts such as collections, vectors, search, see the [core concepts overview](https://docs.vectoraidb.actian.com/home/getting-started/overview) and [quickstart page](https://docs.vectoraidb.actian.com/home/quickstart/quickstart) in the VectorAI DB documentation.
+
+#### 4. Check your current allotment
+
+Query the instance directly:
+
+```bash
+GET http://<EC2_Instance_Public_DNS_or_IP>:6573/licenses/status
+```
+
+This returns your current vector-count ceiling and usage.
+
+#### 5. Verify the instance is healthy
+
+1. Open the [Amazon EC2 console](https://console.aws.amazon.com/ec2/), select your instance, and check the **Status checks** tab. Both system and instance status checks should show **passed**.
+2. Confirm that the REST API is responding:
+   ```bash
+   GET http://<EC2_Instance_Public_DNS_or_IP>:6573/collections
+   ```
+   A successful response, even an empty list, confirms that the service is running.
+3. Confirm that the reported vector count ceiling (step 4 above) matches your subscribed tier. If it shows the Free-tier limit instead, verify that the IAM role from step 2 is attached correctly.
+
+#### 6. Start using VectorAI DB
+
+Once you have confirmed a healthy instance, create a collection and run your first search using the REST API or one of the following SDKs and agent frameworks:
+
+- Quickstart: https://docs.vectoraidb.actian.com/home/quickstart/quickstart
+- Python SDK: https://docs.vectoraidb.actian.com/sdks/python/installation
+- JavaScript SDK: https://docs.vectoraidb.actian.com/sdks/javascript/installation
+- REST API reference: https://docs.vectoraidb.actian.com/api-reference/rest
+- LangChain integration: https://docs.vectoraidb.actian.com/docs/integrations/langchain
+- LlamaIndex integration: https://docs.vectoraidb.actian.com/docs/integrations/llama-index
+
+### Support
+
+- FAQ: https://docs.vectoraidb.actian.com/home/support/faq
+- Support resources: https://docs.vectoraidb.actian.com/home/support/support
+- Licensing & legal: https://docs.vectoraidb.actian.com/home/support/license
+- EULA: https://docs.vectoraidb.actian.com/home/support/eula
