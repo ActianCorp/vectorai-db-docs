@@ -3,12 +3,12 @@ title: "Monitoring and logging"
 description: "Set up Prometheus metrics collection, understand available metrics, configure alerts, and manage logs for VectorAI DB in production."
 ---
 
-VectorAI DB exposes a `/metrics` endpoint on the REST API port (default `6333`) that serves metrics in Prometheus/OpenMetrics format. Use these metrics to monitor REST API usage, process health, application status, and collection statistics.
+VectorAI DB exposes a `/metrics` endpoint on the REST API port (default `6573`) that serves metrics in Prometheus/OpenMetrics format. Use these metrics to monitor REST API usage, process health, application status, and collection statistics.
 
 | | |
 |---|---|
 | **Endpoint** | `GET /metrics` |
-| **Port** | REST API port (default `6333`) |
+| **Port** | REST API port (default `6573`) |
 | **Format** | Prometheus / OpenMetrics |
 
 ## Scrape configuration
@@ -20,7 +20,7 @@ scrape_configs:
   - job_name: "vectorai"
     scrape_interval: 15s
     static_configs:
-      - targets: ["localhost:6333"]
+      - targets: ["localhost:6573"]
 ```
 
 For Docker Compose deployments, replace `localhost` with the service name:
@@ -30,7 +30,7 @@ scrape_configs:
   - job_name: "vectorai"
     scrape_interval: 15s
     static_configs:
-      - targets: ["vectorai:6333"]
+      - targets: ["vectorai:6573"]
 ```
 
 <Info>
