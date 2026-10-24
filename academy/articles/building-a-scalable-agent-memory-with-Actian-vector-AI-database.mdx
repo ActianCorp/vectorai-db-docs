@@ -86,7 +86,7 @@ from actian_vectorai import (
     AsyncVectorAIClient,
     ConnectionPool,       # production connection pool
     PoolConfig,           # pool configuration settings
-    Distance,             # vector distance metrics (Cosine, Dot, Euclid, Manhattan)
+    Distance,             # vector distance metrics (Cosine, Dot, Euclid)
     Field,
     FieldType,
     FilterBuilder,
@@ -210,7 +210,6 @@ Alternative distance metrics — previous tutorials used `Distance.Cosine`. Acti
 | `Distance.Cosine` | 1 | Normalized embeddings, direction-based similarity. |
 | `Distance.Dot` | 3 | Raw dot product, magnitude-sensitive. |
 | `Distance.Euclid` | 2 | Absolute distance in embedding space. |
-| `Distance.Manhattan` | 4 | L1 norm, robust to outliers. |
 
 For legal clauses, Dot product is useful when embedding magnitude carries meaning — longer, more detailed clause descriptions produce higher-magnitude vectors, and Dot product preserves this signal.
 
