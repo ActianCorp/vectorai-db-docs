@@ -4,7 +4,7 @@ description: "Include metadata in search results."
 icon: "code"
 ---
 
-By default, search returns only vector IDs and similarity scores. To include metadata with your results, set `with_payload=True`.
+By default, search returns only vector IDs and similarity scores. Metadata is included with your results, because `with_payload=True` by default.
 
 Include payload data when you:
 
@@ -31,7 +31,6 @@ async def main():
             "my_collection",  # Collection name
             vector=query_vector,  # Query vector
             limit=10,  # Number of results
-            with_payload=True  # Include payload metadata
         )
         
         # Display results with payload
