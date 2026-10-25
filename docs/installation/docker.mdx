@@ -24,12 +24,12 @@ Choose one of the following options depending on your needs.
 Pull and run the VectorAI DB Docker container.
 
 ```bash
-docker pull actian/vectorai:latest
+docker pull actian/vectorai:1.0.3
 docker run -d --name vectorai \
   -v ./local_data:/var/lib/actian-vectorai \
   -p 6573-6575:6573-6575 \
   -e ACTIAN_VECTORAI_ACCEPT_EULA=YES \
-  actian/vectorai:latest
+  actian/vectorai:1.0.3
 ```
 
 For this and other options, the gRPC server is available at `localhost:6574`. The Local UI is available at `localhost:6575`.
@@ -43,7 +43,7 @@ docker run -d --name vectorai \
   -v ./local_data:/var/lib/actian-vectorai \
   -p 6573-6575:6573-6575 \
   -e ACTIAN_VECTORAI_ACCEPT_EULA=YES \
-  actian/vectorai:latest
+  actian/vectorai:1.0.3
 ```
 
 ### Option 3: Using Docker Compose
@@ -53,7 +53,7 @@ Create a `docker-compose.yml` file:
 ```yaml
 services:
   vectorai:
-    image: actian/vectorai:latest
+    image: actian/vectorai:1.0.3
     ports:
       - "6573:6573"
 	  - "6574:6574"
