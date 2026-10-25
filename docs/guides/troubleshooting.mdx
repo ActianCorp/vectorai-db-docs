@@ -22,7 +22,7 @@ Before diving into specific issues, verify the following:
 | `UNAVAILABLE` error from SDK | Server starting up, network blocked | [Connection issues](#connection-issues) |
 | Search returns no results | Empty collection, wrong query vector dimensions | [Search issues](#search-issues) |
 | Search results have poor quality | Low `hnsw_ef`, unoptimized index | [Search quality](#search-quality) |
-| Slow ingestion | High `hnsw_ef_construction`, insufficient memory | [Performance issues](#performance-issues) |
+| Slow ingestion | High `hnsw_ef_construct`, insufficient memory | [Performance issues](#performance-issues) |
 | Slow queries | Low `hnsw_ef`, cold index | [Performance issues](#performance-issues) |
 | Container exits immediately | Config error, missing license file | [Startup failures](#startup-failures) |
 | High memory usage | Large number of vectors, high concurrency, indexing workload, insufficient RAM | [Memory issues](#memory-issues) |
@@ -156,7 +156,7 @@ If search returns results but they are inaccurate or irrelevant, the issue is us
 
 | Cause | Solution |
 |-------|----------|
-| High `hnsw_ef_construction` | Reduce to 100 for bulk loads; increase after |
+| High `hnsw_ef_construct` | Reduce to 100 for bulk loads; increase after |
 | Inserting points one by one | Batch inserts — use lists of 100–1000 points per call |
 | Insufficient memory | Increase container memory limit |
 
