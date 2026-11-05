@@ -3,7 +3,7 @@ title: "Adaptive RAG systems"
 description: "Learn how to build a Retrieval-Augmented Generation system that adapts its retrieval strategy at runtime based on query type, confidence signals, and user feedback — using Actian VectorAI DB's multistage prefetch, fusion, score thresholds, payload-driven routing, and feedback loops." 
 ---
 
-Standard RAG is a fixed pipeline: embed the query, search the vector database, stuff the top-K results into a prompt, and call the LLM. This works for simple factual questions but fails in practice because:
+Standard RAG is a fixed pipeline: Embed the query, search the vector database, stuff the top-K results into a prompt, and call the LLM. This works for simple factual questions but fails in practice because:
 
 - Not all queries need retrieval. "What is 2 + 2?" should skip the vector database entirely.
 - Different queries need different retrieval strategies. A factual lookup needs high-precision single-pass search. An exploratory question needs broad multistage retrieval across multiple document types.
