@@ -81,7 +81,8 @@
               "docs/integrations/index",
               "docs/integrations/langchain",
               "docs/integrations/llama-index",
-              "docs/integrations/scalekit"
+              "docs/integrations/scalekit",
+              "docs/integrations/actian-mcp-server"
             ]
           },
           {

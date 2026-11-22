@@ -5,7 +5,7 @@ description: "Connect VectorAI DB with embedding providers, AI frameworks, and a
 
 VectorAI DB integrates with popular AI frameworks, embedding providers, and identity platforms so you can focus on application logic rather than infrastructure. Use any supported integration to generate embeddings, store vectors, and run similarity searches with minimal setup.
 
-Choose a framework integration like LangChain or LlamaIndex when you want built-in abstractions for RAG pipelines, retriever chains, and document management. Choose an embedding provider directly when you need full control over how vectors are generated and stored using the VectorAI DB client. Use the Scalekit integration when you need agent memory scoped to authenticated users.
+Choose a framework integration like LangChain or LlamaIndex when you want built-in abstractions for RAG pipelines, retriever chains, and document management. Choose an embedding provider directly when you need full control over how vectors are generated and stored using the VectorAI DB client. Use the Scalekit integration when you need agent memory scoped to authenticated users. Use the Actian MCP Server when an AI assistant or agent should work with your collections through the Model Context Protocol.
 
 ## Frameworks
 
@@ -28,6 +28,16 @@ Scope vector data to authenticated users.
   </Card>
 </CardGroup>
 
+## AI assistants and agents
+
+Give MCP clients such as Claude Desktop, Claude Code, or your own agent direct access to collections.
+
+<CardGroup cols={2}>
+  <Card title="Actian MCP Server" icon="robot" href="/docs/integrations/actian-mcp-server">
+    Expose VectorAI DB collections as MCP tools: semantic search, browsing, and approved writes, with no code in the client.
+  </Card>
+</CardGroup>
+
 ## How integrations work
 
 All integrations follow the same pattern:
@@ -43,3 +53,4 @@ All integrations follow the same pattern:
 | [LangChain](/docs/integrations/langchain) | Framework | RAG pipelines, retriever chains, similarity search with document abstractions |
 | [LlamaIndex](/docs/integrations/llama-index) | Framework | Query engines, data agents, and RAG applications |
 | [Scalekit](/docs/integrations/scalekit) | Auth and identity | Per-user agent memory scoped to authenticated users |
+| [Actian MCP Server](/docs/integrations/actian-mcp-server) | AI assistants and agents | Semantic search and approved writes from Claude, Cursor, and other MCP clients |

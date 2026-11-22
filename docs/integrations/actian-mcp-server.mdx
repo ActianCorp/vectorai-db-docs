@@ -1,0 +1,88 @@
+---
+title: "Actian MCP Server"
+description: "Let AI assistants and agents search, browse, and write VectorAI DB collections through the Model Context Protocol."
+---
+
+The [Actian MCP Server](https://docs.actian.com/mcp-server/latest/vectorai-db/index.html) exposes VectorAI DB collections to AI assistants and agents through the open [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). An MCP client such as Claude Desktop, Claude Code, Cursor, or your own agent sees the configured collections as tools: it can search them by meaning, browse and count points, and, when you enable writes, store or delete points after a person approves each write.
+
+The server runs as a container and talks to the engine over its REST API. Nothing is installed in VectorAI DB itself.
+
+## What the server provides
+
+| Area | Tools and features |
+|------|--------------------|
+| Semantic search | `search` embeds a natural-language query and returns the nearest points with id, score, payload, and text. `search_by_vector` takes a ready vector. Both accept a payload filter and a score threshold. |
+| Browse | `list_collections`, `describe_collection`, `count_points`, `scroll_points` show the configured collections with their live state on the engine and page through them. |
+| Writes (optional) | `create_collection`, `store`, `store_batch`, `delete_points` when `query_mode` is `read-write`. Every write waits for approval from the person at the MCP client. |
+| Resources and prompts | Health, collection list, and per-collection detail as MCP resources; `find_information` and `store_information` prompts. |
+| Audit | One JSON record per tool call in the container log. |
+
+Only collections listed in the server configuration are visible to the client. A collection that exists on the engine but is not listed cannot be searched or written.
+
+## Requirements
+
+- A running Actian VectorAI DB engine that the container can reach over REST (default port 6573). The engine inside an Actian Zen AI DB installation works as is. For a stand-alone engine, see [Docker](/home/installation/instructions).
+- Docker on the host that runs the MCP Server.
+- An embedding endpoint for text search and `store`: any server that speaks the OpenAI embeddings API (Text Embeddings Inference, Ollama, vLLM), or an OpenAI or Gemini API key. Without one, set the provider to `none` and search with `search_by_vector` only.
+- An access token, only when [authentication is enabled](/api-reference/admin-user/set-auth-enabled) on the engine. See [Access tokens](#access-tokens).
+
+## Quickstart
+
+Create `conf.json`. This example exposes one collection read-only and embeds query text with a model served by a local OpenAI-compatible endpoint, here Ollama on the host:
+
+```json
+{
+  "host": "0.0.0.0",
+  "port": 8000,
+  "query_mode": "read-only",
+  "vectorai": { "url": "http://host.docker.internal:6573" },
+  "embedding": {
+    "provider": "openai",
+    "model": "bge-m3",
+    "base_url": "http://host.docker.internal:11434/v1"
+  },
+  "collections": [
+    { "name": "documents", "description": "Product manuals, one chunk per point" }
+  ]
+}
+```
+
+Use the same embedding model that filled the collection. The engine stores vectors, not the model name, and a query embedded with a different model returns meaningless scores.
+
+Start the server:
+
+```bash
+docker run -d \
+  --name vectorai-mcp \
+  -p 8000:8000 \
+  --add-host=host.docker.internal:host-gateway \
+  -v $(pwd)/conf.json:/app/conf.json:ro \
+  actian/vectorai-mcp-server:1.2.0
+```
+
+The server checks the engine once at start and exits when the engine does not answer, so start the engine first. The MCP endpoint is `http://localhost:8000/mcp` (streamable HTTP). Point your MCP client at it; see [Connecting MCP clients](https://docs.actian.com/mcp-server/latest/mcp-clients/index.html) for Claude Desktop, Claude Code, and other clients.
+
+To let the client store text as well, set `query_mode` to `read-write`. Each `store`, `store_batch`, `create_collection`, and `delete_points` call then asks the person at the client for approval before anything reaches the engine.
+
+## Access tokens
+
+When authentication is enabled on the engine, every REST request needs an access token. [Create one](/api-reference/access-tokens/create-access-token) with permission `read` for a read-only server or `read,write` for a read-write server, and give it to the MCP Server either in `conf.json`:
+
+```json
+"vectorai": { "url": "http://host.docker.internal:6573", "api_key_secret": "vdai_..." }
+```
+
+or as the environment variable `VECTORAI_API_KEY`. The server sends it as the `api-key` header on every call. Use `https://` for an engine on another host; the server warns at start when a token travels over plain `http://`.
+
+The access token protects the engine. Protecting the MCP Server itself, so that only authenticated users reach the tools, is a separate option described in [Authentication](https://docs.actian.com/mcp-server/latest/vectorai-db/authentication/index.html).
+
+## Learn more
+
+The full documentation lives on the Actian MCP Server site:
+
+- [Overview and configuration reference](https://docs.actian.com/mcp-server/latest/vectorai-db/index.html) — every `conf.json` key, embedding providers, the call log.
+- [Tools](https://docs.actian.com/mcp-server/latest/vectorai-db/tools/index.html) — arguments and output of each tool.
+- [Write support](https://docs.actian.com/mcp-server/latest/vectorai-db/write-support.html) — the approval flow and the `mcp:write` scope.
+- [Authentication](https://docs.actian.com/mcp-server/latest/vectorai-db/authentication/index.html) — OAuth with Auth0, Keycloak, or your own identity provider.
+- [Extensions](https://docs.actian.com/mcp-server/latest/vectorai-db/extensions/index.html) — add your own tools in Python.
+- [`actian/vectorai-mcp-server` on Docker Hub](https://hub.docker.com/r/actian/vectorai-mcp-server) — the container image.
