@@ -3,7 +3,7 @@ title: "Actian MCP Server"
 description: "Let AI assistants and agents search, browse, and write VectorAI DB collections through the Model Context Protocol."
 ---
 
-The [Actian MCP Server](https://docs.actian.com/mcp-server/latest/vectorai-db/index.html) exposes VectorAI DB collections to AI assistants and agents through the open [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). An MCP client such as Claude Desktop, Claude Code, Cursor, or your own agent sees the configured collections as tools: it can search them by meaning, browse and count points, and, when you enable writes, store or delete points after a person approves each write.
+The [Actian MCP Server](https://docs.actian.com/mcp-server/latest/vectorai-db/index.html) exposes VectorAI DB collections to AI assistants and agents through the open [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). An MCP client such as Claude Desktop, Claude Code, Cursor, or your own agent sees the configured collections as tools: it can search them by meaning, browse and count points, and, when you enable writes, store or delete points after a person approves each write. The approval prompt needs a client that supports MCP elicitation; Claude Code does, Claude Desktop does not. See [Connecting MCP clients](https://docs.actian.com/mcp-server/latest/mcp-clients/index.html) for the current list.
 
 The server runs as a container and talks to the engine over its REST API. Nothing is installed in VectorAI DB itself.
 
@@ -13,8 +13,8 @@ The server runs as a container and talks to the engine over its REST API. Nothin
 |------|--------------------|
 | Semantic search | `search` embeds a natural-language query and returns the nearest points with id, score, payload, and text. `search_by_vector` takes a ready vector. Both accept a payload filter and a score threshold. |
 | Browse | `list_collections`, `describe_collection`, `count_points`, `scroll_points` show the configured collections with their live state on the engine and page through them. |
-| Writes (optional) | `create_collection`, `store`, `store_batch`, `delete_points` when `query_mode` is `read-write`. Every write waits for approval from the person at the MCP client. |
-| Resources and prompts | Health, collection list, and per-collection detail as MCP resources; `find_information` and `store_information` prompts. |
+| Writes (optional) | `create_collection`, `store`, `store_batch`, `delete_points` when `query_mode` is `read-write`. By default every write waits for approval from the person at the MCP client. |
+| Resources and prompts | Health, collection list, and per-collection detail as MCP resources; a `find_information` prompt, and a `store_information` prompt in read-write mode. |
 | Audit | One JSON record per tool call in the container log. |
 
 Only collections listed in the server configuration are visible to the client. A collection that exists on the engine but is not listed cannot be searched or written.
@@ -47,7 +47,7 @@ Create `conf.json`. This example exposes one collection read-only and embeds que
 }
 ```
 
-Use the same embedding model that filled the collection. The engine stores vectors, not the model name, and a query embedded with a different model returns meaningless scores.
+Use the same embedding model that filled the collection. The engine stores vectors, not the model name, and a query embedded with a different model returns meaningless scores. On Linux, Ollama must listen on all interfaces (`OLLAMA_HOST=0.0.0.0`) to be reachable from the container.
 
 Start the server:
 
@@ -62,7 +62,7 @@ docker run -d \
 
 The server checks the engine once at start and exits when the engine does not answer, so start the engine first. The MCP endpoint is `http://localhost:8000/mcp` (streamable HTTP). Point your MCP client at it; see [Connecting MCP clients](https://docs.actian.com/mcp-server/latest/mcp-clients/index.html) for Claude Desktop, Claude Code, and other clients.
 
-To let the client store text as well, set `query_mode` to `read-write`. Each `store`, `store_batch`, `create_collection`, and `delete_points` call then asks the person at the client for approval before anything reaches the engine.
+To let the client store text as well, set `query_mode` to `read-write`. Each `store`, `store_batch`, `create_collection`, and `delete_points` call then asks the person at the client for approval before the write reaches the engine. The text is embedded first, so with a hosted embedding provider it reaches that provider even when the write is then declined; a local endpoint keeps it on your network.
 
 ## Access tokens
 
@@ -72,11 +72,11 @@ When authentication is enabled on the engine, every REST request needs an access
 "vectorai": { "url": "http://host.docker.internal:6573", "api_key_secret": "vdai_..." }
 ```
 
-or as the environment variable `VECTORAI_API_KEY`. The server sends it as the `api-key` header on every call. Use `https://` for an engine on another host; the server warns at start when a token travels over plain `http://`.
+or as the environment variable `VECTORAI_API_KEY`. The server sends it as the `api-key` header on every call. It warns at start when the token travels over plain `http://` to any host other than `localhost`, which includes `host.docker.internal` in the example above. Where the engine is reachable over `https://`, use that URL; `vectorai.ca_file` names the CA bundle for a private certificate authority.
 
 The access token protects the engine. Protecting the MCP Server itself, so that only authenticated users reach the tools, is a separate option described in [Authentication](https://docs.actian.com/mcp-server/latest/vectorai-db/authentication/index.html).
 
-## Learn more
+## Next steps
 
 The full documentation lives on the Actian MCP Server site:
 
