@@ -4,7 +4,7 @@ description: "Improve search robustness by fusing results from query vector vari
 icon: "code"
 ---
 
-Query variation fusion generates slight perturbations of a query vector and searches with each variation. Fusing the results reduces sensitivity to the exact query representation and improves the robustness of retrieval. This approach is useful when small changes in the query vector can lead to different result rankings.
+Query fusion generates slight perturbations of a query vector and searches with each variation. Fusing the results reduces sensitivity to the exact query representation and improves the robustness of retrieval. This approach is useful when small changes in the query vector can lead to different result rankings.
 
 The example below creates four variations of a base query vector by adding small amounts of random noise, searches with each variation, and then applies DBSF to combine the results into a single ranked list.
 
